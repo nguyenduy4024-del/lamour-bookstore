@@ -24,8 +24,8 @@ const supplierSchema = new mongoose.Schema(
       required: [true, 'Vui lòng nhập số điện thoại nhà cung cấp'],
       trim: true,
       match: [
-        /^0[0-9]{8,9}$/,
-        'Số điện thoại phải bắt đầu bằng số 0 và có 9 hoặc 10 chữ số'
+        /^0[0-9]{8,10}$/,
+        'Số điện thoại phải bắt đầu bằng số 0 và có từ 9 đến 11 chữ số'
       ]
     },
     email: {

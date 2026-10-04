@@ -1,4 +1,10 @@
 const mongoose = require('mongoose');
+const dns = require('dns');
+
+// Thiết lập DNS dự phòng để đảm bảo kết nối SRV tới MongoDB Atlas không bị chặn trên Windows/Router
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (_) {}
 
 const connectDB = async () => {
   try {

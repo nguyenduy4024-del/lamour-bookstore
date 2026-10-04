@@ -198,9 +198,9 @@ const seedData = async () => {
     // 7. Tạo một số Nhà cung cấp mẫu
     console.log('🏭 Đang khởi tạo Nhà cung cấp mẫu...');
     await Supplier.create([
-      { name: 'NXB Kim Đồng', phone: '02838222732', email: 'nxbkimdong@gmail.com', address: '247 Vũ Hữu, Hà Nội' },
-      { name: 'NXB Trẻ', phone: '02839316289', email: 'nxbtre@gmail.com', address: '161 Lý Chính Thắng, Q3, TP.HCM' },
-      { name: 'Nhã Nam Books', phone: '02435146869', email: 'nhanam@gmail.com', address: '59 Đỗ Quang, Cầu Giấy, Hà Nội' }
+      { code: 'NCC-KD', name: 'NXB Kim Đồng', phone: '02838222732', email: 'nxbkimdong@gmail.com', address: '247 Vũ Hữu, Hà Nội' },
+      { code: 'NCC-TRE', name: 'NXB Trẻ', phone: '02839316289', email: 'nxbtre@gmail.com', address: '161 Lý Chính Thắng, Q3, TP.HCM' },
+      { code: 'NCC-NN', name: 'Nhã Nam Books', phone: '02435146869', email: 'nhanam@gmail.com', address: '59 Đỗ Quang, Cầu Giấy, Hà Nội' }
     ]);
     console.log('✅ Đã tạo thành công 3 Nhà cung cấp mẫu!');
 
@@ -226,14 +226,13 @@ const seedData = async () => {
     const paymentMethods = ['cash', 'transfer', 'card'];
 
     // Phân bổ đủ mọi trạng thái cho 100 đơn:
-    // 30 paid, 25 completed, 12 unpaid, 12 processing, 11 shipping, 5 overdue, 5 cancelled = 100
+    // 35 completed, 20 pending_confirmation, 15 delivering, 15 processing, 10 shipping, 5 cancelled = 100
     const statusesPool = [
-      ...Array(30).fill('paid'),
-      ...Array(25).fill('completed'),
-      ...Array(12).fill('unpaid'),
-      ...Array(12).fill('processing'),
-      ...Array(11).fill('shipping'),
-      ...Array(5).fill('overdue'),
+      ...Array(35).fill('completed'),
+      ...Array(20).fill('pending_confirmation'),
+      ...Array(15).fill('delivering'),
+      ...Array(15).fill('processing'),
+      ...Array(10).fill('shipping'),
       ...Array(5).fill('cancelled')
     ];
 
