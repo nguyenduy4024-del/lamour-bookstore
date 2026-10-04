@@ -893,18 +893,23 @@
           } else {
             const maxRev = Math.max(1, ...timeline.map(t => Math.max(t.revenue || 0, t.grossProfit || 0)));
             chartBox.innerHTML = timeline.map(t => {
-              const revPct = Math.max(4, Math.round(((t.revenue || 0) / maxRev) * 100));
-              const profitPct = Math.max(2, Math.round(((t.grossProfit || 0) / maxRev) * 100));
-              const revShort = (t.revenue || 0) >= 1000000 ? ((t.revenue || 0) / 1000000).toFixed(1) + 'M' : ((t.revenue || 0) > 0 ? ((t.revenue || 0) / 1000).toFixed(0) + 'k' : '0');
+              const revVal = t.revenue || 0;
+              const profitVal = t.grossProfit || 0;
+              const revRatio = maxRev > 0 ? (revVal / maxRev) : 0;
+              const profitRatio = maxRev > 0 ? (profitVal / maxRev) : 0;
+              // Tỷ lệ hiển thị nâng cao giúp các cột cao ráo, bề thế, không bị lùn (từ 25% đến 96%)
+              const revPct = revVal > 0 ? Math.min(96, Math.max(24, Math.round(Math.pow(revRatio, 0.7) * 96))) : 0;
+              const profitPct = profitVal > 0 ? Math.min(92, Math.max(16, Math.round(Math.pow(profitRatio, 0.7) * 92))) : 0;
+              const revShort = revVal >= 1000000 ? (revVal / 1000000).toFixed(1) + 'M' : (revVal > 0 ? (revVal / 1000).toFixed(0) + 'k' : '0');
               const dateStr = String(t.date || t._id || '');
               const shortDate = dateStr.length >= 5 ? dateStr.slice(-5) : dateStr;
-              return '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:38px;" title="' + dateStr + ': Doanh thu ' + formatVND(t.revenue || 0) + ' | Lợi nhuận ' + formatVND(t.grossProfit || 0) + '">' +
-                '<div style="font-size:9.5px; font-weight:600; color:var(--navy-900); margin-bottom:3px; white-space:nowrap;">' + ((t.revenue || 0) > 0 ? revShort : '') + '</div>' +
-                '<div style="display:flex; align-items:flex-end; gap:3px; width:100%; max-width:32px; height:100%;">' +
-                  '<div style="flex:1; height:' + revPct + '%; background:linear-gradient(180deg, var(--gold) 0%, var(--gold-dark) 100%); border-radius:3px 3px 0 0;"></div>' +
-                  '<div style="flex:1; height:' + profitPct + '%; background:linear-gradient(180deg, #10B981 0%, #059669 100%); border-radius:3px 3px 0 0;"></div>' +
+              return '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:44px; padding:0 2px; transition:transform 0.2s;" onmouseover="this.style.transform=\'translateY(-4px)\'" onmouseout="this.style.transform=\'none\'" title="' + dateStr + ': Doanh thu ' + formatVND(revVal) + ' | Lợi nhuận ' + formatVND(profitVal) + '">' +
+                '<div style="font-size:10.5px; font-weight:700; color:var(--navy-900); margin-bottom:6px; white-space:nowrap;">' + (revVal > 0 ? revShort : '') + '</div>' +
+                '<div style="flex:1; display:flex; align-items:flex-end; gap:5px; width:100%; max-width:38px; min-height:230px;">' +
+                  '<div style="flex:1; height:' + revPct + '%; min-height:16px; background:linear-gradient(180deg, #F59E0B 0%, #D97706 100%); border-radius:4px 4px 0 0; box-shadow:0 3px 6px rgba(245,158,11,0.3);"></div>' +
+                  '<div style="flex:1; height:' + profitPct + '%; min-height:10px; background:linear-gradient(180deg, #10B981 0%, #059669 100%); border-radius:4px 4px 0 0; box-shadow:0 3px 6px rgba(16,185,129,0.3);"></div>' +
                 '</div>' +
-                '<div style="font-size:11px; font-family:monospace; color:var(--muted); margin-top:6px; white-space:nowrap;">' + shortDate + '</div>' +
+                '<div style="font-size:11px; font-weight:600; font-family:monospace; color:var(--muted); margin-top:8px; white-space:nowrap;">' + shortDate + '</div>' +
               '</div>';
             }).join('');
             if (summaryText) {

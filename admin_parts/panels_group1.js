@@ -311,8 +311,8 @@ module.exports = `
             </div>
 
             <!-- Chart Container -->
-            <div id="analyticsChartBars" style="display:flex; align-items:flex-end; gap:10px; height:220px; padding:12px 0 6px; border-bottom:1px solid var(--line); overflow-x:auto;">
-              <div style="width:100%; text-align:center; color:var(--muted); padding-top:80px; font-size:12.5px;">Đang tính toán biểu đồ...</div>
+            <div id="analyticsChartBars" style="display:flex; align-items:flex-end; gap:12px; height:330px; padding:16px 8px 8px; border-bottom:1px solid var(--line); overflow-x:auto; background:linear-gradient(180deg, rgba(248,250,252,0.5) 0%, rgba(255,255,255,1) 100%); border-radius:8px;">
+              <div style="width:100%; text-align:center; color:var(--muted); padding-top:120px; font-size:12.5px;">Đang tính toán biểu đồ...</div>
             </div>
           </div>
 
