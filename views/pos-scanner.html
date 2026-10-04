@@ -1,0 +1,1713 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>POS Scanner — L'Amour</title>
+  <style>
+    :root {
+      --n950: #061122;
+      --n900: #0A1930;
+      --n850: #0D203D;
+      --n800: #122B52;
+      --n700: #1B3B6F;
+      --n600: #234985;
+      --gold: #C7A15A;
+      --goldL: #E0C287;
+      --em: #10B981;
+      --red: #EF4444;
+      --amber: #F59E0B;
+      --muted: #94A3B8;
+      --card-bg: rgba(18, 43, 82, 0.65);
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: var(--n950);
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      height: 100dvh;
+      max-width: 540px;
+      margin: 0 auto;
+      background: var(--n900);
+      position: relative;
+    }
+
+    /* HEADER */
+    .hdr {
+      padding: env(safe-area-inset-top, 0) 14px 0;
+      background: rgba(6, 17, 34, 0.98);
+      border-bottom: 1px solid rgba(199, 161, 90, 0.2);
+      flex-shrink: 0;
+      z-index: 30;
+    }
+    .hdr-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .logo {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--gold), #8A6827);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #FFF;
+      box-shadow: 0 2px 8px rgba(199, 161, 90, 0.3);
+    }
+    .brand-name {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #FFF;
+      letter-spacing: -0.2px;
+    }
+    .brand-sub {
+      font-size: 9.5px;
+      color: var(--goldL);
+      font-family: monospace;
+    }
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 9px;
+      border-radius: 20px;
+      font-size: 10.5px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .pill.ok {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34D399;
+    }
+    .pill.err {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #F87171;
+    }
+    .pill.wait {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #FCD34D;
+    }
+    .pdot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: blink 1.8s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ACTIVE ORDER LINK BAR (STICKY) */
+    .order-bar {
+      background: linear-gradient(90deg, rgba(13, 32, 61, 0.98), rgba(18, 43, 82, 0.98));
+      border-bottom: 1.5px solid rgba(199, 161, 90, 0.35);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+      flex-shrink: 0;
+      z-index: 25;
+      transition: background 0.15s;
+    }
+    .order-bar:active {
+      background: rgba(27, 59, 111, 0.95);
+    }
+    .ob-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      flex: 1;
+    }
+    .ob-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(199, 161, 90, 0.15);
+      border: 1px solid rgba(199, 161, 90, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      color: var(--goldL);
+      flex-shrink: 0;
+    }
+    .ob-meta {
+      min-width: 0;
+      flex: 1;
+    }
+    .ob-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ob-code {
+      color: var(--goldL);
+      font-family: monospace;
+      letter-spacing: 0.3px;
+    }
+    .ob-sub {
+      font-size: 10.5px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ob-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(199, 161, 90, 0.18);
+      border: 1px solid rgba(199, 161, 90, 0.45);
+      color: var(--goldL);
+      border-radius: 8px;
+      padding: 5px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* MAIN VIEW CONTAINER */
+    .main-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* CAMERA WRAPPER */
+    .cam-wrap {
+      height: 36vh;
+      min-height: 220px;
+      max-height: 300px;
+      position: relative;
+      background: #000;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    #qr-reader {
+      width: 100% !important;
+      height: 100% !important;
+      border: none !important;
+    }
+    #qr-reader video {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+    }
+    #qr-reader__scan_region {
+      background: transparent !important;
+    }
+    #qr-reader__dashboard {
+      display: none !important;
+    }
+    #camLoad {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #061122;
+      z-index: 12;
+      gap: 10px;
+    }
+    .spin {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(199, 161, 90, 0.2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    .rbox {
+      width: 76%;
+      max-width: 280px;
+      height: 140px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      position: relative;
+      box-shadow: 0 0 0 2500px rgba(6, 17, 34, 0.55);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .rbox.ok {
+      border-color: var(--em) !important;
+      box-shadow: 0 0 0 2500px rgba(6, 17, 34, 0.35), 0 0 35px rgba(16, 185, 129, 0.7) !important;
+    }
+    .rbox.err {
+      border-color: var(--red) !important;
+      box-shadow: 0 0 0 2500px rgba(6, 17, 34, 0.35), 0 0 35px rgba(239, 68, 68, 0.7) !important;
+    }
+    .co {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-color: var(--gold);
+      border-style: solid;
+    }
+    .co.tl { top: -2px; left: -2px; border-width: 3px 0 0 3px; border-top-left-radius: 12px; }
+    .co.tr { top: -2px; right: -2px; border-width: 3px 3px 0 0; border-top-right-radius: 12px; }
+    .co.bl { bottom: -2px; left: -2px; border-width: 0 0 3px 3px; border-bottom-left-radius: 12px; }
+    .co.br { bottom: -2px; right: -2px; border-width: 0 3px 3px 0; border-bottom-right-radius: 12px; }
+    .laser {
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #EF4444cc, #FCA5A5, #EF4444cc, transparent);
+      box-shadow: 0 0 8px 2px #EF4444aa;
+      border-radius: 50%;
+      top: 15%;
+      animation: sw 1.8s ease-in-out infinite alternate;
+    }
+    @keyframes sw {
+      0% { top: 12%; }
+      100% { top: 88%; }
+    }
+    .rhint {
+      position: absolute;
+      bottom: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.85);
+      background: rgba(6, 17, 34, 0.75);
+      padding: 2px 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      white-space: nowrap;
+    }
+    .fabs {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      z-index: 15;
+    }
+    .fab {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(6, 17, 34, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: all 0.15s;
+    }
+    .fab:active { transform: scale(0.92); }
+    .fab.lit { background: var(--gold); color: var(--n950); }
+
+    /* ORDER CART ITEMS SECTION */
+    .order-items-sec {
+      flex: 1;
+      background: var(--n900);
+      overflow-y: auto;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .sec-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+    .sec-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #CBD5E1;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sec-badge {
+      background: rgba(199, 161, 90, 0.2);
+      color: var(--goldL);
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+    .sec-total {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--goldL);
+      font-family: monospace;
+    }
+
+    /* CART ITEM CARD */
+    .ci-card {
+      background: var(--card-bg);
+      border: 1px solid rgba(199, 161, 90, 0.2);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: fadeIn 0.18s ease;
+      transition: border-color 0.15s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: none; }
+    }
+    .ci-card.highlight {
+      border-color: var(--em);
+      background: rgba(16, 185, 129, 0.08);
+    }
+    .ci-img {
+      width: 36px;
+      height: 48px;
+      border-radius: 5px;
+      object-fit: cover;
+      background: var(--n700);
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+    .ci-details {
+      flex: 1;
+      min-width: 0;
+    }
+    .ci-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: #FFF;
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .ci-row-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .ci-price-info {
+      font-size: 11px;
+      color: var(--goldL);
+      font-weight: 600;
+      font-family: monospace;
+    }
+    .ci-qty-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(6, 17, 34, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 6px;
+      padding: 2px 6px;
+    }
+    .qty-btn {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: none;
+      background: rgba(255, 255, 255, 0.1);
+      color: #FFF;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .qty-btn:active {
+      transform: scale(0.9);
+      background: var(--gold);
+      color: var(--n950);
+    }
+    .qty-val {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #FFF;
+      min-width: 14px;
+      text-align: center;
+    }
+    .ci-btn-del {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #F87171;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .ci-btn-del:active {
+      transform: scale(0.88);
+      background: rgba(239, 68, 68, 0.35);
+    }
+    .empty-cart-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 16px;
+      text-align: center;
+      color: var(--muted);
+      border: 1.5px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      margin: auto 0;
+    }
+    .empty-cart-icon {
+      font-size: 32px;
+      margin-bottom: 6px;
+      opacity: 0.7;
+    }
+    .empty-cart-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #CBD5E1;
+      margin-bottom: 4px;
+    }
+    .empty-cart-desc {
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    /* LAST SCANNED BANNER / TOAST */
+    .scan-toast {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      background: rgba(10, 25, 48, 0.95);
+      border: 1.5px solid var(--em);
+      border-radius: 11px;
+      padding: 9px 12px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(16, 185, 129, 0.3);
+      z-index: 50;
+      animation: slideDown 0.2s ease;
+      backdrop-filter: blur(10px);
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: none; }
+    }
+    .st-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .st-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .st-title {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #FFF;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .st-sub {
+      font-size: 10.5px;
+      color: #34D399;
+      font-weight: 600;
+    }
+    .st-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    /* BOTTOM CONTROLS */
+    .bottom-bar {
+      background: rgba(6, 17, 34, 0.98);
+      border-top: 1px solid rgba(199, 161, 90, 0.2);
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+      display: grid;
+      grid-template-columns: 1.2fr 1.2fr 1fr;
+      gap: 8px;
+      flex-shrink: 0;
+      z-index: 30;
+    }
+    .btn {
+      padding: 10px 8px;
+      border-radius: 9px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 1px solid transparent;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn:active {
+      transform: scale(0.97);
+    }
+    .btn-out {
+      background: rgba(255, 255, 255, 0.06);
+      color: #CBD5E1;
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold), #9C7C3B);
+      color: var(--n950);
+      font-weight: 700;
+      box-shadow: 0 2px 10px rgba(199, 161, 90, 0.25);
+    }
+    .btn-blue {
+      background: rgba(27, 59, 111, 0.6);
+      color: #93C5FD;
+      border-color: rgba(59, 130, 246, 0.35);
+    }
+
+    /* MODAL CHỌN ĐƠN HÀNG (DRAWER) */
+    .drawer-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      z-index: 200;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .drawer-bg.open {
+      display: flex;
+    }
+    .drawer-sheet {
+      width: 100%;
+      max-width: 500px;
+      max-height: 80vh;
+      background: var(--n900);
+      border-top: 2px solid var(--gold);
+      border-top-left-radius: 18px;
+      border-top-right-radius: 18px;
+      padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      animation: sheetUp 0.2s ease;
+    }
+    @keyframes sheetUp {
+      from { transform: translateY(100%); }
+      to { transform: none; }
+    }
+    .dr-hdr {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+    .dr-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .dr-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .dr-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .order-select-card {
+      background: var(--n800);
+      border: 1.5px solid rgba(199, 161, 90, 0.25);
+      border-radius: 11px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .order-select-card.active-sel {
+      border-color: var(--gold);
+      background: rgba(199, 161, 90, 0.12);
+    }
+    .order-select-card:active {
+      transform: scale(0.98);
+    }
+    .osc-info {
+      min-width: 0;
+      flex: 1;
+    }
+    .osc-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 3px;
+    }
+    .osc-code {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--goldL);
+      font-family: monospace;
+    }
+    .osc-idx {
+      font-size: 10.5px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: #E2E8F0;
+    }
+    .osc-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .osc-right {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .osc-total {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFF;
+      font-family: monospace;
+    }
+    .osc-tag {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #34D399;
+      display: block;
+      margin-top: 2px;
+    }
+    .btn-new-order {
+      width: 100%;
+      padding: 11px;
+      border-radius: 10px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34D399;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    .btn-new-order:active {
+      background: rgba(16, 185, 129, 0.25);
+    }
+
+    /* MODAL NHẬP MÃ TAY */
+    .minp {
+      width: 100%;
+      background: var(--n950);
+      border: 1.5px solid rgba(199, 161, 90, 0.4);
+      border-radius: 9px;
+      padding: 12px 14px;
+      color: #FFF;
+      font-family: monospace;
+      font-size: 15px;
+      outline: none;
+      margin-top: 8px;
+    }
+    .minp:focus {
+      border-color: var(--gold);
+    }
+
+    /* HTTPS BLOCKER */
+    #httpsBlocker {
+      position: absolute;
+      inset: 0;
+      z-index: 300;
+      background: linear-gradient(160deg, #0A0F1E, #061122);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      overflow-y: auto;
+    }
+    #httpsBlocker.hidden {
+      display: none;
+    }
+    .bl-icon { font-size: 46px; margin-bottom: 12px; }
+    .bl-title { font-size: 18px; font-weight: 800; color: #FFF; margin-bottom: 8px; }
+    .bl-sub { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+    .bl-steps {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: left;
+      width: 100%;
+      margin-bottom: 14px;
+    }
+    .bl-steps p { font-size: 11.5px; color: #CBD5E1; line-height: 1.8; }
+    .bl-steps strong { color: var(--goldL); }
+    .bl-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      background: linear-gradient(135deg, var(--gold), #9C7C3B);
+      color: var(--n950);
+      margin-bottom: 8px;
+    }
+    .bl-btnO {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      color: #CBD5E1;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-row">
+      <div class="brand">
+        <div class="logo">L</div>
+        <div>
+          <div class="brand-name">L'Amour POS Scanner</div>
+          <div class="brand-sub">Phiên: <span id="sesTag">...</span></div>
+        </div>
+      </div>
+      <div id="statusPill" class="pill wait">
+        <div class="pdot"></div>
+        <span id="statusTxt">Đang kết nối...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ACTIVE ORDER LINK BAR (CHỌN & LIÊN KẾT ĐƠN HÀNG VỚI MÁY TÍNH) -->
+  <div class="order-bar" onclick="openOrderDrawer()" title="Bấm để chọn đơn hàng">
+    <div class="ob-left">
+      <div class="ob-icon">🧾</div>
+      <div class="ob-meta">
+        <div class="ob-title">
+          <span>Đang liên kết:</span>
+          <span class="ob-code" id="activeOrdCode">---</span>
+          <span style="font-size:11px; color:#A7F3D0; font-weight:600;" id="activeOrdIdxTag"></span>
+        </div>
+        <div class="ob-sub" id="activeOrdMeta">Đang tải thông tin đơn hàng từ POS...</div>
+      </div>
+    </div>
+    <div class="ob-btn">
+      <span>Đổi đơn</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+  </div>
+
+  <!-- MAIN BODY -->
+  <div class="main-body">
+
+    <!-- SCAN SUCCESS TOAST -->
+    <div id="scanToast" class="scan-toast">
+      <div class="st-icon" id="stIcon">📖</div>
+      <div class="st-info">
+        <div class="st-title" id="stTitle">Tên sách</div>
+        <div class="st-sub" id="stSub">✓ Đã thêm vào đơn</div>
+      </div>
+      <button class="st-close" onclick="closeToast()">✕</button>
+    </div>
+
+    <!-- CAMERA PANEL -->
+    <div class="cam-wrap">
+      <div id="camLoad">
+        <div class="spin"></div>
+        <div style="font-size:12px;font-weight:600;color:var(--goldL);">Đang bật Camera...</div>
+      </div>
+      <div id="qr-reader"></div>
+      <div class="overlay">
+        <div id="rbox" class="rbox">
+          <div class="co tl"></div><div class="co tr"></div>
+          <div class="co bl"></div><div class="co br"></div>
+          <div class="laser"></div>
+          <div class="rhint">Hướng vào mã Barcode / QR</div>
+        </div>
+      </div>
+      <div class="fabs">
+        <button id="torchBtn" class="fab" onclick="toggleTorch()" title="Bật/Tắt Flash">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </button>
+        <button class="fab" onclick="flipCam()" title="Đổi camera">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ORDER ITEMS / CART LIST (SÁCH TRONG ĐƠN HIỆN TẠI) -->
+    <div class="order-items-sec">
+      <div class="sec-hdr">
+        <div class="sec-title">
+          <span>Sách trong đơn:</span>
+          <span class="sec-badge" id="cartCountBadge">0 món</span>
+        </div>
+        <div class="sec-total" id="cartTotalAmt">0 đ</div>
+      </div>
+
+      <div id="cartItemList" style="display:flex; flex-direction:column; gap:7px;">
+        <!-- Danh sách sách đã quét vào đơn sẽ hiển thị ở đây -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <button class="btn btn-gold" onclick="openManual()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="6" y1="9" x2="18" y2="9"/><line x1="6" y1="13" x2="14" y2="13"/></svg>
+      Nhập mã tay
+    </button>
+    <label class="btn btn-out" style="cursor:pointer;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Chụp / Tải ảnh
+      <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="handleFile(this)">
+    </label>
+    <button class="btn btn-blue" onclick="openOrderDrawer()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>
+      Xem đơn
+    </button>
+  </div>
+
+</div>
+
+<!-- DRAWER CHỌN ĐƠN HÀNG (LIST OF POS ORDERS) -->
+<div id="orderDrawer" class="drawer-bg" onclick="if(event.target===this)closeOrderDrawer()">
+  <div class="drawer-sheet">
+    <div class="dr-hdr">
+      <div class="dr-title">
+        <span>🧾 Danh sách đơn tại quầy POS</span>
+      </div>
+      <button class="dr-close" onclick="closeOrderDrawer()">✕</button>
+    </div>
+    <div class="dr-list" id="orderDrawerList">
+      <!-- Dynamic orders list -->
+    </div>
+    <button class="btn-new-order" onclick="requestNewOrder()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      + Mở thêm đơn mới trên quầy POS
+    </button>
+  </div>
+</div>
+
+<!-- MODAL NHẬP MÃ TAY -->
+<div id="manualModal" class="drawer-bg" onclick="if(event.target===this)closeManual()">
+  <div class="drawer-sheet" style="padding-bottom:calc(24px + env(safe-area-inset-bottom));">
+    <div class="dr-hdr">
+      <div class="dr-title">
+        <span>⌨️ Nhập Mã Sách / ISBN / Barcode</span>
+      </div>
+      <button class="dr-close" onclick="closeManual()">✕</button>
+    </div>
+    <p style="font-size:11.5px;color:var(--muted);">Nhập mã vạch, mã ISBN, mã sách (VD: MS-074, 978604...), hoặc SĐT hội viên:</p>
+    <input type="text" id="manualInp" class="minp" placeholder="VD: MS-074 hoặc 9786043978582" inputmode="text" autocomplete="off">
+    <button class="btn btn-gold" style="margin-top:12px; padding:12px;" onclick="submitManual()">
+      Gửi vào đơn <span id="manualTargetOrdTag" style="font-family:monospace; margin-left:4px;"></span>
+    </button>
+  </div>
+</div>
+
+<!-- HTTPS BLOCKER -->
+<div id="httpsBlocker" class="hidden">
+  <div class="bl-icon">📷</div>
+  <div class="bl-title">Camera cần HTTPS</div>
+  <div class="bl-sub">Trình duyệt chặn camera qua HTTP thông thường. Hãy mở lại qua <strong style="color:var(--goldL)">HTTPS</strong> để kích hoạt camera.</div>
+  <div class="bl-steps">
+    <p><strong>Bước 1:</strong> Bấm nút "Mở lại qua HTTPS" bên dưới.<br>
+    <strong>Bước 2:</strong> Nếu trình duyệt hiện cảnh báo chứng chỉ tự cấp (SSL), bấm <strong>Nâng cao (Advanced) → Tiếp tục truy cập</strong>.<br>
+    <strong>Bước 3:</strong> Cho phép quyền máy ảnh, camera sẽ mở tức thì!</p>
+  </div>
+  <button class="bl-btn" onclick="goHttps()">🔒 Mở lại qua HTTPS</button>
+  <button class="bl-btnO" onclick="skipHttps()">Dùng nhập mã tay (không cần camera)</button>
+</div>
+
+<script src="/js/html5-qrcode.min.js"></script>
+<script>
+  // Lấy Session ID từ URL hoặc localStorage
+  const urlParams = new URLSearchParams(location.search);
+  const rawSID = urlParams.get('session') || urlParams.get('sessionId') || urlParams.get('sid');
+  const SID = rawSID ? rawSID.trim().toUpperCase() : (localStorage.getItem('lamour_phone_scanner_session_id') || '');
+  if (SID) {
+    localStorage.setItem('lamour_phone_scanner_session_id', SID);
+  }
+
+  let qr = null;
+  let locked = false;
+  let torchOn = false;
+  let backCam = true;
+  let audioCtx = null;
+  let toastTimer = null;
+  let eventSource = null;
+
+  // State các đơn hàng đồng bộ từ POS
+  let posOrders = [];
+  let posActiveIdx = 0;
+  let posActiveInvoiceCode = '';
+
+  document.getElementById('sesTag').textContent = SID || 'CHƯA CÓ';
+
+  /* ---- HTTPS HELPER ---- */
+  function needHttps() {
+    return location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
+  }
+  function httpsUrl() {
+    return 'https://' + location.hostname + ':4443' + location.pathname + location.search;
+  }
+  function goHttps() {
+    location.href = httpsUrl();
+  }
+  function skipHttps() {
+    document.getElementById('httpsBlocker').classList.add('hidden');
+    document.getElementById('camLoad').style.display = 'none';
+  }
+
+  /* ---- AUDIO BEEP & VIBRATION ---- */
+  function unlockAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  function playBeep(type) {
+    try {
+      unlockAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'ok') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1750, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.09);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.09);
+        if (navigator.vibrate) navigator.vibrate(65);
+      } else {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(320, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(200, audioCtx.currentTime + 0.09);
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.25);
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 0.25);
+        if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+      }
+    } catch (_) {}
+  }
+
+  /* ---- STATUS UI ---- */
+  function setStatus(status, text) {
+    const pill = document.getElementById('statusPill');
+    const txt = document.getElementById('statusTxt');
+    txt.textContent = text;
+    pill.className = 'pill ' + (status === 'ok' ? 'ok' : status === 'err' ? 'err' : 'wait');
+  }
+
+  /* ---- FORMAT CURRENCY ---- */
+  function fmt(num) {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num || 0);
+  }
+
+  /* ---- SSE REALTIME STREAM (NHẬN UPDATE TỨC THÌ TỪ POS) ---- */
+  function connectStream() {
+    if (!SID) return;
+    if (eventSource) {
+      eventSource.close();
+    }
+    try {
+      eventSource = new EventSource('/api/pos-scanner/stream/' + SID);
+      eventSource.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.type === 'INIT' || data.type === 'ORDERS_UPDATED') {
+            if (data.orders) {
+              posOrders = data.orders;
+              posActiveIdx = data.activeIdx ?? posActiveIdx;
+              posActiveInvoiceCode = data.activeInvoiceCode || (posOrders[posActiveIdx]?.invoiceCode || '');
+              renderAllOrderViews();
+            }
+          }
+        } catch (err) {}
+      };
+      eventSource.onerror = () => {
+        // Tự động kết nối lại khi lỗi
+      };
+    } catch (_) {}
+  }
+
+  /* ---- CONNECT PHONE TO POS SESSION ---- */
+  async function connectSession() {
+    if (!SID) {
+      setStatus('err', 'Thiếu mã phiên');
+      return;
+    }
+    try {
+      const res = await fetch('/api/pos-scanner/connect/' + SID, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userAgent: navigator.userAgent,
+          deviceType: /iPhone|iPad|iPod/.test(navigator.userAgent) ? 'iOS' : (/Android/.test(navigator.userAgent) ? 'Android' : 'Mobile')
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStatus('ok', 'Đã kết nối POS');
+        connectStream();
+        await loadOrders();
+      } else {
+        setStatus('err', 'Lỗi phiên');
+      }
+    } catch (_) {
+      setStatus('err', 'Mất mạng');
+    }
+  }
+
+  /* ---- LOAD ORDERS (REST QUERY / POLL) ---- */
+  async function loadOrders() {
+    if (!SID) return;
+    try {
+      const res = await fetch('/api/pos-scanner/orders/' + SID);
+      const data = await res.json();
+      if (data.success) {
+        posOrders = data.orders || [];
+        posActiveIdx = data.activeIdx ?? posActiveIdx;
+        posActiveInvoiceCode = data.activeInvoiceCode || (posOrders[posActiveIdx]?.invoiceCode || '');
+        renderAllOrderViews();
+      }
+    } catch (_) {}
+  }
+
+  /* ---- RENDER ORDER VIEWS ---- */
+  function renderAllOrderViews() {
+    renderActiveOrderBar();
+    renderCurrentOrderItems();
+    renderOrderDrawerList();
+  }
+
+  function getActiveOrder() {
+    if (!posOrders || posOrders.length === 0) return null;
+    if (posActiveInvoiceCode) {
+      const match = posOrders.find(o => o.invoiceCode === posActiveInvoiceCode);
+      if (match) return match;
+    }
+    return posOrders[posActiveIdx] || posOrders[0] || null;
+  }
+
+  function renderActiveOrderBar() {
+    const cur = getActiveOrder();
+    const codeEl = document.getElementById('activeOrdCode');
+    const idxTag = document.getElementById('activeOrdIdxTag');
+    const metaEl = document.getElementById('activeOrdMeta');
+    const manualTag = document.getElementById('manualTargetOrdTag');
+
+    if (!cur) {
+      codeEl.textContent = 'Chưa có đơn';
+      idxTag.textContent = '';
+      metaEl.textContent = 'Mở quầy POS trên máy tính để tạo đơn';
+      if (manualTag) manualTag.textContent = '';
+      return;
+    }
+
+    codeEl.textContent = cur.invoiceCode;
+    idxTag.textContent = `(Đơn ${cur.idx + 1})`;
+    metaEl.textContent = `${cur.itemCount} sản phẩm • ${fmt(cur.total)} • Khách: ${cur.customerName || 'Khách lẻ'}`;
+    if (manualTag) manualTag.textContent = cur.invoiceCode;
+  }
+
+  function renderCurrentOrderItems() {
+    const cur = getActiveOrder();
+    const listEl = document.getElementById('cartItemList');
+    const badgeEl = document.getElementById('cartCountBadge');
+    const totalEl = document.getElementById('cartTotalAmt');
+
+    if (!cur || !cur.items || cur.items.length === 0) {
+      badgeEl.textContent = '0 món';
+      totalEl.textContent = '0 đ';
+      listEl.innerHTML = `
+        <div class="empty-cart-box">
+          <div class="empty-cart-icon">🛒</div>
+          <div class="empty-cart-title">Đơn hàng trống</div>
+          <div class="empty-cart-desc">Hướng camera vào mã vạch trên sách<br>hoặc bấm "Nhập mã tay" bên dưới để thêm sách vào đơn này.</div>
+        </div>
+      `;
+      return;
+    }
+
+    badgeEl.textContent = `${cur.itemCount} món`;
+    totalEl.textContent = fmt(cur.total);
+
+    listEl.innerHTML = cur.items.map(it => `
+      <div class="ci-card" id="ci-${it.id}">
+        <img class="ci-img" src="${it.cover || '/images/default-book.jpg'}" onerror="this.src='/images/default-book.jpg'">
+        <div class="ci-details">
+          <div class="ci-name" title="${it.title}">${it.title}</div>
+          <div class="ci-row-meta">
+            <div class="ci-price-info">${fmt(it.price)}</div>
+            <div class="ci-qty-ctrl">
+              <button class="qty-btn" onclick="changeQty('${it.id}', -1)" title="Giảm 1">-</button>
+              <span class="qty-val">${it.qty}</span>
+              <button class="qty-btn" onclick="changeQty('${it.id}', 1)" title="Tăng 1">+</button>
+            </div>
+          </div>
+        </div>
+        <button class="ci-btn-del" onclick="deleteCartItem('${it.id}', '${escapeQuotes(it.title)}')" title="Xóa sách này khỏi đơn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        </button>
+      </div>
+    `).join('');
+  }
+
+  function renderOrderDrawerList() {
+    const el = document.getElementById('orderDrawerList');
+    if (!posOrders || posOrders.length === 0) {
+      el.innerHTML = '<div style="text-align:center; padding:20px; color:var(--muted); font-size:12px;">Chưa có đơn hàng nào từ quầy POS.</div>';
+      return;
+    }
+
+    const cur = getActiveOrder();
+    el.innerHTML = posOrders.map(ord => {
+      const isSel = cur && (ord.invoiceCode === cur.invoiceCode || ord.idx === cur.idx);
+      return `
+        <div class="order-select-card ${isSel ? 'active-sel' : ''}" onclick="selectOrder('${ord.invoiceCode}', ${ord.idx})">
+          <div class="osc-info">
+            <div class="osc-top">
+              <span class="osc-code">${ord.invoiceCode}</span>
+              <span class="osc-idx">Đơn ${ord.idx + 1}</span>
+            </div>
+            <div class="osc-sub">${ord.itemCount} sản phẩm • Khách: ${ord.customerName || 'Khách lẻ'}</div>
+          </div>
+          <div class="osc-right">
+            <div class="osc-total">${fmt(ord.total)}</div>
+            ${isSel ? '<span class="osc-tag">✓ Đang chọn</span>' : '<span style="font-size:10px; color:var(--goldL); font-weight:600;">Chọn đơn này</span>'}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function escapeQuotes(str) {
+    return String(str || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
+
+  /* ---- ACTION: SELECT ORDER (ĐỔI ĐƠN HÀNG TRÊN CẢ ĐIỆN THOẠI LẪN MÁY TÍNH) ---- */
+  async function selectOrder(invoiceCode, orderIdx) {
+    if (!SID) return;
+    posActiveInvoiceCode = invoiceCode;
+    posActiveIdx = orderIdx;
+    renderAllOrderViews();
+    closeOrderDrawer();
+
+    try {
+      await fetch('/api/pos-scanner/action/' + SID, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          actionType: 'SELECT_ORDER',
+          payload: { invoiceCode, orderIdx }
+        })
+      });
+      playBeep('ok');
+      showToast('🧾', invoiceCode, 'Đã kết nối với đơn này');
+    } catch (_) {}
+  }
+
+  /* ---- ACTION: REQUEST NEW ORDER TAB TRÊN POS ---- */
+  async function requestNewOrder() {
+    if (!SID) return;
+    closeOrderDrawer();
+    try {
+      await fetch('/api/pos-scanner/action/' + SID, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          actionType: 'NEW_ORDER',
+          payload: {}
+        })
+      });
+      playBeep('ok');
+      showToast('➕', 'Tạo đơn mới', 'Đang mở đơn mới trên màn hình POS...');
+      setTimeout(loadOrders, 600);
+    } catch (_) {}
+  }
+
+  /* ---- ACTION: DELETE CART ITEM (XÓA SÁCH QUÉT NHẦM) ---- */
+  /* ---- ACTION: DELETE CART ITEM (XÓA SÁCH QUÉT NHẦM) ---- */
+  async function deleteCartItem(bookId, bookTitle) {
+    if (!SID || !bookId) return;
+    const cur = getActiveOrder();
+    const invoiceCode = cur ? cur.invoiceCode : '';
+
+    if (!confirm(`Xóa sách "${bookTitle}" khỏi đơn ${invoiceCode}?`)) {
+      return;
+    }
+
+    // Hiệu ứng xóa ngay lập tức trên UI (Optimistic update)
+    if (cur && cur.items) {
+      cur.items = cur.items.filter(it => String(it.id) !== String(bookId));
+      cur.itemCount = cur.items.reduce((s, it) => s + (it.qty || 0), 0);
+      cur.total = cur.items.reduce((s, it) => s + (it.price || 0) * (it.qty || 0), 0);
+      renderAllOrderViews();
+    }
+
+    try {
+      const res = await fetch('/api/pos-scanner/action/' + SID, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          actionType: 'REMOVE_CART_ITEM',
+          payload: {
+            bookId,
+            invoiceCode,
+            orderIdx: cur ? cur.idx : posActiveIdx
+          }
+        })
+      });
+      const json = await res.json();
+      if (json.success && json.orders && json.orders.length > 0) {
+        posOrders = json.orders;
+        renderAllOrderViews();
+      }
+      playBeep('ok');
+      showToast('🗑️', 'Đã xóa sách', `Đã bỏ khỏi đơn ${invoiceCode}`);
+      setTimeout(loadOrders, 300);
+    } catch (_) {
+      playBeep('err');
+    }
+  }
+
+  /* ---- ACTION: CHANGE ITEM QUANTITY ---- */
+  async function changeQty(bookId, delta) {
+    if (!SID || !bookId) return;
+    const cur = getActiveOrder();
+    const invoiceCode = cur ? cur.invoiceCode : '';
+
+    // Cập nhật ngay lập tức trên giao diện điện thoại (Optimistic update)
+    if (cur && cur.items) {
+      const it = cur.items.find(i => String(i.id) === String(bookId));
+      if (it) {
+        it.qty = (it.qty || 1) + delta;
+        if (it.qty <= 0) {
+          cur.items = cur.items.filter(i => String(i.id) !== String(bookId));
+        }
+        cur.itemCount = cur.items.reduce((s, i) => s + (i.qty || 0), 0);
+        cur.total = cur.items.reduce((s, i) => s + (i.price || 0) * (i.qty || 0), 0);
+        renderAllOrderViews();
+      }
+    }
+
+    try {
+      const res = await fetch('/api/pos-scanner/action/' + SID, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          actionType: 'CHANGE_ITEM_QTY',
+          payload: {
+            bookId,
+            delta,
+            invoiceCode,
+            orderIdx: cur ? cur.idx : posActiveIdx
+          }
+        })
+      });
+      const json = await res.json();
+      if (json.success && json.orders && json.orders.length > 0) {
+        posOrders = json.orders;
+        renderAllOrderViews();
+      }
+      playBeep('ok');
+      setTimeout(loadOrders, 300);
+    } catch (_) {}
+  }
+
+  /* ---- SUBMIT SCANNED CODE (CAMERA HOẶC NHẬP TAY) ---- */
+  async function sendCode(code, scanType) {
+    if (!SID || !code) return;
+    const cur = getActiveOrder();
+    const targetOrderCode = cur ? cur.invoiceCode : '';
+    const targetOrderIdx = cur ? cur.idx : posActiveIdx;
+
+    const rbox = document.getElementById('rbox');
+    try {
+      const res = await fetch('/api/pos-scanner/scan/' + SID, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code,
+          scanType: scanType || 'barcode',
+          targetOrderCode,
+          targetOrderIdx
+        })
+      });
+
+      const json = await res.json();
+      if (json.success && json.data) {
+        const d = json.data;
+        if (d.status === 'ignored' || d.type === 'DUPLICATE_IGNORED') {
+          return;
+        }
+        if (d.status === 'success') {
+          playBeep('ok');
+          if (rbox) {
+            rbox.classList.add('ok');
+            setTimeout(() => rbox.classList.remove('ok'), 500);
+          }
+
+          if (d.matchType === 'book') {
+            showToast('📖', d.book.title, `Đã thêm vào ${targetOrderCode || 'đơn hàng'} • ${fmt(d.book.price)}`);
+
+            // Cập nhật tức thì (Optimistic UI update) ngay trên màn hình điện thoại
+            let curOrd = getActiveOrder();
+            if (!curOrd) {
+              curOrd = {
+                idx: targetOrderIdx || 0,
+                invoiceCode: targetOrderCode || 'Đơn 1',
+                customerName: 'Khách lẻ',
+                itemCount: 0,
+                total: 0,
+                items: []
+              };
+              posOrders = [curOrd];
+              posActiveIdx = 0;
+              posActiveInvoiceCode = curOrd.invoiceCode;
+            }
+            curOrd.items = curOrd.items || [];
+            const existing = curOrd.items.find(i => String(i.id) === String(d.book._id));
+            if (existing) {
+              existing.qty = (existing.qty || 1) + 1;
+            } else {
+              curOrd.items.unshift({
+                id: String(d.book._id),
+                title: d.book.title,
+                qty: 1,
+                price: d.book.price || 0,
+                cover: d.book.coverImage || '/images/default-book.jpg'
+              });
+            }
+            curOrd.itemCount = curOrd.items.reduce((s, i) => s + (i.qty || 0), 0);
+            curOrd.total = curOrd.items.reduce((s, i) => s + (i.price || 0) * (i.qty || 0), 0);
+            renderAllOrderViews();
+          } else if (d.matchType === 'coupon') {
+            showToast('🏷️', 'Voucher: ' + d.coupon.code, 'Áp dụng mã giảm giá thành công');
+          } else if (d.matchType === 'customer') {
+            showToast('👤', d.customer.name, `Chọn hội viên: ${d.customer.phone}`);
+          }
+
+          // Cập nhật lại từ danh sách đơn trả về trực tiếp của máy chủ
+          if (json.orders && json.orders.length > 0) {
+            posOrders = json.orders;
+            if (json.activeIdx !== undefined) posActiveIdx = json.activeIdx;
+            if (json.activeInvoiceCode) posActiveInvoiceCode = json.activeInvoiceCode;
+            renderAllOrderViews();
+          }
+
+          // Đồng bộ lại với máy tính sau 300ms
+          setTimeout(loadOrders, 300);
+        } else {
+          playBeep('err');
+          if (rbox) {
+            rbox.classList.add('err');
+            setTimeout(() => rbox.classList.remove('err'), 500);
+          }
+          showToast('❓', 'Không tìm thấy sách', `Mã "${code}" chưa có trong hệ thống.`);
+        }
+      }
+    } catch (_) {
+      playBeep('err');
+    }
+  }
+
+  /* ---- TOAST NOTIFICATION ---- */
+  function showToast(icon, title, sub) {
+    const toast = document.getElementById('scanToast');
+    const iconEl = document.getElementById('stIcon');
+    const titleEl = document.getElementById('stTitle');
+    const subEl = document.getElementById('stSub');
+
+    iconEl.textContent = icon;
+    titleEl.textContent = title;
+    subEl.textContent = sub;
+    toast.style.display = 'flex';
+
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      toast.style.display = 'none';
+    }, 4500);
+  }
+  function closeToast() {
+    document.getElementById('scanToast').style.display = 'none';
+  }
+
+  /* ---- CAMERA SCANNER ENGINE ---- */
+  async function startCam() {
+    const loadEl = document.getElementById('camLoad');
+    if (needHttps()) {
+      if (loadEl) loadEl.style.display = 'none';
+      document.getElementById('httpsBlocker').classList.remove('hidden');
+      return;
+    }
+
+    try {
+      qr = new Html5Qrcode('qr-reader', {
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+        verbose: false
+      });
+      const config = {
+        fps: 30,
+        qrbox: { width: 260, height: 140 },
+        aspectRatio: 1.7778
+      };
+
+      let success = false;
+      try {
+        await qr.start({ facingMode: 'environment' }, config, onScanSuccess, onScanFailure);
+        success = true;
+      } catch (e1) {
+        try {
+          const cameras = await Html5Qrcode.getCameras();
+          if (cameras && cameras.length) {
+            const idx = cameras.findIndex(c => /back|rear|sau|env/i.test(c.label));
+            await qr.start(cameras[idx >= 0 ? idx : 0].id, config, onScanSuccess, onScanFailure);
+            success = true;
+          }
+        } catch (_) {}
+      }
+
+      if (loadEl) loadEl.style.display = 'none';
+      if (!success) {
+        setStatus('err', 'Chưa cấp quyền Camera');
+      }
+    } catch (err) {
+      if (loadEl) loadEl.style.display = 'none';
+    }
+  }
+
+  let lastScannedText = '';
+  let lastScannedAt = 0;
+  let consecutiveMissFrames = 0;
+
+  // Khi camera không thấy mã (ví dụ người dùng lia máy ra chỗ khác):
+  function onScanFailure() {
+    consecutiveMissFrames++;
+    // Nếu đã không thấy mã trong hơn 18 frames (~0.6s), mở khóa sẵn sàng quét lại
+    if (consecutiveMissFrames >= 18) {
+      lastScannedText = '';
+    }
+  }
+
+  function onScanSuccess(decodedText, result) {
+    consecutiveMissFrames = 0;
+    if (locked) return;
+
+    const now = Date.now();
+    // Chống quét trùng lặp khi để im camera vào cùng 1 cuốn sách:
+    // Nếu cùng 1 mã đang nằm im trong camera, TUYỆT ĐỐI KHÔNG quét lại cho tới khi lia ra chỗ khác!
+    if (decodedText === lastScannedText || (now - lastScannedAt < 1000)) {
+      return;
+    }
+
+    locked = true;
+    lastScannedText = decodedText;
+    lastScannedAt = now;
+
+    const format = result?.result?.format?.formatName || 'barcode';
+    sendCode(decodedText, format);
+
+    // Mở khóa quét mã khác sau 600ms
+    setTimeout(() => {
+      locked = false;
+    }, 600);
+  }
+
+  async function toggleTorch() {
+    if (!qr) return;
+    try {
+      torchOn = !torchOn;
+      await qr.applyVideoConstraints({ advanced: [{ torch: torchOn }] });
+      document.getElementById('torchBtn').classList.toggle('lit', torchOn);
+    } catch (_) {
+      torchOn = false;
+      document.getElementById('torchBtn').classList.remove('lit');
+    }
+  }
+
+  async function flipCam() {
+    if (!qr) return;
+    const loadEl = document.getElementById('camLoad');
+    if (loadEl) loadEl.style.display = 'flex';
+    try {
+      await qr.stop();
+      backCam = !backCam;
+      await qr.start(
+        { facingMode: backCam ? 'environment' : 'user' },
+        { fps: 30, qrbox: { width: 260, height: 140 }, aspectRatio: 1.7778 },
+        onScanSuccess,
+        onScanFailure
+      );
+    } catch (_) {}
+    finally {
+      if (loadEl) loadEl.style.display = 'none';
+    }
+  }
+
+  async function handleFile(input) {
+    if (!input.files || !input.files[0]) return;
+    try {
+      if (!qr) qr = new Html5Qrcode('qr-reader');
+      const text = await qr.scanFile(input.files[0], true);
+      if (text) {
+        onScanSuccess(text, { result: { format: { formatName: 'image' } } });
+      }
+    } catch (_) {
+      playBeep('err');
+      alert('Không nhận diện được mã trong ảnh. Hãy chụp lại gần và rõ nét hơn!');
+    } finally {
+      input.value = '';
+    }
+  }
+
+  /* ---- MANUAL INPUT MODAL ---- */
+  function openManual() {
+    const cur = getActiveOrder();
+    const tag = document.getElementById('manualTargetOrdTag');
+    if (tag) tag.textContent = cur ? cur.invoiceCode : '';
+    document.getElementById('manualModal').classList.add('open');
+    setTimeout(() => document.getElementById('manualInp').focus(), 150);
+  }
+  function closeManual() {
+    document.getElementById('manualModal').classList.remove('open');
+  }
+  function submitManual() {
+    const val = document.getElementById('manualInp').value.trim();
+    if (!val) return;
+    sendCode(val, 'manual');
+    document.getElementById('manualInp').value = '';
+    closeManual();
+  }
+  document.getElementById('manualInp').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitManual();
+  });
+
+  /* ---- ORDER DRAWER MODAL ---- */
+  function openOrderDrawer() {
+    loadOrders();
+    renderOrderDrawerList();
+    document.getElementById('orderDrawer').classList.add('open');
+  }
+  function closeOrderDrawer() {
+    document.getElementById('orderDrawer').classList.remove('open');
+  }
+
+  /* ---- INIT ON LOAD ---- */
+  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('touchstart', unlockAudio, { once: true });
+    document.addEventListener('click', unlockAudio, { once: true });
+
+    connectSession();
+    startCam();
+
+    // Fallback sync polling every 3 giây
+    setInterval(loadOrders, 3000);
+  });
+
+  window.addEventListener('pagehide', () => {
+    if (SID) navigator.sendBeacon('/api/pos-scanner/disconnect/' + SID);
+  });
+</script>
+</body>
+</html>

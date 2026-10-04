@@ -1,0 +1,299 @@
+/* ==========================================================================
+   L'AMOUR BOOKSTORE - UNIVERSAL CUSTOM FLOATING DROPDOWN MENU
+   Shared stylesheet for Admin, Staff, Stock, Accountant & User Storefront
+   ========================================================================== */
+
+/* Dropdown Wrapper */
+.cr-custom-select-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: block;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+/* Trigger Button */
+.cr-custom-select-trigger {
+  height: 40px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0 14px;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0F294A;
+  background: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  user-select: none;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.cr-custom-select-trigger:hover {
+  border-color: #0F294A;
+  background: #F8FAFC;
+}
+
+.cr-custom-select-trigger:focus-visible {
+  outline: none;
+  border-color: #0F294A;
+  box-shadow: 0 0 0 3px rgba(15, 41, 74, 0.15);
+}
+
+.cr-custom-select-wrap.open {
+  z-index: 10000 !important;
+}
+
+.cr-custom-select-wrap.open .cr-custom-select-trigger {
+  border-color: #0F294A;
+  box-shadow: 0 0 0 3px rgba(15, 41, 74, 0.12);
+  background: #FFFFFF;
+}
+
+/* Trigger Label */
+.cr-custom-trigger-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: 100%;
+  color: #0F294A;
+  font-weight: 600;
+}
+
+/* Caret Arrow */
+.cr-select-arrow {
+  color: #64748B;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.cr-custom-select-wrap.open .cr-select-arrow {
+  transform: rotate(180deg);
+  color: #0F294A;
+}
+
+/* Floating Options Popup */
+.cr-custom-select-options {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 100%;
+  width: max-content;
+  max-width: min(340px, calc(100vw - 24px));
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 41, 74, 0.16), 0 4px 10px rgba(0,0,0,0.06);
+  z-index: 999999 !important;
+  max-height: 255px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: none;
+  padding: 5px;
+  animation: crDropdownFadeIn 0.15s ease;
+  box-sizing: border-box;
+}
+
+.cr-custom-select-wrap.align-right .cr-custom-select-options,
+.cr-custom-select-options.align-right {
+  left: auto !important;
+  right: 0 !important;
+}
+
+.cr-custom-select-wrap.dropup .cr-custom-select-options {
+  top: auto;
+  bottom: calc(100% + 6px);
+  animation: crDropupFadeIn 0.15s ease;
+}
+
+.cr-custom-select-options::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cr-custom-select-options::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cr-custom-select-options::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 4px;
+}
+
+@keyframes crDropdownFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes crDropupFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cr-custom-select-wrap.open .cr-custom-select-options {
+  display: block;
+}
+
+/* Option Items */
+.cr-custom-option {
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1E293B;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: background 0.1s ease, color 0.1s ease;
+  user-select: none;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.cr-custom-option > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.cr-custom-option:hover {
+  background: #F1F5F9;
+  color: #0F294A;
+}
+
+.cr-custom-option.active {
+  background: #EFF6FF;
+  color: #0284C7;
+  font-weight: 700;
+}
+
+.cr-custom-option .cr-opt-check {
+  opacity: 0;
+  font-weight: 800;
+  font-size: 13px;
+  color: #0284C7;
+  flex-shrink: 0;
+}
+
+.cr-custom-option.active .cr-opt-check {
+  opacity: 1;
+}
+
+/* Disabled State */
+.cr-custom-select-wrap.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.cr-custom-select-wrap.disabled .cr-custom-select-trigger {
+  background: #F1F5F9;
+  border-color: #E2E8F0;
+  color: #94A3B8;
+  cursor: not-allowed;
+}
+
+.cr-custom-select-wrap.disabled .cr-custom-trigger-label {
+  color: #94A3B8;
+}
+
+/* Compact Variant (for toolbars, data tables, filter bars) */
+.cr-custom-select-wrap.compact {
+  width: auto;
+}
+
+.cr-custom-select-wrap.compact .cr-custom-select-trigger {
+  height: 35px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  border-radius: 7px;
+}
+
+.cr-custom-select-wrap.compact .cr-custom-option {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* Theme Dark (Storefront / Checkout / Products / Dark Mode) */
+.cr-custom-select-wrap.theme-dark .cr-custom-select-trigger {
+  background: #0B192C;
+  border: 1.5px solid #1E3E62;
+  color: #F1F5F9;
+}
+
+.cr-custom-select-wrap.theme-dark .cr-custom-select-trigger:hover {
+  border-color: #D4AF37;
+  background: #112240;
+}
+
+.cr-custom-select-wrap.theme-dark .cr-custom-trigger-label {
+  color: #F8FAFC;
+}
+
+.cr-custom-select-wrap.theme-dark .cr-select-arrow {
+  color: #94A3B8;
+}
+
+.cr-custom-select-wrap.theme-dark.open .cr-custom-select-trigger {
+  border-color: #D4AF37;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25);
+  background: #0B192C;
+}
+
+.cr-custom-select-wrap.theme-dark.open .cr-select-arrow {
+  color: #D4AF37;
+}
+
+.cr-custom-select-wrap.theme-dark .cr-custom-select-options {
+  background: #0B192C;
+  border: 1.5px solid #1E3E62;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+
+.cr-custom-select-wrap.theme-dark .cr-custom-select-options::-webkit-scrollbar-thumb {
+  background: #1E3E62;
+}
+
+.cr-custom-select-wrap.theme-dark .cr-custom-option {
+  color: #E2E8F0;
+}
+
+.cr-custom-select-wrap.theme-dark .cr-custom-option:hover {
+  background: #1E3E62;
+  color: #FFFFFF;
+}
+
+.cr-custom-select-wrap.theme-dark .cr-custom-option.active {
+  background: rgba(212, 175, 55, 0.15);
+  color: #D4AF37;
+  font-weight: 700;
+}
+
+.cr-custom-select-wrap.theme-dark .cr-custom-option .cr-opt-check {
+  color: #D4AF37;
+}
+
+.cr-custom-select-wrap.theme-dark.disabled .cr-custom-select-trigger {
+  background: #07101C;
+  border-color: #132438;
+  color: #64748B;
+}
+
+.cr-custom-select-wrap.theme-dark.disabled .cr-custom-trigger-label {
+  color: #64748B;
+}

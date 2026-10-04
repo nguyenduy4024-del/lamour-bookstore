@@ -1,0 +1,32 @@
+{
+  "name": "bookstore",
+  "version": "1.0.0",
+  "description": "L'Amour Bookstore MVC",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node utils/seed.js",
+    "update-times": "node utils/updateInvoiceTimes.js",
+    "seed-transactions": "node utils/seedTransactions.js",
+    "sync-db": "node scripts/sync_assignment_collections.js",
+    "drop-old-tables": "node scripts/drop_old_collections.js",
+    "restore-old-tables": "node scripts/restore_old_tables.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.1",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.8.2",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "html5-qrcode": "^2.3.8",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.3.2",
+    "multer": "^2.2.0",
+    "nodemailer": "^10.0.0",
+    "qrcode": "^1.5.4",
+    "selfsigned": "^5.5.0",
+    "untun": "^0.2.2"
+  }
+}

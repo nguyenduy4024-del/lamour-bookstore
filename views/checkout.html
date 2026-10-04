@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thanh Toán Đơn Hàng — L'Amour Bookstore</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/custom-dropdown.css">
+
+  <style>
+    :root {
+      --navy-950: #060E1B;
+      --navy-900: #0A1930;
+      --navy-850: #0D203D;
+      --navy-800: #102444;
+      --navy-700: #173461;
+      --gold: #C7A15A;
+      --gold-light: #E5C378;
+      --gold-dark: #8A6B32;
+      --paper: #FAF7F1;
+      --cream: #F4EDE0;
+      --muted: #8A9DB8;
+      --danger: #EF4444;
+      --emerald: #10B981;
+      --line: rgba(255, 255, 255, 0.1);
+      --line-gold: rgba(199, 161, 90, 0.3);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.35);
+      --shadow-glow: 0 0 25px rgba(199, 161, 90, 0.25);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--navy-950);
+      color: var(--paper);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 14.5px;
+      line-height: 1.6;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    h1, h2, h3, h4, .serif { font-family: 'Fraunces', serif; color: #FAF7F1; font-weight: 500; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; cursor: pointer; }
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 32px; width: 100%; }
+
+    /* ============ NAVBAR ============ */
+    header.nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: rgba(6, 14, 27, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 76px; }
+    .brand { display: flex; flex-direction: column; }
+    .brand .name { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; color: #FAF7F1; }
+    .brand .name em { font-style: normal; color: var(--gold); font-weight: 400; }
+    .brand .tag { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: .18em; color: var(--muted); margin-top: -2px; }
+
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-link { font-size: 14.5px; font-weight: 500; color: #D2DDF0; transition: color .2s ease; }
+    .nav-link:hover { color: var(--gold); }
+
+    .back-to-cart {
+      display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600;
+      color: #FAF7F1; padding: 8px 16px; border-radius: 999px; background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--line); transition: all 0.2s ease;
+    }
+    .back-to-cart:hover { border-color: var(--gold); color: var(--gold); background: rgba(199, 161, 90, 0.12); }
+
+    /* ============ PAGE HEADER ============ */
+    .page-header {
+      margin-top: 76px; padding: 40px 0 28px;
+      background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-950) 100%);
+      border-bottom: 1px solid var(--line);
+    }
+    .page-header h1 { font-size: clamp(24px, 3vw, 32px); font-weight: 600; margin-bottom: 4px; }
+    .page-header p { color: var(--muted); font-size: 14px; }
+
+    /* ============ CHECKOUT LAYOUT ============ */
+    .checkout-section { padding: 36px 0 80px; flex: 1; }
+    .checkout-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 36px;
+      align-items: flex-start;
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--navy-900);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      box-shadow: var(--shadow-soft);
+      margin-bottom: 24px;
+    }
+    .card:last-child { margin-bottom: 0; }
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #FAF7F1;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-title svg { color: var(--gold); }
+
+    /* FORM STYLES */
+    .form-group { margin-bottom: 18px; display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: #D2DDF0; }
+    .form-group input, .form-group textarea, .form-group select {
+      background: var(--navy-950);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 14px;
+      color: #FAF7F1;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(199, 161, 90, 0.15);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* PAYMENT METHOD SELECTOR */
+    .payment-options { display: flex; flex-direction: column; gap: 12px; }
+    .payment-label {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .payment-label:hover {
+      border-color: var(--gold);
+      background: rgba(199, 161, 90, 0.06);
+    }
+    .payment-label.active {
+      border-color: var(--gold);
+      background: rgba(199, 161, 90, 0.12);
+      box-shadow: 0 0 15px rgba(199, 161, 90, 0.15);
+    }
+    .payment-label input[type="radio"] {
+      accent-color: var(--gold);
+      width: 18px;
+      height: 18px;
+    }
+    .payment-info { flex: 1; }
+    .payment-name { font-weight: 600; color: #FAF7F1; font-size: 14.5px; }
+    .payment-desc { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+    .payment-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, 0.08); font-size: 16px; }
+
+    /* BANK & MOMO QR TRANSFER POPUP PREVIEW */
+    .qr-box {
+      background: #FFFFFF;
+      color: #0F172A;
+      border-radius: 14px;
+      padding: 22px 18px;
+      margin-top: 18px;
+      display: none;
+      text-align: center;
+      border: 1px solid var(--gold);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.3s ease;
+    }
+    .qr-box.active { display: block; }
+    .qr-box img { max-width: 210px; width: 100%; border-radius: 10px; margin: 10px auto; display: block; border: 1px solid #E2E8F0; }
+    .qr-box .qr-note { font-size: 12.5px; color: #64748B; line-height: 1.5; margin-top: 10px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* CỘT PHẢI: ORDER SUMMARY */
+    .summary-card {
+      background: var(--navy-900);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      position: sticky;
+      top: 100px;
+      box-shadow: var(--shadow-soft);
+    }
+    .summary-items {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      max-height: 320px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      padding-right: 6px;
+    }
+    .summary-items::-webkit-scrollbar { width: 5px; }
+    .summary-items::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; }
+
+    .summary-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .summary-item:last-child { border-bottom: 0; padding-bottom: 0; }
+    .summary-thumb {
+      width: 48px;
+      height: 64px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .summary-item-info { flex: 1; }
+    .summary-item-title { font-family: 'Fraunces', serif; font-size: 14px; font-weight: 600; color: #FAF7F1; line-height: 1.3; }
+    .summary-item-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .summary-item-price { font-family: 'IBM Plex Mono', monospace; font-size: 13.5px; font-weight: 600; color: var(--gold); }
+
+    .summary-calc {
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .calc-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      color: #C2CEE0;
+    }
+    .calc-row.total-row {
+      font-size: 17px;
+      font-weight: 700;
+      color: #FAF7F1;
+      border-top: 1px dashed var(--line);
+      padding-top: 14px;
+      margin-top: 4px;
+    }
+    .calc-row.total-row .final-total {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 22px;
+      color: var(--gold);
+    }
+
+    .shipping-tag {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .btn-submit-order {
+      width: 100%;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: var(--navy-950);
+      padding: 15px 20px;
+      border-radius: 10px;
+      font-size: 15.5px;
+      font-weight: 700;
+      border: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(199, 161, 90, 0.35);
+      transition: all 0.25s ease;
+      cursor: pointer;
+      margin-top: 24px;
+    }
+    .btn-submit-order:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(199, 161, 90, 0.5);
+      background: linear-gradient(135deg, var(--gold-light), var(--gold));
+    }
+    .btn-submit-order:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* TOAST */
+    #toast-container { position: fixed; top: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 12px; max-width: 380px; width: calc(100% - 48px); pointer-events: none; }
+    .custom-toast { pointer-events: auto; background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-radius: 12px; padding: 14px 18px; box-shadow: 0 16px 36px rgba(10, 25, 48, 0.25); display: flex; align-items: flex-start; gap: 12px; animation: toastIn 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) forwards; transition: all 0.3s ease; }
+    .custom-toast.hide { animation: toastOut 0.3s ease forwards; }
+    @keyframes toastIn { from { opacity: 0; transform: translateX(50px) scale(0.95); } to { opacity: 1; transform: translateX(0) scale(1); } }
+    @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(60px); } }
+    .toast-icon { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .toast-success .toast-icon { background: #10B981; }
+    .toast-warning .toast-icon { background: #F59E0B; }
+    .toast-error .toast-icon { background: #EF4444; }
+    .toast-info .toast-icon { background: #3B82F6; }
+    .toast-content { flex: 1; }
+    .toast-title { font-weight: 600; font-size: 13.5px; margin-bottom: 2px; color: #0F172A; }
+    .toast-msg { font-size: 12.5px; color: #475569; line-height: 1.4; }
+
+    /* FOOTER */
+    footer { background: var(--navy-950); color: #C2CEE0; padding: 60px 0 32px; border-top: 1px solid rgba(255, 255, 255, 0.08); margin-top: auto; }
+    .bottom-bar { text-align: center; font-size: 13px; color: #6B7C96; }
+
+    @media (max-width: 900px) {
+      .checkout-grid { grid-template-columns: 1fr; }
+      .summary-card { position: static; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<header class="nav">
+  <div class="container nav-inner">
+    <a href="/" class="brand">
+      <span class="name">L'Amour <em>Bookstore</em></span>
+      <span class="tag">Hiệu sách Nghệ thuật & Tri thức</span>
+    </a>
+
+    <nav class="nav-links">
+      <a href="/" class="nav-link">Trang chủ</a>
+      <a href="/products" class="nav-link">Sản phẩm</a>
+      <a href="/collections" class="nav-link">Bộ Sưu Tập</a>
+      <a href="/authors" class="nav-link">Tác Giả</a>
+      <a href="/policy" class="nav-link">Chính Sách</a>
+    </nav>
+
+    <a href="/cart" class="back-to-cart">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      <span>Quay lại Giỏ hàng</span>
+    </a>
+  </div>
+</header>
+
+<!-- PAGE HEADER -->
+<section class="page-header">
+  <div class="container">
+    <h1>Thanh Toán Đơn Hàng</h1>
+    <p>Vui lòng điền thông tin giao hàng và chọn phương thức thanh toán phù hợp.</p>
+  </div>
+</section>
+
+<!-- MAIN CHECKOUT SECTION -->
+<section class="checkout-section">
+  <div class="container">
+    <form id="checkoutForm" onsubmit="submitCheckout(event)">
+      <div class="checkout-grid">
+        
+        <!-- CỘT TRÁI: THÔNG TIN GIAO HÀNG & PHƯƠNG THỨC TT -->
+        <div>
+          <!-- CARD 1: THÔNG TIN KHÁCH HÀNG -->
+          <div class="card">
+            <h2 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>1. Thông Tin Nhận Hàng</span>
+            </h2>
+
+            <!-- Thông báo tự động trích xuất thông tin cá nhân nếu có -->
+            <div id="autofillNotice" style="display:none; padding:10px 14px; background:rgba(199,161,90,0.12); border:1px solid var(--gold); border-radius:8px; font-size:12.5px; color:#F5E6C8; margin-bottom:16px; align-items:center; gap:8px;">
+              <span style="font-size:16px;">✨</span>
+              <div>Đã trích xuất thông tin nhận hàng từ trang cá nhân của bạn. Bạn vẫn có thể tùy ý sửa đổi nếu muốn giao đến địa chỉ khác.</div>
+            </div>
+
+            <!-- Tùy chọn chọn nhanh địa chỉ từ sổ địa chỉ nếu có nhiều hơn 1 địa chỉ -->
+            <div id="savedAddressWrap" style="display:none; margin-bottom:16px;">
+              <label for="savedAddressSelect" style="display:flex; align-items:center; justify-content:space-between; font-size:13px; font-weight:600; color:#FAF7F1; margin-bottom:6px;">
+                <span>📍 Chọn địa chỉ giao hàng đã lưu:</span>
+                <span style="font-size:11.5px; color:var(--gold); font-weight:normal;">Từ sổ địa chỉ cá nhân</span>
+              </label>
+              <select id="savedAddressSelect" onchange="onSelectSavedAddress(this.value)" style="width:100%; padding:10px 12px; background:var(--navy-950); border:1px solid var(--line); border-radius:8px; color:#FAF7F1; font-size:13px; outline:none; cursor:pointer;">
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="customerName">Họ và tên người nhận (*)</label>
+                <input type="text" id="customerName" required placeholder="Ví dụ: Nguyễn Văn A">
+              </div>
+              <div class="form-group">
+                <label for="customerPhone">Số điện thoại liên hệ (*)</label>
+                <input type="tel" id="customerPhone" required placeholder="Ví dụ: 0912 345 678">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="customerEmail" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Email nhận hóa đơn điện tử (*)</span>
+                <span style="font-size:11.5px; color:var(--gold); font-weight:normal;">Hệ thống sẽ gửi hóa đơn về email này</span>
+              </label>
+              <input type="email" id="customerEmail" required placeholder="Ví dụ: nguyenvana@gmail.com">
+            </div>
+
+            <div class="form-group">
+              <label for="customerAddress">Địa chỉ nhận hàng chi tiết (*)</label>
+              <input type="text" id="customerAddress" required placeholder="Số nhà, tên đường, phường/xã, quận/huyện, tỉnh/thành phố">
+            </div>
+
+            <div class="form-group">
+              <label for="orderNote">Ghi chú giao hàng (Tùy chọn)</label>
+              <textarea id="orderNote" rows="2" placeholder="Ví dụ: Giao giờ hành chính, gọi trước khi giao..."></textarea>
+            </div>
+          </div>
+
+          <!-- CARD 2: PHƯƠNG THỨC THANH TOÁN -->
+          <div class="card">
+            <h2 class="card-title">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              <span>2. Phương Thức Thanh Toán</span>
+            </h2>
+
+            <div class="payment-options">
+              <label class="payment-label active" onclick="selectPaymentMethod(this, 'COD')">
+                <input type="radio" name="paymentMethod" value="cash" checked>
+                <div class="payment-icon">💵</div>
+                <div class="payment-info">
+                  <div class="payment-name">Thanh toán khi nhận hàng (COD)</div>
+                  <div class="payment-desc">Thanh toán tiền mặt cho shipper khi nhận và kiểm tra sách</div>
+                </div>
+              </label>
+
+              <label class="payment-label" onclick="selectPaymentMethod(this, 'Banking')">
+                <input type="radio" name="paymentMethod" value="transfer">
+                <div class="payment-icon">🏦</div>
+                <div class="payment-info">
+                  <div class="payment-name">Chuyển khoản Ngân hàng (VietQR)</div>
+                  <div class="payment-desc">Quét mã QR qua app ngân hàng tiện lợi và bảo mật</div>
+                </div>
+              </label>
+
+              <label class="payment-label" onclick="selectPaymentMethod(this, 'MoMo')">
+                <input type="radio" name="paymentMethod" value="momo">
+                <div class="payment-icon">📱</div>
+                <div class="payment-info">
+                  <div class="payment-name" style="display:flex; align-items:center; gap:8px;">
+                    <span>Ví điện tử MoMo</span>
+                    <span style="font-size:10.5px; background:rgba(165,0,100,0.18); color:#FF4D97; border:1px solid rgba(255,77,151,0.3); padding:1px 7px; border-radius:99px; font-weight:700;">TỰ ĐỘNG XÁC NHẬN</span>
+                  </div>
+                  <div class="payment-desc">Quét mã QR MoMo — Hệ thống tự động nhận diện kết quả chuyển tiền ngay lập tức</div>
+                </div>
+              </label>
+            </div>
+
+            <!-- 1. KHỐI HIỂN THỊ MÃ QR CHUYỂN KHOẢN VIETQR -->
+            <div class="qr-box" id="bankTransferBox">
+              <span style="display:inline-block; font-size:11px; font-weight:700; color:var(--gold-dark); background:rgba(199,161,90,0.15); padding:3px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">VietQR 24/7 Ngân Hàng</span>
+              <h4 id="checkoutBankName" style="font-weight:700; color:#0F172A; margin-bottom:4px; font-size:16px;">Timo Digital Bank by BVBank</h4>
+              <p style="font-size:13px; color:#475569; margin-bottom:3px;">Số tài khoản: <strong class="mono" id="checkoutBankAcc" style="color:#0F172A; font-size:16px; letter-spacing:0.05em;">9021885300427</strong></p>
+              <p style="font-size:13px; color:#475569; margin-bottom:8px;">Chủ tài khoản: <strong id="checkoutBankHolder" style="color:#0F172A;">NGUYEN DUY HUNG</strong></p>
+              <img id="checkoutBankQrImg" src="/images/qr-bank.jpg" alt="Mã QR Chuyển khoản VietQR" onerror="this.src='/images/qr-bank.jpg'">
+              <div class="qr-note" style="background:#F8FAFC; border:1px solid #E2E8F0; padding:10px; border-radius:8px; margin-top:8px;">
+                Cú pháp chuyển khoản: <strong id="bankSyntaxText" class="mono" style="color:var(--gold-dark); font-size:13.5px;">LAMOUR [SĐT người nhận]</strong><br>
+                <span style="font-size:11.5px; color:#64748B;">Hệ thống sẽ tự động xác nhận đơn sau khi nhận được chuyển khoản.</span>
+              </div>
+            </div>
+
+            <!-- 2. KHỐI HIỂN THỊ MÃ QR VÍ ĐIỆN TỬ MOMO -->
+            <div class="qr-box" id="momoTransferBox">
+              <span style="display:inline-block; font-size:11px; font-weight:700; color:#A50064; background:rgba(165,0,100,0.1); padding:3px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px;">Ví Điện Tử MoMo</span>
+              <h4 id="checkoutMomoName" style="font-weight:700; color:#0F172A; margin-bottom:4px; font-size:16px;">MoMo (VietQR / Napas 247)</h4>
+              <p style="font-size:13px; color:#475569; margin-bottom:3px;">Số điện thoại / Mã: <strong class="mono" id="checkoutMomoPhone" style="color:#0F172A; font-size:16px; letter-spacing:0.05em;">0987654321</strong></p>
+              <p style="font-size:13px; color:#475569; margin-bottom:8px;">Chủ tài khoản: <strong id="checkoutMomoHolder" style="color:#0F172A;">L'AMOUR BOOKSTORE</strong></p>
+              <img id="checkoutMomoQrImg" src="/images/qr-momo.jpg" alt="Mã QR Ví MoMo" onerror="this.src='/images/qr-momo.jpg'">
+              <div class="qr-note" style="background:#F8FAFC; border:1px solid #E2E8F0; padding:10px; border-radius:8px; margin-top:8px;">
+                Cú pháp chuyển khoản: <strong id="momoSyntaxText" class="mono" style="color:#A50064; font-size:13.5px;">LAMOUR [SĐT người nhận]</strong><br>
+                <span style="font-size:11.5px; color:#64748B;">Quét mã QR bằng app MoMo hoặc app Ngân hàng có hỗ trợ VietQR.</span>
+              </div>
+            </div>
+
+            <!-- 3. KHỐI TẢI LÊN BILL THANH TOÁN (PAYMENT PROOF) -->
+            <div id="paymentProofUploadContainer" style="display:none; margin-top:20px; padding:18px; background:rgba(255,255,255,0.03); border:1.5px dashed var(--line-gold); border-radius:12px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                <label style="font-weight:700; color:#FAF7F1; font-size:13.5px; display:flex; align-items:center; gap:8px;">
+                  <span>📷 Đính kèm Bill / Biên lai thanh toán</span>
+                  <span style="font-size:11px; padding:2px 8px; border-radius:99px; background:rgba(199,161,90,0.18); color:var(--gold); font-weight:600;">Khuyên dùng</span>
+                </label>
+              </div>
+              <p style="font-size:12.5px; color:var(--muted); margin-bottom:14px; line-height:1.5;">
+                Sau khi quét mã QR chuyển khoản thành công, quý khách chụp lại màn hình giao dịch và tải lên đây để nhân viên xác nhận và duyệt đơn giao hàng sớm nhất.
+              </p>
+
+              <!-- Vùng chọn ảnh -->
+              <div id="proofDropzone" onclick="document.getElementById('proofFileInput').click()" style="cursor:pointer; border:1px dashed rgba(255,255,255,0.22); background:rgba(10,25,48,0.5); border-radius:10px; padding:20px; text-align:center; transition:all 0.2s ease;">
+                <input type="file" id="proofFileInput" accept="image/*" style="display:none;" onchange="handleProofFileSelect(event)">
+                <div style="font-size:28px; margin-bottom:6px;">🧾</div>
+                <div style="font-weight:600; color:#FAF7F1; font-size:13px; margin-bottom:4px;">Nhấn vào đây để tải ảnh bill hoặc ủy nhiệm chi</div>
+                <div style="font-size:11.5px; color:var(--muted);">Định dạng: JPG, PNG, WEBP, GIF (Dung lượng tối đa 10MB)</div>
+              </div>
+
+              <!-- Vùng xem trước ảnh đã tải lên -->
+              <div id="proofPreviewCard" style="display:none; margin-top:12px; background:rgba(10,25,48,0.7); border:1px solid rgba(16,185,129,0.3); border-radius:10px; padding:12px; align-items:center; justify-content:space-between; gap:12px;">
+                <div style="display:flex; align-items:center; gap:12px; overflow:hidden;">
+                  <img id="proofPreviewImg" src="" alt="Bill thanh toán" style="width:54px; height:54px; object-fit:cover; border-radius:8px; border:1px solid var(--line); cursor:pointer; background:#060E1B;" onclick="openProofZoomModal()" title="Nhấn để phóng to xem chi tiết" />
+                  <div style="overflow:hidden;">
+                    <div id="proofFileName" style="font-weight:600; font-size:13px; color:#FAF7F1; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">bill-chuyen-khoan.jpg</div>
+                    <div style="font-size:11.5px; color:#10B981; display:flex; align-items:center; gap:4px; margin-top:2px;">
+                      <span>✓ Đã tải lên bill thành công</span>
+                      <span style="color:var(--muted); font-size:11px; cursor:pointer; text-decoration:underline;" onclick="openProofZoomModal()">(Phóng to)</span>
+                    </div>
+                  </div>
+                </div>
+                <button type="button" onclick="removeProofImage()" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#EF4444; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; flex-shrink:0;">
+                  ✕ Đổi ảnh
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CỘT PHẢI: TÓM TẮT ĐƠN HÀNG -->
+        <aside class="summary-card">
+          <h2 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <span>Tóm Tắt Đơn Hàng (<span id="checkoutItemCount">0</span>)</span>
+          </h2>
+
+          <div class="summary-items" id="summaryItemsList">
+            <!-- Rendered by loadCheckoutCart() -->
+          </div>
+
+          <!-- KHỐI NHẬP MÃ GIẢM GIÁ (COUPON BOX) -->
+          <div class="coupon-box" style="margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid rgba(255,255,255,0.08);">
+            <label style="display:block; font-size:12.5px; font-weight:600; color:#FAF7F1; margin-bottom:8px;">
+              Mã Giảm Giá / Voucher (Tùy chọn)
+            </label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="checkoutCouponInput" placeholder="Nhập mã ưu đãi..." style="flex:1; height:40px; padding:0 12px; background:rgba(255,255,255,0.04); border:1px solid var(--line); border-radius:8px; color:#FAF7F1; font-size:13px; text-transform:uppercase; font-family:'IBM Plex Mono', monospace; font-weight:600; letter-spacing:0.04em;" onkeydown="if(event.key==='Enter'){event.preventDefault();applyCheckoutCoupon();}">
+              <button type="button" id="btnApplyCoupon" onclick="applyCheckoutCoupon()" style="height:40px; padding:0 16px; background:rgba(199,161,90,0.2); border:1px solid var(--gold); border-radius:8px; color:var(--gold); font-size:13px; font-weight:700; cursor:pointer; transition:all 0.2s ease;">
+                Áp dụng
+              </button>
+            </div>
+            <div id="checkoutCouponBadge" style="display:none; margin-top:10px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:8px 12px; font-size:12.5px; color:#10B981; display:flex; justify-content:space-between; align-items:center;">
+              <div id="checkoutCouponBadgeText">✓ Đã áp dụng mã: <strong>CODE</strong></div>
+              <button type="button" onclick="removeCheckoutCoupon()" style="background:none; border:0; color:#EF4444; font-weight:700; font-size:14px; cursor:pointer; padding:0 4px;" title="Gỡ mã">✕</button>
+            </div>
+          </div>
+
+          <div class="summary-calc">
+            <div class="calc-row">
+              <span>Tạm tính</span>
+              <span class="mono" id="subtotalVal" style="font-weight:600; color:#FAF7F1;">0₫</span>
+            </div>
+
+            <div class="calc-row" id="checkoutDiscountRow" style="display:none; color:var(--gold);">
+              <span>Giảm giá khuyến mãi</span>
+              <span class="mono" id="discountVal" style="font-weight:600;">-0₫</span>
+            </div>
+
+            <div class="calc-row">
+              <span>Phí vận chuyển</span>
+              <span class="shipping-tag">Miễn phí</span>
+            </div>
+
+            <div class="calc-row total-row">
+              <span>Tổng thanh toán</span>
+              <span class="final-total" id="finalTotalVal">0₫</span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-submit-order" id="btnSubmitOrder">
+            <span>XÁC NHẬN ĐẶT HÀNG</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </aside>
+
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container bottom-bar">
+    <div>© 2026 L'Amour Bookstore. Bản quyền thuộc về L'Amour.</div>
+  </div>
+</footer>
+
+<!-- LIGHTBOX MODAL XEM ẢNH BILL PHÓNG TO TRÊN CHECKOUT -->
+<div id="checkoutProofModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:999999; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:20px;" onclick="closeProofZoomModal()">
+  <div style="position:relative; max-width:90vw; max-height:90vh; display:flex; flex-direction:column; align-items:center;" onclick="event.stopPropagation()">
+    <button type="button" onclick="closeProofZoomModal()" style="position:absolute; top:-40px; right:0; background:rgba(255,255,255,0.25); border:0; color:#FFF; font-size:16px; font-weight:700; width:34px; height:34px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+    <img id="checkoutProofModalImg" src="" alt="Ảnh bill phóng to" style="max-width:100%; max-height:85vh; border-radius:10px; box-shadow:0 20px 50px rgba(0,0,0,0.8); object-fit:contain; border:1px solid rgba(255,255,255,0.15);" />
+    <div style="margin-top:10px; color:#FAF7F1; font-size:13.5px; font-weight:600; letter-spacing:0.02em;">Ảnh bill thanh toán đã đính kèm</div>
+  </div>
+</div>
+
+<!-- MODAL THANH TOÁN MOMO REALTIME (AUTO VERIFICATION) -->
+<div id="momoLiveModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:999999; background:rgba(6,14,27,0.88); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#0D1F38; border:1px solid rgba(216,45,139,0.4); box-shadow:0 20px 60px rgba(0,0,0,0.7), 0 0 35px rgba(216,45,139,0.25); border-radius:18px; max-width:460px; width:100%; overflow:hidden; animation:toastIn 0.3s cubic-bezier(0.16,1,0.3,1);">
+    
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg, #A50064, #730046); padding:16px 20px; display:flex; align-items:center; justify-content:space-between; color:#FFF;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="background:#FFF; width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:800; color:#A50064; font-size:17px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">M</div>
+        <div>
+          <div style="font-weight:700; font-size:15px; letter-spacing:0.02em;">Cổng Thanh Toán MoMo</div>
+          <div style="font-size:11.5px; opacity:0.85;">Tự động nhận diện thanh toán 24/7</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <span style="font-size:11px; opacity:0.8;">Mã hóa đơn</span>
+        <div id="momoLiveOrderCode" class="mono" style="font-weight:700; font-size:13.5px; letter-spacing:0.04em; color:#FFE4EC;">HD-OL-XXXXXX</div>
+      </div>
+    </div>
+
+    <!-- Live Status Banner -->
+    <div id="momoLiveStatusBanner" style="padding:10px 16px; background:#14223A; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between; font-size:12.5px; transition:all 0.3s ease;">
+      <div id="momoLiveStatusText" style="display:flex; align-items:center; gap:8px; font-weight:600; color:#F59E0B;">
+        <span style="width:8px; height:8px; border-radius:50%; background:#F59E0B; display:inline-block; box-shadow:0 0 8px #F59E0B;"></span>
+        <span>Trạng thái: <strong>Chưa chuyển tiền</strong> (Đang chờ)</span>
+      </div>
+      <div id="momoCountdownWrap" style="color:var(--muted); font-size:12px;">
+        ⏳ Hết hạn: <strong id="momoCountdownTimer" class="mono" style="color:#FAF7F1;">10:00</strong>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:20px 22px; text-align:center;">
+      <div style="font-size:12px; color:var(--muted); margin-bottom:3px; text-transform:uppercase; letter-spacing:0.05em;">Số tiền cần thanh toán</div>
+      <div id="momoLiveAmount" class="mono" style="font-size:26px; font-weight:800; color:#E5C378; margin-bottom:14px;">0₫</div>
+
+      <!-- QR Code Container with Live Overlay -->
+      <div style="display:inline-block; padding:12px; background:#FFF; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.4); margin-bottom:12px; border:2px solid #D82D8B; position:relative;">
+        <img id="momoLiveQrImg" src="" alt="Mã QR MoMo" style="width:190px; height:190px; display:block; object-fit:contain; border-radius:6px;" />
+        <div id="momoQrSuccessOverlay" style="display:none; position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(16,185,129,0.95); border-radius:12px; align-items:center; justify-content:center; flex-direction:column; color:#FFF; padding:16px;">
+          <div style="font-size:44px; margin-bottom:4px; font-weight:800;">✓</div>
+          <div style="font-weight:700; font-size:16px; margin-bottom:2px;">ĐÃ CHUYỂN TIỀN!</div>
+          <div style="font-size:11.5px; opacity:0.95; line-height:1.4;">Hệ thống đã tự động xác nhận.<br>Đang chuyển trang...</div>
+        </div>
+      </div>
+
+      <div style="font-size:12px; color:#A1B0CC; line-height:1.5; margin-bottom:16px;">
+        Quét mã QR bằng App <strong>MoMo</strong> hoặc App Ngân hàng.<br>
+        <span style="color:#10B981; font-weight:600;">⚡ Không cần chụp bill — Web sẽ tự động xác nhận ngay sau khi bạn chuyển!</span>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <a id="momoOpenAppLink" href="#" target="_blank" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:11px; background:linear-gradient(135deg, #D82D8B, #A50064); color:#FFF; font-weight:700; border-radius:10px; font-size:13.5px; text-decoration:none; box-shadow:0 6px 18px rgba(216,45,139,0.35);">
+          <span>📱 Mở Ứng Dụng MoMo Để Thanh Toán</span>
+        </a>
+
+        <!-- Nút Giả lập Test cho người dùng thử nghiệm tính năng ngay lập tức -->
+        <button type="button" onclick="simulateCurrentMomoPayment()" style="background:rgba(16,185,129,0.12); border:1px dashed #10B981; color:#10B981; padding:9px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <span>⚡ Bấm vào đây để Giả Lập Đã Chuyển Tiền Thành Công (Test thử)</span>
+        </button>
+
+        <button type="button" onclick="closeMomoLiveModal()" style="background:none; border:0; color:var(--muted); font-size:12px; text-decoration:underline; cursor:pointer; padding:4px;">
+          Để tôi thanh toán sau (Chuyển đến trang Đơn hàng của tôi)
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/custom-dropdown.js"></script>
+<script>
+  // ---------- GLOBAL TOAST ----------
+  function showCustomToast(type = 'info', title = '', message = '') {
+    // Trường hợp truyền 2 đối số (title, message)
+    if (arguments.length === 2 && !['success', 'error', 'warning', 'info'].includes(type)) {
+      message = title;
+      title = type;
+      type = 'info';
+    }
+    let container = document.getElementById('toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      document.body.appendChild(container);
+    }
+    const icons = { success: '✓', error: '✕', warning: '!', info: 'i' };
+    const toast = document.createElement('div');
+    toast.className = `custom-toast toast-${type}`;
+    toast.innerHTML = `
+      <div class="toast-icon">${icons[type] || '✓'}</div>
+      <div class="toast-content">
+        <div class="toast-title">${title || 'Thông báo'}</div>
+        <div class="toast-msg">${message}</div>
+      </div>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('hide');
+      setTimeout(() => toast.remove(), 300);
+    }, 3200);
+  }
+
+  const fmt = n => (n || 0).toLocaleString('vi-VN') + '₫';
+
+  let checkoutCart = {};
+  let totalOrderAmount = 0;
+  let appliedCouponCode = '';
+  let couponDiscountAmount = 0;
+  let appliedCouponData = null;
+
+  // 1. ĐỌC DỮ LIỆU TỪ LOCALSTORAGE
+  function loadCheckoutCart() {
+    try {
+      const raw = localStorage.getItem('lamour_cart');
+      checkoutCart = raw ? JSON.parse(raw) : {};
+    } catch (e) {
+      checkoutCart = {};
+    }
+
+    const items = Object.values(checkoutCart);
+    if (!items || items.length === 0) {
+      showCustomToast('warning', 'Giỏ hàng trống', 'Vui lòng chọn sách trước khi tiến hành thanh toán.');
+      setTimeout(() => {
+        window.location.href = '/cart';
+      }, 1200);
+      return;
+    }
+
+    // Render danh sách sản phẩm ở cột phải
+    const container = document.getElementById('summaryItemsList');
+    let subtotal = 0;
+    let totalQty = 0;
+
+    container.innerHTML = items.map(item => {
+      const lineTotal = (item.price || 0) * (item.qty || 1);
+      subtotal += lineTotal;
+      totalQty += (item.qty || 1);
+      const coverUrl = item.coverImage || 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=200&q=80';
+
+      return `
+        <div class="summary-item">
+          <img src="${coverUrl}" class="summary-thumb" alt="${item.title}">
+          <div class="summary-item-info">
+            <div class="summary-item-title">${item.title}</div>
+            <div class="summary-item-sub">SL: <strong>${item.qty}</strong> × ${fmt(item.price)}</div>
+          </div>
+          <div class="summary-item-price">${fmt(lineTotal)}</div>
+        </div>
+      `;
+    }).join('');
+
+    totalOrderAmount = subtotal;
+    document.getElementById('checkoutItemCount').textContent = `${totalQty} cuốn`;
+    document.getElementById('subtotalVal').textContent = fmt(subtotal);
+    updateCheckoutTotals();
+  }
+
+  // COUPON VOUCHER LOGIC (USER CHECKOUT)
+  async function applyCheckoutCoupon() {
+    const input = document.getElementById('checkoutCouponInput');
+    const code = input ? input.value.trim().toUpperCase() : '';
+
+    if (!code) {
+      showCustomToast('warning', 'Mã giảm giá', 'Vui lòng nhập mã ưu đãi trước khi áp dụng.');
+      return;
+    }
+
+    const btn = document.getElementById('btnApplyCoupon');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '...';
+    }
+
+    try {
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, orderTotal: totalOrderAmount })
+      });
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        showCustomToast('error', 'Không thể áp dụng', json.message || 'Mã giảm giá không hợp lệ');
+        return;
+      }
+
+      appliedCouponCode = json.data.code;
+      couponDiscountAmount = json.data.discountAmount;
+      appliedCouponData = json.data;
+
+      updateCheckoutTotals();
+      showCustomToast('success', 'Thành công', `Đã áp dụng mã ${appliedCouponCode}: giảm ${fmt(couponDiscountAmount)}`);
+    } catch (err) {
+      showCustomToast('error', 'Lỗi', 'Không thể kiểm tra mã giảm giá: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Áp dụng';
+      }
+    }
+  }
+
+  function removeCheckoutCoupon() {
+    appliedCouponCode = '';
+    couponDiscountAmount = 0;
+    appliedCouponData = null;
+    const input = document.getElementById('checkoutCouponInput');
+    if (input) input.value = '';
+    updateCheckoutTotals();
+    showCustomToast('info', 'Hủy mã', 'Đã gỡ bỏ mã giảm giá khỏi đơn hàng.');
+  }
+
+  function updateCheckoutTotals() {
+    const discountRow = document.getElementById('checkoutDiscountRow');
+    const discountVal = document.getElementById('discountVal');
+    const badge = document.getElementById('checkoutCouponBadge');
+    const badgeText = document.getElementById('checkoutCouponBadgeText');
+    const finalVal = document.getElementById('finalTotalVal');
+
+    if (appliedCouponCode && couponDiscountAmount > 0) {
+      if (discountRow) discountRow.style.display = 'flex';
+      if (discountVal) discountVal.textContent = `-${fmt(couponDiscountAmount)}`;
+      if (badge) {
+        badge.style.display = 'flex';
+        if (badgeText) badgeText.innerHTML = `✓ Voucher <strong>${appliedCouponCode}</strong>: Giảm <strong>${fmt(couponDiscountAmount)}</strong>`;
+      }
+    } else {
+      if (discountRow) discountRow.style.display = 'none';
+      if (badge) badge.style.display = 'none';
+    }
+
+    const finalAmount = Math.max(0, totalOrderAmount - couponDiscountAmount);
+    if (finalVal) finalVal.textContent = fmt(finalAmount);
+  }
+
+  // 2. CHỌN PHƯƠNG THỨC THANH TOÁN
+  function selectPaymentMethod(labelEl, method) {
+    document.querySelectorAll('.payment-label').forEach(el => el.classList.remove('active'));
+    labelEl.classList.add('active');
+    const radio = labelEl.querySelector('input[type="radio"]');
+    if (radio) radio.checked = true;
+
+    const bankBox = document.getElementById('bankTransferBox');
+    const momoBox = document.getElementById('momoTransferBox');
+    const proofContainer = document.getElementById('paymentProofUploadContainer');
+
+    if (method === 'Banking') {
+      if (bankBox) bankBox.classList.add('active');
+      if (momoBox) momoBox.classList.remove('active');
+      if (proofContainer) proofContainer.style.display = 'block';
+    } else if (method === 'MoMo') {
+      if (bankBox) bankBox.classList.remove('active');
+      if (momoBox) momoBox.classList.add('active');
+      if (proofContainer) proofContainer.style.display = 'block';
+    } else {
+      if (bankBox) bankBox.classList.remove('active');
+      if (momoBox) momoBox.classList.remove('active');
+      if (proofContainer) proofContainer.style.display = 'none';
+    }
+  }
+
+  // --- XỬ LÝ UPLOAD BILL THANH TOÁN (PAYMENT PROOF) ---
+  let uploadedPaymentProofUrl = '';
+
+  async function handleProofFileSelect(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showCustomToast('warning', 'Định dạng không hợp lệ', 'Vui lòng chọn file hình ảnh (JPG, PNG, WEBP, GIF).');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      showCustomToast('warning', 'Dung lượng quá lớn', 'Kích thước ảnh không được vượt quá 10MB.');
+      return;
+    }
+
+    const dropzone = document.getElementById('proofDropzone');
+    const originalDropHtml = dropzone ? dropzone.innerHTML : '';
+    if (dropzone) {
+      dropzone.innerHTML = '<div style="color:var(--gold); font-weight:600; font-size:13px; padding:10px 0;">⏳ Đang tải ảnh bill thanh toán lên máy chủ...</div>';
+    }
+
+    const formData = new FormData();
+    formData.append('paymentProof', file);
+
+    try {
+      const res = await fetch('/api/invoices/upload-proof', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success && data.url) {
+        uploadedPaymentProofUrl = data.url;
+        document.getElementById('proofPreviewImg').src = data.url;
+        document.getElementById('proofFileName').textContent = file.name;
+        document.getElementById('proofDropzone').style.display = 'none';
+        const prevCard = document.getElementById('proofPreviewCard');
+        if (prevCard) prevCard.style.display = 'flex';
+        showCustomToast('success', 'Đã đính kèm bill', 'Đã lưu ảnh bill chuyển khoản thành công.');
+      } else {
+        showCustomToast('error', 'Tải ảnh thất bại', data.message || 'Không thể tải ảnh bill lên máy chủ.');
+        if (dropzone) {
+          dropzone.style.display = 'block';
+          dropzone.innerHTML = originalDropHtml;
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi khi upload bill:', err);
+      showCustomToast('error', 'Lỗi kết nối', 'Không thể kết nối đến máy chủ để tải ảnh bill.');
+      if (dropzone) {
+        dropzone.style.display = 'block';
+        dropzone.innerHTML = originalDropHtml;
+      }
+    }
+  }
+
+  function removeProofImage() {
+    uploadedPaymentProofUrl = '';
+    const fileInput = document.getElementById('proofFileInput');
+    if (fileInput) fileInput.value = '';
+    document.getElementById('proofPreviewImg').src = '';
+    document.getElementById('proofPreviewCard').style.display = 'none';
+    const dropzone = document.getElementById('proofDropzone');
+    if (dropzone) {
+      dropzone.style.display = 'block';
+      dropzone.innerHTML = `
+        <input type="file" id="proofFileInput" accept="image/*" style="display:none;" onchange="handleProofFileSelect(event)">
+        <div style="font-size:28px; margin-bottom:6px;">🧾</div>
+        <div style="font-weight:600; color:#FAF7F1; font-size:13px; margin-bottom:4px;">Nhấn vào đây để tải ảnh bill hoặc ủy nhiệm chi</div>
+        <div style="font-size:11.5px; color:var(--muted);">Định dạng: JPG, PNG, WEBP, GIF (Dung lượng tối đa 10MB)</div>
+      `;
+    }
+  }
+
+  function openProofZoomModal() {
+    if (!uploadedPaymentProofUrl) return;
+    const modalImg = document.getElementById('checkoutProofModalImg');
+    if (modalImg) modalImg.src = uploadedPaymentProofUrl;
+    const modal = document.getElementById('checkoutProofModal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeProofZoomModal() {
+    const modal = document.getElementById('checkoutProofModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  // 3. ĐẶT HÀNG & GỬI LÊN BACKEND
+  async function submitCheckout(e) {
+    e.preventDefault();
+
+    const btn = document.getElementById('btnSubmitOrder');
+    btn.disabled = true;
+    btn.innerHTML = '<span>Đang xử lý đơn hàng...</span>';
+
+    const customerName = document.getElementById('customerName').value.trim();
+    const customerPhone = document.getElementById('customerPhone').value.trim();
+    const customerEmail = document.getElementById('customerEmail') ? document.getElementById('customerEmail').value.trim() : '';
+    const customerAddress = document.getElementById('customerAddress').value.trim();
+    const orderNote = document.getElementById('orderNote').value.trim();
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value || 'cash';
+
+    // A. XÁC THỰC SỐ ĐIỆN THOẠI: Bắt đầu bằng 0 và có 9 hoặc 10 chữ số
+    const phoneRegex = /^0\d{8,9}$/;
+    if (!phoneRegex.test(customerPhone)) {
+      showCustomToast('warning', 'Số điện thoại không hợp lệ', 'Số điện thoại phải bắt đầu bằng số 0 và có độ dài 9 hoặc 10 chữ số!');
+      const phoneInput = document.getElementById('customerPhone');
+      if (phoneInput) {
+        phoneInput.focus();
+        phoneInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<span>XÁC NHẬN ĐẶT HÀNG</span>';
+      return;
+    }
+
+    // B. XÁC THỰC EMAIL: Bắt buộc định dạng email chuẩn
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!customerEmail || !emailRegex.test(customerEmail)) {
+      showCustomToast('warning', 'Email không hợp lệ', 'Vui lòng nhập đúng định dạng email để nhận hóa đơn (ví dụ: nguyenvana@gmail.com)!');
+      const emailInput = document.getElementById('customerEmail');
+      if (emailInput) {
+        emailInput.focus();
+        emailInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      btn.disabled = false;
+      btn.innerHTML = '<span>XÁC NHẬN ĐẶT HÀNG</span>';
+      return;
+    }
+
+    // Format items đúng với API /api/invoices/online-checkout
+    const items = Object.values(checkoutCart).map(item => ({
+      book: item.id || item._id,
+      quantity: Number(item.qty || 1),
+      price: Number(item.price || 0)
+    }));
+
+    const payload = {
+      customerName,
+      customerPhone,
+      customerEmail,
+      customerAddress,
+      orderNote,
+      paymentMethod,
+      paymentProof: uploadedPaymentProofUrl || '',
+      couponCode: appliedCouponCode || '',
+      items,
+      totalAmount: totalOrderAmount,
+      finalAmount: Math.max(0, totalOrderAmount - couponDiscountAmount)
+    };
+
+    try {
+      const res = await fetch('/api/invoices/online-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // Xóa sạch giỏ hàng trong localStorage
+        localStorage.removeItem('lamour_cart');
+
+        if (paymentMethod === 'momo') {
+          btn.disabled = false;
+          btn.innerHTML = '<span>XÁC NHẬN ĐẶT HÀNG</span>';
+          showMomoLivePaymentModal(data.data, data.momoPayment);
+          return;
+        }
+
+        // Thông báo thành công và chuyển hướng đến lịch sử đơn hàng (tab Chờ xác nhận)
+        const emailMsg = customerEmail ? ` và đã gửi hóa đơn về email ${customerEmail}` : '';
+        showCustomToast('success', 'Đặt hàng thành công', `Đơn hàng đã được tiếp nhận${emailMsg}! Đang chuyển hướng...`);
+        setTimeout(() => {
+          window.location.href = '/user-dashboard.html?tab=orders&subtab=pending_confirmation';
+        }, 1200);
+      } else {
+        showCustomToast('error', 'Đặt hàng thất bại', data.message || 'Không thể tạo đơn hàng. Vui lòng thử lại!');
+        btn.disabled = false;
+        btn.innerHTML = '<span>XÁC NHẬN ĐẶT HÀNG</span>';
+      }
+    } catch (err) {
+      console.error(err);
+      showCustomToast('error', 'Lỗi kết nối', 'Đã xảy ra lỗi kết nối đến máy chủ. Vui lòng kiểm tra lại!');
+      btn.disabled = false;
+      btn.innerHTML = '<span>XÁC NHẬN ĐẶT HÀNG</span>';
+    }
+  }
+
+  // ================= XỬ LÝ THANH TOÁN MOMO REALTIME (AUTO VERIFY) =================
+  let currentMomoInvoiceCode = '';
+  let momoPollingInterval = null;
+  let momoTimerInterval = null;
+  let momoSecondsLeft = 600; // 10 phút
+
+  function showMomoLivePaymentModal(invoice, momoPayment) {
+    if (!invoice) return;
+    currentMomoInvoiceCode = invoice.invoiceCode;
+
+    const modal = document.getElementById('momoLiveModal');
+    if (!modal) return;
+
+    document.getElementById('momoLiveOrderCode').textContent = invoice.invoiceCode;
+    document.getElementById('momoLiveAmount').textContent = fmt(invoice.finalAmount || invoice.totalAmount || 0);
+
+    // Xác định URL mã QR MoMo
+    let qrUrl = '';
+    if (momoPayment && momoPayment.qrCodeUrl && typeof momoPayment.qrCodeUrl === 'string' && momoPayment.qrCodeUrl.startsWith('http')) {
+      qrUrl = momoPayment.qrCodeUrl;
+    } else if (momoPayment && momoPayment.payUrl) {
+      qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(momoPayment.payUrl)}`;
+    } else {
+      const momoPhone = document.getElementById('checkoutMomoPhone')?.textContent?.trim() || '0912345678';
+      qrUrl = `https://api.vietqr.io/image/970422-${momoPhone}-compact2.jpg?amount=${invoice.finalAmount}&addInfo=LAMOUR%20${invoice.invoiceCode}&accountName=LAMOUR%20BOOKSTORE`;
+    }
+
+    const qrImg = document.getElementById('momoLiveQrImg');
+    if (qrImg) qrImg.src = qrUrl;
+
+    const appLink = document.getElementById('momoOpenAppLink');
+    if (appLink) {
+      appLink.href = (momoPayment && momoPayment.payUrl) ? momoPayment.payUrl : (momoPayment && momoPayment.deeplink ? momoPayment.deeplink : '#');
+    }
+
+    // Đặt lại trạng thái ban đầu: "Chưa chuyển tiền"
+    const statusBanner = document.getElementById('momoLiveStatusBanner');
+    const statusText = document.getElementById('momoLiveStatusText');
+    const overlay = document.getElementById('momoQrSuccessOverlay');
+    if (overlay) overlay.style.display = 'none';
+
+    if (statusBanner) {
+      statusBanner.style.background = '#14223A';
+    }
+    if (statusText) {
+      statusText.style.color = '#F59E0B';
+      statusText.innerHTML = `
+        <span style="width:8px; height:8px; border-radius:50%; background:#F59E0B; display:inline-block; box-shadow:0 0 8px #F59E0B;"></span>
+        <span>Trạng thái: <strong>Chưa chuyển tiền</strong> (Đang chờ)</span>
+      `;
+    }
+
+    modal.style.display = 'flex';
+
+    // Bắt đầu đếm ngược 10 phút
+    momoSecondsLeft = 600;
+    clearInterval(momoTimerInterval);
+    momoTimerInterval = setInterval(() => {
+      momoSecondsLeft--;
+      const m = Math.floor(momoSecondsLeft / 60);
+      const s = momoSecondsLeft % 60;
+      const timerEl = document.getElementById('momoCountdownTimer');
+      if (timerEl) {
+        timerEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      }
+      if (momoSecondsLeft <= 0) {
+        clearInterval(momoTimerInterval);
+        clearInterval(momoPollingInterval);
+        showCustomToast('warning', 'Hết hạn thanh toán', 'Thời gian thanh toán của phiên đã kết thúc.');
+      }
+    }, 1000);
+
+    // Bắt đầu lắng nghe Realtime Polling mỗi 2.0s
+    clearInterval(momoPollingInterval);
+    momoPollingInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/payments/momo/check-status/${invoice.invoiceCode}`);
+        if (!res.ok) return;
+        const resData = await res.json();
+        if (resData.success && resData.data && (resData.data.isPaid || resData.data.paymentStatus === 'paid')) {
+          onMomoPaidSuccess(resData.data);
+        }
+      } catch (e) {
+        console.warn('Lỗi kiểm tra trạng thái MoMo:', e);
+      }
+    }, 2000);
+  }
+
+  function onMomoPaidSuccess(data) {
+    clearInterval(momoPollingInterval);
+    clearInterval(momoTimerInterval);
+
+    const statusBanner = document.getElementById('momoLiveStatusBanner');
+    const statusText = document.getElementById('momoLiveStatusText');
+    const overlay = document.getElementById('momoQrSuccessOverlay');
+
+    if (overlay) overlay.style.display = 'flex';
+    if (statusBanner) {
+      statusBanner.style.background = 'rgba(16,185,129,0.18)';
+      statusBanner.style.borderColor = '#10B981';
+    }
+    if (statusText) {
+      statusText.style.color = '#10B981';
+      statusText.innerHTML = `
+        <span style="width:8px; height:8px; border-radius:50%; background:#10B981; display:inline-block; box-shadow:0 0 8px #10B981;"></span>
+        <span>Trạng thái: <strong>ĐÃ CHUYỂN TIỀN THÀNH CÔNG!</strong></span>
+      `;
+    }
+
+    showCustomToast('success', 'Thanh toán thành công', 'Hệ thống đã tự động xác nhận chuyển tiền MoMo!');
+
+    setTimeout(() => {
+      window.location.href = `/user-dashboard.html?tab=orders&subtab=pending_confirmation&paidInvoice=${currentMomoInvoiceCode}`;
+    }, 2400);
+  }
+
+  async function simulateCurrentMomoPayment() {
+    if (!currentMomoInvoiceCode) return;
+    try {
+      showCustomToast('info', 'Đang xử lý', 'Đang gửi tín hiệu giả lập MoMo thanh toán thành công...');
+      const res = await fetch('/api/payments/momo/simulate-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceCode: currentMomoInvoiceCode })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        onMomoPaidSuccess(data.data);
+      } else {
+        showCustomToast('error', 'Lỗi giả lập', data.message);
+      }
+    } catch (err) {
+      showCustomToast('error', 'Lỗi kết nối', err.message);
+    }
+  }
+
+  function closeMomoLiveModal() {
+    clearInterval(momoPollingInterval);
+    clearInterval(momoTimerInterval);
+    const modal = document.getElementById('momoLiveModal');
+    if (modal) modal.style.display = 'none';
+    window.location.href = '/user-dashboard.html?tab=orders&subtab=pending_confirmation';
+  }
+
+  // 4. LẮNG NGHE THAY ĐỔI SĐT ĐỂ CẬP NHẬT CÚ PHÁP CHUYỂN KHOẢN
+  function setupPhoneSyntaxBinding() {
+    const phoneInput = document.getElementById('customerPhone');
+    if (!phoneInput) return;
+
+    const updateSyntax = () => {
+      const val = phoneInput.value.trim() || '[SĐT người nhận]';
+      const bText = document.getElementById('bankSyntaxText');
+      const mText = document.getElementById('momoSyntaxText');
+      if (bText) bText.textContent = `LAMOUR ${val}`;
+      if (mText) mText.textContent = `LAMOUR ${val}`;
+    };
+
+    phoneInput.addEventListener('input', updateSyntax);
+  }
+
+  let userSavedAddresses = [];
+
+  // 5. TỰ ĐỘNG TRÍCH XUẤT THÔNG TIN TỪ TRANG CÁ NHÂN KHÁCH HÀNG
+  async function autofillUserProfile() {
+    let user = null;
+
+    // 1. Ưu tiên gọi API lấy đầy đủ thông tin hồ sơ của khách hàng
+    try {
+      const res = await fetch('/api/user/profile');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          user = json.data;
+        }
+      }
+    } catch (e) {
+      console.warn('Không thể gọi /api/user/profile:', e);
+    }
+
+    // 2. Fallback sang /api/auth/me nếu /api/user/profile chưa tải được
+    if (!user) {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const json = await res.json();
+          user = json.data || json.user || json;
+        }
+      } catch (e) {}
+    }
+
+    // 3. Fallback sang localStorage.currentUser nếu có sẵn
+    if (!user) {
+      try {
+        const stored = localStorage.getItem('currentUser');
+        if (stored) user = JSON.parse(stored);
+      } catch (e) {}
+    }
+
+    // Nếu trang cá nhân của khách hoàn toàn chưa có thông tin gì thì để trống cho khách tự nhập
+    if (!user) return;
+
+    try {
+      localStorage.setItem('currentUser', JSON.stringify(user));
+    } catch (e) {}
+
+    const nameInput = document.getElementById('customerName');
+    const phoneInput = document.getElementById('customerPhone');
+    const emailInput = document.getElementById('customerEmail');
+    const addressInput = document.getElementById('customerAddress');
+
+    userSavedAddresses = Array.isArray(user.addresses) ? user.addresses : [];
+
+    let extractedName = '';
+    let extractedPhone = '';
+    let extractedAddress = '';
+
+    // A. Kiểm tra danh sách địa chỉ đã lưu ở trang cá nhân
+    if (userSavedAddresses.length > 0) {
+      // Tìm địa chỉ mặc định hoặc địa chỉ đầu tiên
+      const defAddr = userSavedAddresses.find(a => a.isDefault) || userSavedAddresses[0];
+      const defIdx = userSavedAddresses.indexOf(defAddr);
+
+      extractedName = defAddr.fullName || user.name || (user.identityCard && user.identityCard.fullName) || '';
+      extractedPhone = defAddr.phone || user.phone || '';
+
+      const parts = [defAddr.detailAddress, defAddr.ward, defAddr.district, defAddr.province].filter(Boolean).map(s => s.trim());
+      extractedAddress = parts.join(', ');
+
+      // Nếu khách có từ 2 địa chỉ trở lên đã lưu, hiển thị dropdown chọn nhanh
+      const wrap = document.getElementById('savedAddressWrap');
+      const select = document.getElementById('savedAddressSelect');
+      if (wrap && select && userSavedAddresses.length > 1) {
+        wrap.style.display = 'block';
+        select.innerHTML = userSavedAddresses.map((a, idx) => {
+          const aParts = [a.detailAddress, a.ward, a.district, a.province].filter(Boolean).map(s => s.trim());
+          const aFull = aParts.join(', ');
+          const isDef = a.isDefault ? ' [Mặc định]' : '';
+          return `<option value="${idx}" ${idx === defIdx ? 'selected' : ''}>${a.fullName} - ${a.phone} - ${aFull}${isDef}</option>`;
+        }).join('') + `<option value="custom">-- Nhập địa chỉ nhận hàng khác --</option>`;
+        if (window.UniversalDropdown) {
+          UniversalDropdown.attach(select, { theme: 'dark' });
+        }
+      }
+    } else {
+      // B. Khách chưa có sổ địa chỉ: Trích xuất các thông tin cơ bản đã có ở trang cá nhân
+      extractedName = user.name || (user.identityCard && user.identityCard.fullName) || '';
+      extractedPhone = user.phone || '';
+      if (user.identityCard && user.identityCard.permanentAddress) {
+        extractedAddress = user.identityCard.permanentAddress.trim();
+      }
+    }
+
+    // Điền dữ liệu vào form (nếu trường đó có dữ liệu ở trang cá nhân)
+    let hasExtractedAny = false;
+    if (nameInput && !nameInput.value && extractedName) {
+      nameInput.value = extractedName;
+      hasExtractedAny = true;
+    }
+    if (phoneInput && !phoneInput.value && extractedPhone) {
+      phoneInput.value = extractedPhone;
+      hasExtractedAny = true;
+
+      // Cập nhật cú pháp chuyển khoản ngân hàng & MoMo theo số điện thoại được trích xuất
+      const bText = document.getElementById('bankSyntaxText');
+      const mText = document.getElementById('momoSyntaxText');
+      if (bText) bText.textContent = `LAMOUR ${extractedPhone}`;
+      if (mText) mText.textContent = `LAMOUR ${extractedPhone}`;
+    }
+    if (emailInput && !emailInput.value && user.email) {
+      emailInput.value = user.email;
+      hasExtractedAny = true;
+    }
+    if (addressInput && !addressInput.value && extractedAddress) {
+      addressInput.value = extractedAddress;
+      hasExtractedAny = true;
+    }
+
+    // Hiển thị thông báo nhẹ nhàng nếu đã trích xuất được thông tin
+    const notice = document.getElementById('autofillNotice');
+    if (notice && hasExtractedAny) {
+      notice.style.display = 'flex';
+    }
+  }
+
+  function onSelectSavedAddress(val) {
+    const addressInput = document.getElementById('customerAddress');
+    const nameInput = document.getElementById('customerName');
+    const phoneInput = document.getElementById('customerPhone');
+
+    if (val === 'custom') {
+      if (addressInput) {
+        addressInput.value = '';
+        addressInput.focus();
+      }
+      return;
+    }
+
+    const idx = parseInt(val, 10);
+    const addr = userSavedAddresses[idx];
+    if (!addr) return;
+
+    if (nameInput && addr.fullName) nameInput.value = addr.fullName;
+    if (phoneInput && addr.phone) {
+      phoneInput.value = addr.phone;
+      const bText = document.getElementById('bankSyntaxText');
+      const mText = document.getElementById('momoSyntaxText');
+      if (bText) bText.textContent = `LAMOUR ${addr.phone}`;
+      if (mText) mText.textContent = `LAMOUR ${addr.phone}`;
+    }
+
+    const parts = [addr.detailAddress, addr.ward, addr.district, addr.province].filter(Boolean).map(s => s.trim());
+    if (addressInput) addressInput.value = parts.join(', ');
+  }
+
+  // Tải cấu hình thanh toán động từ hệ thống
+  async function loadPaymentInfo() {
+    try {
+      const res = await fetch('/api/settings/payment-info');
+      const data = await res.json();
+      if (!data || !data.success || !data.paymentInfo) return;
+      const info = data.paymentInfo;
+
+      // Cập nhật thông tin VietQR
+      if (info.bankAccount) {
+        const bank = info.bankAccount;
+        const nameEl = document.getElementById('checkoutBankName');
+        const accEl = document.getElementById('checkoutBankAcc');
+        const holderEl = document.getElementById('checkoutBankHolder');
+        const qrEl = document.getElementById('checkoutBankQrImg');
+
+        if (nameEl && bank.bankName) nameEl.textContent = bank.bankName;
+        if (accEl && bank.accountNumber) accEl.textContent = bank.accountNumber;
+        if (holderEl && bank.accountHolder) holderEl.textContent = bank.accountHolder;
+        if (qrEl) qrEl.src = info.bankQrImage || bank.qrImage || '/images/qr-bank.jpg';
+      }
+
+      // Cập nhật thông tin MoMo
+      if (info.momo) {
+        const momo = info.momo;
+        const phoneEl = document.getElementById('checkoutMomoPhone');
+        const holderEl = document.getElementById('checkoutMomoHolder');
+        const qrEl = document.getElementById('checkoutMomoQrImg');
+
+        if (phoneEl && momo.phone) phoneEl.textContent = momo.phone;
+        if (holderEl && momo.holder) holderEl.textContent = momo.holder;
+        if (qrEl) qrEl.src = info.momoQrImage || momo.qrImage || '/images/qr-momo.jpg';
+      }
+    } catch (e) {
+      console.warn('Không thể tải thông tin thanh toán động:', e);
+    }
+  }
+
+  // Khởi chạy
+  document.addEventListener('DOMContentLoaded', () => {
+    loadCheckoutCart();
+    loadPaymentInfo();
+    setupPhoneSyntaxBinding();
+    autofillUserProfile();
+    if (window.UniversalDropdown) {
+      UniversalDropdown.attachAll('select', document, { theme: 'dark' });
+    }
+  });
+</script>
+
+</body>
+</html>

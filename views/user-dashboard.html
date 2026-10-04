@@ -1,0 +1,4269 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tài Khoản Của Tôi — L'Amour Bookstore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/custom-dropdown.css">
+
+<style>
+  :root {
+    /* Brand Theme Colors */
+    --primary: #0F172A;
+    --primary-hover: #1E293B;
+    --primary-light: #F1F5F9;
+    --gold: #C59B27;
+    --gold-hover: #B45309;
+    --gold-light: #FEF3C7;
+    --amber-deep: #B45309;
+
+    /* Backgrounds */
+    --bg-page: #FAF7F2;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #F8FAFC;
+    --bg-cream: #F1ECE1;
+
+    /* Typography */
+    --text-main: #0F172A;
+    --text-body: #334155;
+    --text-muted: #64748B;
+    --text-light: #94A3B8;
+
+    /* Borders & Lines */
+    --border-card: #EAE5DC;
+    --border-light: #E2E8F0;
+    --border-focus: #0F172A;
+
+    /* Shadows */
+    --shadow-card: 0 4px 16px rgba(15, 23, 42, 0.04);
+    --shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --shadow-modal: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+
+    /* Radius */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    /* Status Badges */
+    --badge-pending-bg: #FEF9C3;
+    --badge-pending-text: #854D0E;
+    --badge-pending-border: #FEF08A;
+
+    --badge-shipping-bg: #E0F2FE;
+    --badge-shipping-text: #0369A1;
+    --badge-shipping-border: #BAE6FD;
+
+    --badge-completed-bg: #DCFCE7;
+    --badge-completed-text: #15803D;
+    --badge-completed-border: #BBF7D0;
+
+    --badge-cancelled-bg: #FEE2E2;
+    --badge-cancelled-text: #B91C1C;
+    --badge-cancelled-border: #FECACA;
+
+    --badge-default-bg: #FEF3C7;
+    --badge-default-text: #92400E;
+    --badge-default-border: #FDE68A;
+
+    /* Backward compatibility mappings so existing classes look gorgeous */
+    --shopee-orange: #0F172A;
+    --shopee-orange-hover: #1E293B;
+    --shopee-orange-light: #F1F5F9;
+    --shopee-bg: #FAF7F2;
+    --card-bg: #FFFFFF;
+    --ink: #0F172A;
+    --ink-light: #334155;
+    --muted: #64748B;
+    --line: #EAE5DC;
+    --line-dark: #CBD5E1;
+    --teal-badge: #0F172A;
+    --teal-light: #F1ECE1;
+    --green-badge: #15803D;
+    --danger: #DC2626;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg-page);
+    color: var(--text-body);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; border: none; outline: none; }
+  input, select, textarea { font-family: inherit; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .serif { font-family: 'Fraunces', serif; }
+
+  /* ============ 1. HEADER CHUẨN ĐỒNG BỘ TRANG CHỦ ============ */
+  header.nav {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: rgba(6, 14, 27, 0.96);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 2px solid var(--gold);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  }
+
+  .nav-inner {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+    height: 78px;
+  }
+
+  .brand {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+  }
+  .brand .name {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 24px;
+    color: #FAF7F1;
+    letter-spacing: .02em;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .brand .name em {
+    font-style: normal;
+    color: var(--gold);
+  }
+  .brand .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    letter-spacing: .25em;
+    text-transform: uppercase;
+    color: #E5C378;
+    margin-top: 5px;
+  }
+
+  /* MENU TRÁI */
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+  .nav-link {
+    color: rgba(250, 247, 241, 0.85);
+    font-size: 14.5px;
+    font-weight: 500;
+    position: relative;
+    transition: color 0.2s ease;
+  }
+  .nav-link:hover {
+    color: var(--gold);
+  }
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 1.5px;
+    background: var(--gold);
+    transition: width 0.25s ease;
+  }
+  .nav-link:hover::after {
+    width: 100%;
+  }
+
+  /* MENU PHẢI & ACCOUNT DROPDOWN */
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .cart-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    text-decoration: none;
+  }
+  .cart-btn:hover {
+    border-color: var(--gold);
+    background: rgba(197, 155, 39, 0.2);
+    transform: translateY(-2px);
+  }
+  .cart-btn svg {
+    stroke: #FAF7F1;
+  }
+  .cart-btn .count {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: var(--amber-deep);
+    color: #FFFFFF;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 700;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    border: 1.5px solid #FAF7F1;
+  }
+
+  /* DROPDOWN TÀI KHOẢN */
+  .account-dropdown {
+    position: relative;
+    display: inline-block;
+  }
+  .account-dropdown-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 16px 6px 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 999px;
+    color: #FAF7F1;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .account-dropdown-btn .nav-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--gold);
+  }
+  .account-dropdown-btn svg.chevron-icon {
+    transition: transform 0.2s ease;
+  }
+  .account-dropdown:hover .account-dropdown-btn {
+    background: rgba(197, 155, 39, 0.18);
+    border-color: var(--gold);
+  }
+  .account-dropdown:hover .account-dropdown-btn svg.chevron-icon {
+    transform: rotate(180deg);
+  }
+
+  .account-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 190px;
+    background: rgba(10, 25, 48, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(12px);
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 1001;
+  }
+  .account-dropdown-menu::before {
+    content: '';
+    position: absolute;
+    top: -15px;
+    left: 0;
+    right: 0;
+    height: 15px;
+    background: transparent;
+    display: block;
+  }
+  .account-dropdown:hover .account-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .account-dropdown-item {
+    padding: 10px 14px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #FAF7F1;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .account-dropdown-item:hover {
+    background: rgba(197, 155, 39, 0.2);
+    color: var(--gold);
+    transform: translateX(3px);
+  }
+  .account-dropdown-item.logout-item {
+    color: #EF4444;
+  }
+  .account-dropdown-item.logout-item:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #F87171;
+  }
+
+  /* ============ MAIN CONTAINER ============ */
+  .dashboard-container {
+    max-width: 1240px;
+    margin: 32px auto 80px;
+    padding: 0 24px;
+    width: 100%;
+    display: flex;
+    gap: 28px;
+    flex: 1;
+    align-items: flex-start;
+  }
+
+  /* ============ CỘT TRÁI (SIDEBAR BOOKSTORE THEME) ============ */
+  .dashboard-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    padding: 20px 16px;
+    box-shadow: var(--shadow-card);
+  }
+  .sidebar-user-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 6px 4px 18px;
+    border-bottom: 1px solid var(--border-card);
+  }
+  .sidebar-avatar-wrap {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid var(--gold);
+    background: #FFF;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  }
+  .sidebar-avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .sidebar-user-info {
+    overflow: hidden;
+  }
+  .sidebar-user-name {
+    font-weight: 700;
+    font-size: 14.5px;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+  }
+  .sidebar-edit-link {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: color .15s ease;
+  }
+  .sidebar-edit-link:hover { color: var(--amber-deep); }
+  .sidebar-edit-link svg { stroke: currentColor; }
+
+  /* SIDEBAR MENU */
+  .sidebar-menu {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .menu-group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+    cursor: pointer;
+    user-select: none;
+    border-radius: var(--radius-md);
+    transition: background .15s ease;
+  }
+  .menu-group-header:hover {
+    background: var(--bg-subtle);
+  }
+  .menu-group-header svg {
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: color .15s ease;
+  }
+  .menu-group-header:hover svg {
+    color: var(--text-main);
+  }
+
+  .submenu-list {
+    display: flex;
+    flex-direction: column;
+    padding-left: 10px;
+    gap: 3px;
+    margin-bottom: 6px;
+  }
+  .submenu-item {
+    font-size: 13.5px;
+    color: var(--text-body);
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all .15s ease;
+    user-select: none;
+    font-weight: 500;
+    position: relative;
+  }
+  .submenu-item:hover {
+    background: #FAF7F2;
+    color: var(--text-main);
+  }
+  .submenu-item.active {
+    color: var(--text-main);
+    background: var(--bg-cream);
+    font-weight: 700;
+    border-left: 3.5px solid var(--gold);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  .single-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-body);
+    cursor: pointer;
+    user-select: none;
+    border-radius: var(--radius-md);
+    transition: all .15s ease;
+    position: relative;
+  }
+  .single-menu-item svg {
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: color .15s ease;
+  }
+  .single-menu-item:hover {
+    background: #FAF7F2;
+    color: var(--text-main);
+  }
+  .single-menu-item:hover svg {
+    color: var(--text-main);
+  }
+  .single-menu-item.active {
+    color: var(--text-main);
+    background: var(--bg-cream);
+    font-weight: 700;
+    border-left: 3.5px solid var(--gold);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+  .single-menu-item.active svg {
+    color: var(--text-main);
+  }
+  .single-menu-item.logout-item {
+    margin-top: 14px;
+    border-top: 1px solid var(--border-card);
+    padding-top: 14px;
+    color: var(--text-muted);
+    border-left: none !important;
+  }
+  .single-menu-item.logout-item:hover {
+    color: var(--danger);
+    background: #FEF2F2;
+  }
+  .single-menu-item.logout-item:hover svg {
+    color: var(--danger);
+  }
+
+  /* ============ CỘT PHẢI (CONTENT AREA) ============ */
+  .dashboard-content {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg-card);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    padding: 34px 38px;
+    position: relative;
+  }
+
+  .tab-panel {
+    display: none;
+  }
+  .tab-panel.active {
+    display: block;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* PANEL HEADER */
+  .panel-header {
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-card);
+    margin-bottom: 26px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .panel-title {
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--text-main);
+    font-family: 'Fraunces', serif;
+    letter-spacing: -0.01em;
+    margin-bottom: 4px;
+  }
+  .panel-subtitle {
+    font-size: 13.5px;
+    color: var(--text-muted);
+  }
+  .btn-primary-orange {
+    background: var(--primary);
+    color: #FFFFFF;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-md);
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all .18s ease;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+    cursor: pointer;
+  }
+  .btn-primary-orange:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.22);
+    transform: translateY(-1px);
+  }
+  .btn-primary-orange:active { transform: translateY(0); }
+
+  /* NOTIFICATION BANNER VÀNG */
+  .shopee-banner-notice {
+    background: #FEFCE8;
+    border: 1px solid #FEF08A;
+    border-radius: var(--radius-md);
+    padding: 12px 18px;
+    font-size: 13.5px;
+    color: #854D0E;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 6px rgba(133, 77, 14, 0.05);
+  }
+  .shopee-banner-notice a {
+    color: var(--amber-deep);
+    text-decoration: underline;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .shopee-banner-notice a:hover {
+    color: #78350F;
+  }
+  .shopee-banner-notice .close-btn {
+    cursor: pointer;
+    font-size: 16px;
+    color: #A16207;
+    opacity: 0.8;
+    transition: opacity .15s;
+  }
+  .shopee-banner-notice .close-btn:hover {
+    opacity: 1;
+  }
+
+  /* ============ 1. VIEW HỒ SƠ ============ */
+  .profile-layout {
+    display: flex;
+    gap: 40px;
+  }
+  .profile-form-col {
+    flex: 1;
+  }
+  .form-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .form-label {
+    width: 140px;
+    text-align: right;
+    color: var(--text-body);
+    font-size: 14px;
+    font-weight: 500;
+    padding-right: 20px;
+    flex-shrink: 0;
+  }
+  .form-control-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .form-input-text {
+    width: 100%;
+    max-width: 440px;
+    height: 42px;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 0 14px;
+    font-size: 14px;
+    color: var(--text-main);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    background: #FFFFFF;
+  }
+  .form-input-text:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(197, 155, 39, 0.18);
+  }
+  .masked-val {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-main);
+  }
+  .action-link {
+    color: var(--amber-deep);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color .15s;
+  }
+  .action-link:hover {
+    color: #78350F;
+    text-decoration: underline;
+  }
+  .radio-group {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-body);
+  }
+  .radio-label input[type="radio"] {
+    accent-color: var(--primary);
+    width: 17px;
+    height: 17px;
+    cursor: pointer;
+  }
+  input[type="checkbox"] {
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+
+  /* CỘT AVATAR */
+  .profile-avatar-col {
+    width: 250px;
+    border-left: 1px solid var(--border-card);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-left: 36px;
+    text-align: center;
+  }
+  .avatar-big-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2.5px solid var(--gold);
+    margin-bottom: 16px;
+    background: #FAFAFA;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  }
+  .avatar-big-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .btn-upload-avatar {
+    background: #FFFFFF;
+    border: 1px solid var(--border-light);
+    padding: 8px 20px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-body);
+    margin-bottom: 12px;
+    transition: all .15s ease;
+  }
+  .btn-upload-avatar:hover {
+    background: var(--bg-subtle);
+    border-color: var(--text-light);
+    color: var(--text-main);
+  }
+  .avatar-tip {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ============ 2. VIEW NGÂN HÀNG ============ */
+  .bank-section-wrap {
+    margin-bottom: 36px;
+  }
+  .bank-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-card);
+    margin-bottom: 18px;
+  }
+  .bank-section-head h3 {
+    font-size: 16.5px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+  .empty-bank-box {
+    text-align: center;
+    padding: 44px 10px;
+    color: var(--text-muted);
+    font-size: 14px;
+    background: #FAF7F2;
+    border: 1px dashed var(--border-card);
+    border-radius: var(--radius-md);
+  }
+
+  .bank-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .bank-card-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    background: #FFFFFF;
+    box-shadow: var(--shadow-card);
+    transition: border-color .15s ease;
+  }
+  .bank-card-item:hover {
+    border-color: var(--border-light);
+  }
+  .bank-card-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .bank-logo-box {
+    width: 46px;
+    height: 46px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--gold);
+    font-size: 18px;
+    background: #FAF7F2;
+  }
+  .bank-card-info h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .badge-approved {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #15803D;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .badge-default-teal {
+    background: var(--badge-default-bg);
+    color: var(--badge-default-text);
+    border: 1px solid var(--badge-default-border);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+  }
+  .bank-meta-text {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .bank-number-col {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .bank-actions-col {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .btn-bank-default {
+    background: transparent;
+    border: 1px solid var(--border-light);
+    padding: 7px 14px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-body);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .btn-bank-default.disabled {
+    border-color: #E2E8F0;
+    color: var(--text-light);
+    cursor: default;
+  }
+  .btn-bank-default:not(.disabled):hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--bg-subtle);
+  }
+
+  /* ============ 3. VIEW ĐỊA CHỈ ============ */
+  .address-item-card {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .address-left {
+    flex: 1;
+    padding-right: 20px;
+  }
+  .address-person-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .address-name {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+  .address-phone {
+    font-size: 13.5px;
+    color: var(--text-muted);
+    border-left: 1px solid var(--border-card);
+    padding-left: 10px;
+  }
+  .address-detail-text {
+    font-size: 13.5px;
+    color: var(--text-body);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .badge-address-default {
+    display: inline-block;
+    background: var(--badge-default-bg);
+    border: 1px solid var(--badge-default-border);
+    color: var(--badge-default-text);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+  }
+  .address-right {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .address-link-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+
+  /* ============ 4. VIEW ĐỔI MẬT KHẨU ============ */
+  .pwd-form-wrap {
+    max-width: 540px;
+    margin-top: 10px;
+  }
+  .input-password-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    display: flex;
+    align-items: center;
+  }
+  .input-password-wrapper input {
+    padding-right: 42px;
+    width: 100%;
+  }
+  .pwd-eye-btn {
+    position: absolute;
+    right: 8px;
+    background: transparent;
+    border: none;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color .15s;
+  }
+  .pwd-eye-btn:hover { color: var(--text-main); }
+  .pwd-eye-btn.active { color: var(--amber-deep); }
+
+  /* ============ 5. VIEW THÔNG TIN CÁ NHÂN (CCCD) ============ */
+  .identity-form-wrap {
+    max-width: 640px;
+    margin-top: 10px;
+  }
+  .char-count-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  /* ============ 6. VIEW ĐƠN MUA (BOOKSTORE ORDER LIFECYCLE) ============ */
+  .orders-tab-nav {
+    display: flex;
+    align-items: center;
+    background: #FFFFFF;
+    border-bottom: 1.5px solid var(--border-card);
+    margin: -34px -38px 24px -38px;
+    padding: 0 16px;
+    overflow-x: auto;
+  }
+  .order-tab-btn {
+    flex: 1;
+    min-width: 110px;
+    text-align: center;
+    padding: 16px 8px;
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 500;
+    border-bottom: 2.5px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .15s ease;
+    background: transparent;
+  }
+  .order-tab-btn:hover { color: var(--text-main); }
+  .order-tab-btn.active {
+    color: var(--text-main);
+    border-bottom-color: var(--gold);
+    font-weight: 700;
+  }
+
+  .order-search-bar {
+    background: #F8FAFC;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    gap: 12px;
+    margin-bottom: 24px;
+    transition: all .15s ease;
+  }
+  .order-search-bar:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(197, 155, 39, 0.15);
+    background: #FFFFFF;
+  }
+  .order-search-bar input {
+    border: none;
+    background: transparent;
+    width: 100%;
+    font-size: 13.5px;
+    color: var(--text-main);
+    outline: none;
+  }
+
+  .order-cards-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .order-card {
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    background: #FFFFFF;
+    overflow: hidden;
+    box-shadow: var(--shadow-card);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .order-card:hover {
+    box-shadow: var(--shadow-hover);
+  }
+  .order-card-header {
+    padding: 14px 20px;
+    background: #FAF7F2;
+    border-bottom: 1px solid var(--border-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  .shop-tag-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .mall-badge {
+    background: var(--primary);
+    color: #FAF7F1;
+    border: 1px solid var(--gold);
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.05em;
+  }
+  .btn-view-shop {
+    background: #FFFFFF;
+    border: 1px solid var(--border-light);
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--text-body);
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    transition: all .15s ease;
+  }
+  .btn-view-shop:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+  .order-status-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .order-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .status-badge-pending {
+    background: var(--badge-pending-bg);
+    color: var(--badge-pending-text);
+    border: 1px solid var(--badge-pending-border);
+  }
+  .status-badge-shipping {
+    background: var(--badge-shipping-bg);
+    color: var(--badge-shipping-text);
+    border: 1px solid var(--badge-shipping-border);
+  }
+  .status-badge-completed {
+    background: var(--badge-completed-bg);
+    color: var(--badge-completed-text);
+    border: 1px solid var(--badge-completed-border);
+  }
+  .status-badge-cancelled {
+    background: var(--badge-cancelled-bg);
+    color: var(--badge-cancelled-text);
+    border: 1px solid var(--badge-cancelled-border);
+  }
+
+  .order-items-list {
+    padding: 16px 20px;
+  }
+  .order-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px dashed var(--border-card);
+  }
+  .order-item-row:last-child { border-bottom: none; }
+  .order-item-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+  }
+  .order-book-thumb {
+    width: 68px;
+    height: 68px;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    background: #FAF7F2;
+  }
+  .order-book-info h5 {
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 4px;
+  }
+  .order-book-qty {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .order-item-price {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
+  .order-card-footer {
+    background: #FBF9F5;
+    border-top: 1px solid var(--border-card);
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .order-total-display {
+    font-size: 14px;
+    color: var(--text-body);
+  }
+  .order-total-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--amber-deep);
+    margin-left: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .order-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn-order-action {
+    padding: 8px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .btn-reorder {
+    background: var(--primary);
+    color: #FFFFFF;
+    border: 1px solid var(--primary);
+  }
+  .btn-reorder:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }
+  .btn-cancel-order {
+    background: #FFFFFF;
+    border: 1px solid #FECACA;
+    color: var(--danger);
+  }
+  .btn-cancel-order:hover {
+    background: #FEF2F2;
+    border-color: var(--danger);
+  }
+  .btn-order-detail {
+    background: #FFFFFF;
+    border: 1px solid var(--border-light);
+    color: var(--text-body);
+  }
+  .btn-order-detail:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: var(--bg-subtle);
+  }
+
+  .empty-orders-shopee {
+    text-align: center;
+    padding: 64px 20px;
+    background: #FAF7F2;
+    border: 1px dashed var(--border-card);
+    border-radius: var(--radius-lg);
+  }
+  .empty-orders-shopee svg {
+    color: var(--text-light);
+    margin-bottom: 14px;
+  }
+  .empty-orders-shopee p {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  /* ============ MODAL SYSTEM ============ */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s ease;
+  }
+  .modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .modal-box {
+    background: #FFFFFF;
+    border-radius: var(--radius-lg);
+    max-width: 520px;
+    width: 100%;
+    border: 1px solid var(--border-card);
+    box-shadow: var(--shadow-modal);
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform .2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .modal-overlay.active .modal-box { transform: scale(1); }
+  .modal-box-head {
+    padding: 16px 24px;
+    background: #FAF7F2;
+    border-bottom: 1px solid var(--border-card);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-box-head h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 17.5px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+  .modal-close-x {
+    font-size: 22px;
+    color: var(--text-muted);
+    background: transparent;
+    cursor: pointer;
+    line-height: 1;
+    transition: color .15s;
+  }
+  .modal-close-x:hover { color: var(--text-main); }
+  .modal-box-body {
+    padding: 24px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-box-foot {
+    padding: 14px 24px;
+    background: #F8FAFC;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  .btn-modal-cancel {
+    background: #FFFFFF;
+    border: 1px solid var(--border-light);
+    padding: 8px 18px;
+    border-radius: var(--radius-md);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-body);
+    transition: all .15s;
+  }
+  .btn-modal-cancel:hover {
+    background: var(--bg-subtle);
+    border-color: var(--text-light);
+    color: var(--text-main);
+  }
+
+  /* SELECT DROPDOWNS CASCADING */
+  select.form-input-text {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748B' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: calc(100% - 12px) center;
+    padding-right: 32px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  /* QUICK RESET MODAL HIGHLIGHT BOX */
+  .pwd-highlight-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #FAF7F2;
+    border: 1.5px dashed var(--gold);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    margin: 16px 0;
+    gap: 10px;
+  }
+  .pwd-highlight-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: 1.5px;
+  }
+  .btn-copy-pwd {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #FFFFFF;
+    border: 1px solid var(--gold);
+    color: var(--amber-deep);
+    padding: 7px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-copy-pwd:hover {
+    background: var(--gold);
+    color: #FFFFFF;
+  }
+  .btn-copy-pwd.copied {
+    background: #15803D;
+    border-color: #15803D;
+    color: #FFFFFF;
+  }
+
+  /* ============ TOAST NOTIFICATION CHUẨN TOÀN HỆ THỐNG ============ */
+  #toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 380px;
+    width: calc(100% - 40px);
+    pointer-events: none;
+  }
+  .custom-toast {
+    pointer-events: auto;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-card);
+    padding: 12px 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0,0,0,0.04);
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    animation: toastIn 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+  .custom-toast.hide { animation: toastOut 0.25s ease forwards; }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(50px) scale(0.95); } to { opacity: 1; transform: translateX(0) scale(1); } }
+  @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(60px); } }
+  .toast-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .toast-success .toast-icon { background: #15803D; }
+  .toast-error .toast-icon { background: #DC2626; }
+  .toast-warning .toast-icon { background: #D97706; }
+  .toast-info .toast-icon { background: #0284C7; }
+  .toast-content { flex: 1; min-width: 0; }
+  .toast-title { font-weight: 700; font-size: 13.5px; margin-bottom: 2px; color: var(--text-main); }
+  .toast-msg { font-size: 12.5px; color: var(--text-body); line-height: 1.4; word-break: break-word; }
+  .toast-close { border: 0; background: transparent; color: #94A3B8; font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .toast-close:hover { color: var(--text-main); }
+  .toast-progress { position: absolute; bottom: 0; left: 0; height: 3px; width: 100%; animation: toastProgress 3s linear forwards; }
+  .toast-success .toast-progress { background: #15803D; }
+  .toast-error .toast-progress { background: #DC2626; }
+  .toast-warning .toast-progress { background: #D97706; }
+  .toast-info .toast-progress { background: #0284C7; }
+  @keyframes toastProgress { from { width: 100%; } to { width: 0%; } }
+
+  /* ============ CUSTOM CONFIRM MODAL (NO ALERT/CONFIRM) ============ */
+  .confirm-overlay {
+    position: fixed; inset: 0; z-index: 1000000;
+    background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(5px);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+  }
+  .confirm-overlay.active { opacity: 1; pointer-events: auto; }
+  .confirm-modal {
+    background: #FFFFFF; border-radius: var(--radius-lg); max-width: 400px; width: 100%;
+    border: 1px solid var(--border-card);
+    padding: 26px 28px; box-shadow: var(--shadow-modal);
+    transform: scale(0.92); transition: transform 0.2s ease; text-align: center;
+  }
+  .confirm-overlay.active .confirm-modal { transform: scale(1); }
+  .confirm-icon {
+    width: 48px; height: 48px; border-radius: 50%; background: #FEF3C7; color: #D97706;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-size: 22px; font-weight: 700;
+  }
+  .confirm-title { font-size: 17.5px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; font-family: 'Fraunces', serif; }
+  .confirm-msg { font-size: 13.5px; color: var(--text-body); margin-bottom: 22px; line-height: 1.5; }
+  .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+  .confirm-btn { flex: 1; padding: 10px 16px; border-radius: var(--radius-md); font-size: 13.5px; font-weight: 600; border: 1px solid var(--border-light); background: #FFF; color: var(--text-body); cursor: pointer; transition: all 0.15s ease; }
+  .confirm-btn:hover { background: var(--bg-subtle); color: var(--text-main); }
+  .confirm-btn-primary { background: var(--primary); color: #FFF; border-color: var(--primary); }
+  .confirm-btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .dashboard-container { flex-direction: column; }
+    .dashboard-sidebar { width: 100%; border-bottom: 1px solid var(--border-card); padding-bottom: 18px; }
+    .profile-layout { flex-direction: column-reverse; }
+    .profile-avatar-col { width: 100%; border-left: none; border-bottom: 1px solid var(--border-card); padding: 0 0 20px 0; }
+    .form-row { flex-direction: column; align-items: flex-start; }
+    .form-label { text-align: left; margin-bottom: 6px; width: 100%; }
+    .orders-tab-nav { margin: -24px -20px 20px -20px; }
+    .dashboard-content { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ 1. FIXED HEADER NAVBAR (ĐỒNG BỘ 100% TRANG CHỦ) ============ -->
+<header class="nav" id="mainNavbar">
+  <div class="nav-inner">
+    <!-- Brand -->
+    <a href="/" class="brand" aria-label="L'Amour Bookstore — Trang chủ">
+      <span class="name">L'Amour <em>Bookstore</em></span>
+      <span class="tag">TIỆM SÁCH TINH HOA</span>
+    </a>
+
+    <!-- Menu Trái -->
+    <nav class="nav-links">
+      <a href="/" class="nav-link">Trang Chủ</a>
+      <a href="/products" class="nav-link">Kho Sách</a>
+      <a href="/collections" class="nav-link">Bộ Sưu Tập</a>
+      <a href="/authors" class="nav-link">Tác Giả</a>
+      <a href="/policy" class="nav-link">Chính Sách</a>
+    </nav>
+
+    <!-- Menu Phải -->
+    <div class="nav-actions">
+      <!-- Giỏ hàng (chuyển hướng sang trang /cart) -->
+      <a href="/cart" class="cart-btn" id="cartBtn" aria-label="Xem giỏ hàng">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h2l2.4 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L22 7H6"/><circle cx="9" cy="21" r="1"/><circle cx="18" cy="21" r="1"/></svg>
+        <span class="count" id="navCartCount">0</span>
+      </a>
+
+      <!-- Dropdown Tài khoản Người dùng -->
+      <div class="account-dropdown" id="accountDropdown">
+        <button type="button" class="account-dropdown-btn" aria-haspopup="true">
+          <img id="navAvatarImg" class="nav-user-avatar" src="/images/default-avatar.png" alt="Avatar" onerror="this.src='/images/default-avatar.png'">
+          <span id="navUserName">Tài khoản</span>
+          <svg class="chevron-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="account-dropdown-menu" id="accountDropdownMenu" role="menu">
+          <a href="javascript:void(0)" onclick="switchTab('profile')" class="account-dropdown-item" role="menuitem">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span>Hồ Sơ Của Tôi</span>
+          </a>
+          <a href="javascript:void(0)" onclick="switchTab('orders')" class="account-dropdown-item" role="menuitem">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <span>Đơn Mua</span>
+          </a>
+          <a href="javascript:void(0)" onclick="handleLogout()" class="account-dropdown-item logout-item" role="menuitem">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Đăng Xuất</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- MAIN USER DASHBOARD -->
+<main class="dashboard-container">
+
+  <!-- CỘT TRÁI (SIDEBAR NAVIGATION) -->
+  <aside class="dashboard-sidebar">
+    <!-- Header User Profile -->
+    <div class="sidebar-user-header">
+      <div class="sidebar-avatar-wrap">
+        <img id="sideAvatarImg" src="/images/default-avatar.png" alt="Avatar" onerror="this.src='/images/default-avatar.png'">
+      </div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name" id="sideUserName">Đang tải...</div>
+        <div class="sidebar-edit-link" onclick="switchTab('profile')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          Sửa Hồ Sơ
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu items (Đã loại bỏ hoàn toàn 9.9, căn chỉnh liền mạch) -->
+    <div class="sidebar-menu">
+      <!-- Nhóm 1: Tài Khoản Của Tôi -->
+      <div class="menu-group-header" onclick="toggleSubmenu('accountSubmenu')">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        <span>Tài Khoản Của Tôi</span>
+      </div>
+      <div class="submenu-list" id="accountSubmenu">
+        <div class="submenu-item active" data-tab="profile" onclick="switchTab('profile')">Hồ Sơ</div>
+        <div class="submenu-item" data-tab="bank" onclick="switchTab('bank')">Ngân Hàng</div>
+        <div class="submenu-item" data-tab="address" onclick="switchTab('address')">Địa Chỉ</div>
+        <div class="submenu-item" data-tab="password" onclick="switchTab('password')">Đổi Mật Khẩu</div>
+        <div class="submenu-item" data-tab="identity" onclick="switchTab('identity')">Thông Tin Cá Nhân</div>
+      </div>
+
+      <!-- Nhóm 2: Đơn Mua -->
+      <div class="single-menu-item" data-tab="orders" onclick="switchTab('orders')">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <path d="M16 10a4 4 0 0 1-8 0"></path>
+        </svg>
+        <span>Đơn Mua</span>
+      </div>
+
+      <!-- Đăng xuất -->
+      <div class="single-menu-item logout-item" onclick="handleLogout()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Đăng Xuất</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CỘT PHẢI (CONTENT PANELS) -->
+  <section class="dashboard-content">
+
+    <!-- ================= 1. TAB HỒ SƠ CỦA TÔI ================= -->
+    <div class="tab-panel active" id="panel-profile">
+      <!-- Banner thông báo hành chính -->
+      <div class="shopee-banner-notice">
+        <span>💡 <strong>Thông báo:</strong> Địa chỉ đã được cập nhật theo thông tin hành chính mới. <a href="javascript:void(0)" onclick="switchTab('address')">Kiểm tra ngay</a></span>
+        <span class="close-btn" onclick="this.parentElement.remove()">✕</span>
+      </div>
+
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Hồ Sơ Của Tôi</h2>
+          <p class="panel-subtitle">Quản lý thông tin hồ sơ để bảo mật tài khoản</p>
+        </div>
+      </div>
+
+      <div class="profile-layout">
+        <!-- FORM CỘT TRÁI -->
+        <div class="profile-form-col">
+          <form id="profileForm" onsubmit="handleSaveProfile(event)">
+            <div class="form-row">
+              <label class="form-label">Tên đăng nhập</label>
+              <div class="form-control-wrap">
+                <span class="masked-val" id="profileUsernameDisplay">...</span>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Họ và Tên</label>
+              <div class="form-control-wrap">
+                <input type="text" class="form-input-text" id="inputProfileName" placeholder="Nhập họ và tên (chỉ chữ cái)" required>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Email</label>
+              <div class="form-control-wrap">
+                <span class="masked-val" id="profileEmailDisplay">...</span>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Số điện thoại</label>
+              <div class="form-control-wrap">
+                <span class="masked-val" id="profilePhoneDisplay">...</span>
+                <span class="action-link" onclick="openPhoneModal()">Thay Đổi</span>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Giới tính</label>
+              <div class="form-control-wrap">
+                <div class="radio-group">
+                  <label class="radio-label"><input type="radio" name="gender" value="Nam"> Nam</label>
+                  <label class="radio-label"><input type="radio" name="gender" value="Nữ"> Nữ</label>
+                  <label class="radio-label"><input type="radio" name="gender" value="Khác"> Khác</label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Ngày sinh</label>
+              <div class="form-control-wrap">
+                <input type="date" class="form-input-text" id="inputProfileBirthday" style="max-width:240px;">
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 26px;">
+              <div class="form-label"></div>
+              <div class="form-control-wrap">
+                <button type="submit" class="btn-primary-orange" id="btnSaveProfile">Lưu</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- CỘT ẢNH ĐẠI DIỆN -->
+        <div class="profile-avatar-col">
+          <div class="avatar-big-preview">
+            <img id="profileAvatarBig" src="/images/default-avatar.png" alt="Avatar Preview" onerror="this.src='/images/default-avatar.png'">
+          </div>
+          <input type="file" id="avatarFileInput" accept="image/png, image/jpeg, image/jpg, image/webp" style="display:none;" onchange="handleAvatarFileSelected(event)">
+          <button type="button" class="btn-upload-avatar" onclick="document.getElementById('avatarFileInput').click()">Chọn Ảnh</button>
+          <div class="avatar-tip">
+            Dung lượng file tối đa 2 MB<br>
+            Định dạng: .JPEG, .PNG, .WEBP
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 2. TAB NGÂN HÀNG ================= -->
+    <div class="tab-panel" id="panel-bank">
+      <!-- Section 1: Thẻ Tín Dụng/Ghi Nợ -->
+      <div class="bank-section-wrap">
+        <div class="bank-section-head">
+          <h3>Thẻ Tín Dụng/Ghi Nợ</h3>
+          <button type="button" class="btn-primary-orange" onclick="showCreditCardNotice()">+ Thêm Thẻ Mới</button>
+        </div>
+        <div class="empty-bank-box">
+          Bạn chưa liên kết thẻ.
+        </div>
+      </div>
+
+      <!-- Section 2: Tài Khoản Ngân Hàng Của Tôi -->
+      <div class="bank-section-wrap" style="margin-bottom:0;">
+        <div class="bank-section-head">
+          <h3>Tài Khoản Ngân Hàng Của Tôi</h3>
+          <button type="button" class="btn-primary-orange" onclick="openAddBankModal()">+ Thêm Ngân Hàng Liên Kết</button>
+        </div>
+
+        <div class="bank-cards-list" id="bankCardsContainer">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 3. TAB ĐỊA CHỈ ================= -->
+    <div class="tab-panel" id="panel-address">
+      <div class="shopee-banner-notice">
+        <span>📍 <strong>Thông báo:</strong> Địa chỉ đã được cập nhật theo thông tin hành chính mới.</span>
+        <span class="close-btn" onclick="this.parentElement.remove()">✕</span>
+      </div>
+
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Địa chỉ của tôi</h2>
+        </div>
+        <button type="button" class="btn-primary-orange" onclick="openAddAddressModal()">+ Thêm địa chỉ mới</button>
+      </div>
+
+      <div id="addressListContainer">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+    <!-- ================= 4. TAB ĐỔI MẬT KHẨU ================= -->
+    <div class="tab-panel" id="panel-password">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Đổi Mật Khẩu</h2>
+          <p class="panel-subtitle">Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu cho người khác</p>
+        </div>
+      </div>
+
+      <div class="pwd-form-wrap">
+        <form id="changePasswordForm" onsubmit="handleChangePassword(event)">
+          <div class="form-row">
+            <label class="form-label">Mật khẩu hiện tại</label>
+            <div class="form-control-wrap">
+              <div class="input-password-wrapper">
+                <input type="password" class="form-input-text" id="oldPwdInput" placeholder="Nhập mật khẩu hiện tại" required autocomplete="current-password">
+                <button type="button" class="pwd-eye-btn" onclick="togglePasswordVisibility('oldPwdInput', this)" aria-label="Hiện/ẩn mật khẩu">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Mật khẩu mới</label>
+            <div class="form-control-wrap">
+              <div class="input-password-wrapper">
+                <input type="password" class="form-input-text" id="newPwdInput" placeholder="Mật khẩu mới (tối thiểu 6 ký tự)" minlength="6" required autocomplete="new-password">
+                <button type="button" class="pwd-eye-btn" onclick="togglePasswordVisibility('newPwdInput', this)" aria-label="Hiện/ẩn mật khẩu">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Xác nhận mật khẩu</label>
+            <div class="form-control-wrap">
+              <div class="input-password-wrapper">
+                <input type="password" class="form-input-text" id="confirmNewPwdInput" placeholder="Nhập lại mật khẩu mới" required autocomplete="new-password">
+                <button type="button" class="pwd-eye-btn" onclick="togglePasswordVisibility('confirmNewPwdInput', this)" aria-label="Hiện/ẩn mật khẩu">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-label"></div>
+            <div class="form-control-wrap">
+              <a href="javascript:void(0)" onclick="openQuickResetModal()" style="color:var(--amber-deep); font-size:13px; text-decoration:none; font-weight:600;">Quên mật khẩu?</a>
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top:20px;">
+            <div class="form-label"></div>
+            <div class="form-control-wrap">
+              <button type="submit" class="btn-primary-orange" id="btnSubmitChangePwd">Lưu</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= 5. TAB THÔNG TIN CÁ NHÂN (CCCD) ================= -->
+    <div class="tab-panel" id="panel-identity">
+      <div class="panel-header">
+        <div>
+          <h2 class="panel-title">Thông tin cá nhân</h2>
+          <p class="panel-subtitle" style="line-height:1.5;">Bạn vui lòng nhập chính xác thông tin CCCD để đơn hàng được thông quan theo quy định. Thông tin sẽ được bảo mật tuyệt đối theo Chính sách Bảo mật L'Amour Bookstore.</p>
+        </div>
+      </div>
+
+      <div class="identity-form-wrap">
+        <form id="identityForm" onsubmit="handleSaveIdentity(event)">
+          <div class="form-row">
+            <label class="form-label">Họ và tên</label>
+            <div class="form-control-wrap">
+              <input type="text" class="form-input-text" id="cccdFullName" placeholder="Họ và tên đầy đủ trên CCCD" required style="text-transform:uppercase;">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">Số CCCD</label>
+            <div class="form-control-wrap">
+              <input type="text" class="form-input-text" id="cccdIdNumber" placeholder="Số định danh cá nhân trên CCCD (12 số)" maxlength="12" required>
+            </div>
+          </div>
+
+          <div class="form-row" style="align-items:flex-start;">
+            <label class="form-label" style="padding-top:8px;">Địa chỉ thường trú</label>
+            <div class="form-control-wrap" style="flex-direction:column; align-items:flex-start; width:100%;">
+              <textarea class="form-input-text" id="cccdAddress" rows="3" placeholder="Địa chỉ Nơi thường trú trên CCCD" maxlength="200" style="height:auto; padding:10px 12px;" oninput="updateCccdCharCount()"></textarea>
+              <div class="char-count-note"><span id="cccdCharCount">0</span>/200</div>
+            </div>
+          </div>
+
+          <div class="form-row" style="margin-top:20px;">
+            <div class="form-label"></div>
+            <div class="form-control-wrap">
+              <button type="submit" class="btn-primary-orange" id="btnSubmitIdentity">Xác Nhận</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================= 6. TAB ĐƠN MUA (SHOPEE ORDERS) ================= -->
+    <div class="tab-panel" id="panel-orders">
+      <!-- Horizontal status tabs -->
+      <div class="orders-tab-nav">
+        <button type="button" class="order-tab-btn active" data-status="all" onclick="switchOrderSubTab('all')">Tất cả</button>
+        <button type="button" class="order-tab-btn" data-status="pending_payment" data-alias="pending_confirmation" onclick="switchOrderSubTab('pending_payment')">Chờ xác nhận</button>
+        <button type="button" class="order-tab-btn" data-status="shipping" onclick="switchOrderSubTab('shipping')">Vận chuyển</button>
+        <button type="button" class="order-tab-btn" data-status="delivering" onclick="switchOrderSubTab('delivering')">Chờ giao hàng</button>
+        <button type="button" class="order-tab-btn" data-status="completed" onclick="switchOrderSubTab('completed')">Hoàn thành</button>
+        <button type="button" class="order-tab-btn" data-status="cancelled" onclick="switchOrderSubTab('cancelled')">Đã hủy</button>
+        <button type="button" class="order-tab-btn" data-status="returned" onclick="switchOrderSubTab('returned')">Trả hàng/Hoàn tiền</button>
+      </div>
+
+      <!-- Search bar -->
+      <div class="order-search-bar">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="orderSearchInput" placeholder="Bạn có thể tìm kiếm theo tên Shop, ID đơn hàng hoặc Tên Sản phẩm" oninput="handleOrderSearch(event)">
+      </div>
+
+      <!-- Danh sách đơn hàng -->
+      <div class="order-cards-wrap" id="ordersContainer">
+        <!-- Rendered via JS -->
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- ================= MODALS ================= -->
+
+<!-- MODAL THÊM NGÂN HÀNG LIÊN KẾT -->
+<div class="modal-overlay" id="addBankModal">
+  <div class="modal-box">
+    <div class="modal-box-head">
+      <h3>Thêm Tài Khoản Ngân Hàng</h3>
+      <button type="button" class="modal-close-x" onclick="closeModal('addBankModal')">&times;</button>
+    </div>
+    <form id="addBankForm" onsubmit="handleSaveBank(event)">
+      <div class="modal-box-body">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Tên ngân hàng *</label>
+            <select class="form-input-text" id="bankNameInput" required style="width:100%; max-width:none;">
+              <option value="">-- Chọn ngân hàng --</option>
+              <option value="MB - NHTMCP QUAN DOI">MB - NHTMCP QUÂN ĐỘI</option>
+              <option value="VCB - VIETCOMBANK">VIETCOMBANK - NHTMCP NGOẠI THƯƠNG VN</option>
+              <option value="TCB - TECHCOMBANK">TECHCOMBANK - NHTMCP KỸ THƯƠNG VN</option>
+              <option value="VPB - VPBANK">VPBANK - NHTMCP VIỆT NAM THỊNH VƯỢNG</option>
+              <option value="ACB - NHTMCP A CHAU">ACB - NHTMCP Á CHÂU</option>
+              <option value="CTG - VIETINBANK">VIETINBANK - NHTMCP CÔNG THƯƠNG VN</option>
+              <option value="BIDV - DAU TU VA PHAT TRIEN">BIDV - ĐẦU TƯ VÀ PHÁT TRIỂN VN</option>
+              <option value="TPB - TPBANK">TPBANK - NHTMCP TIÊN PHONG</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Số tài khoản *</label>
+            <input type="text" class="form-input-text" id="bankAccountNumInput" placeholder="Nhập số tài khoản" required style="width:100%; max-width:none;">
+          </div>
+
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Tên chủ thẻ (viết hoa không dấu) *</label>
+            <input type="text" class="form-input-text" id="bankHolderInput" placeholder="VD: NGUYEN VAN A" required style="width:100%; max-width:none; text-transform:uppercase;">
+          </div>
+
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Chi nhánh</label>
+            <input type="text" class="form-input-text" id="bankBranchInput" placeholder="VD: Hà Nội / Chi nhánh khác" style="width:100%; max-width:none;">
+          </div>
+
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; margin-top:4px;">
+            <input type="checkbox" id="bankDefaultCheck" accent-color="#0F172A">
+            <span>Đặt làm tài khoản ngân hàng mặc định</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-box-foot">
+        <button type="button" class="btn-modal-cancel" onclick="closeModal('addBankModal')">Trở Lại</button>
+        <button type="submit" class="btn-primary-orange" id="btnSubmitAddBank">Hoàn Thành</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL THÊM / CẬP NHẬT ĐỊA CHỈ (TÍCH HỢP DROPDOWN CASCADING 3 CẤP TỈNH / HUYỆN / XÃ) -->
+<div class="modal-overlay" id="addressModal">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-box-head">
+      <h3 id="addressModalTitle">Địa chỉ mới</h3>
+      <button type="button" class="modal-close-x" onclick="closeModal('addressModal')">&times;</button>
+    </div>
+    <form id="addressForm" onsubmit="handleSaveAddress(event)">
+      <input type="hidden" id="editAddressId" value="">
+      <div class="modal-box-body">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <div style="display:flex; gap:12px;">
+            <div style="flex:1;">
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Họ và tên người nhận *</label>
+              <input type="text" class="form-input-text" id="addrFullName" placeholder="Chỉ nhập chữ cái" required style="width:100%;">
+            </div>
+            <div style="flex:1;">
+              <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Số điện thoại *</label>
+              <input type="tel" class="form-input-text" id="addrPhone" placeholder="Bắt đầu bằng 0, 9-10 số" required style="width:100%;" maxlength="10">
+            </div>
+          </div>
+
+          <!-- Cascading Select 1: Tỉnh/Thành phố -->
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Tỉnh/Thành phố *</label>
+            <select class="form-input-text" id="addrProvinceSelect" required style="width:100%; max-width:none;" onchange="onProvinceChange()">
+              <option value="">-- Chọn Tỉnh/Thành phố --</option>
+            </select>
+          </div>
+
+          <!-- Cascading Select 2: Quận/Huyện -->
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Quận/Huyện *</label>
+            <select class="form-input-text" id="addrDistrictSelect" required style="width:100%; max-width:none;" onchange="onDistrictChange()" disabled>
+              <option value="">-- Chọn Quận/Huyện --</option>
+            </select>
+          </div>
+
+          <!-- Cascading Select 3: Phường/Xã -->
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Phường/Xã *</label>
+            <select class="form-input-text" id="addrWardSelect" required style="width:100%; max-width:none;" disabled>
+              <option value="">-- Chọn Phường/Xã --</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Địa chỉ cụ thể * (Số nhà, tên tòa nhà, tên đường/ngõ)</label>
+            <textarea class="form-input-text" id="addrDetail" rows="2" placeholder="VD: Số 80, Ngõ 44 Đường Trần Thái Tông" required style="width:100%; max-width:none; height:auto; padding:8px 12px;"></textarea>
+          </div>
+
+          <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+            <input type="checkbox" id="addrDefaultCheck" accent-color="#0F172A">
+            <span>Đặt làm địa chỉ mặc định</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-box-foot">
+        <button type="button" class="btn-modal-cancel" onclick="closeModal('addressModal')">Trở Lại</button>
+        <button type="submit" class="btn-primary-orange" id="btnSubmitAddress">Hoàn Thành</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL CẬP NHẬT SỐ ĐIỆN THOẠI -->
+<div class="modal-overlay" id="phoneModal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-box-head">
+      <h3>Cập Nhật Số Điện Thoại</h3>
+      <button type="button" class="modal-close-x" onclick="closeModal('phoneModal')">&times;</button>
+    </div>
+    <form id="phoneModalForm" onsubmit="handleUpdatePhone(event)">
+      <div class="modal-box-body">
+        <label style="display:block; font-size:13px; margin-bottom:6px;">Nhập số điện thoại mới (Bắt đầu bằng 0, 9-10 số):</label>
+        <input type="tel" class="form-input-text" id="newPhoneInput" placeholder="vd: 0901234567" maxlength="10" required style="width:100%;">
+      </div>
+      <div class="modal-box-foot">
+        <button type="button" class="btn-modal-cancel" onclick="closeModal('phoneModal')">Hủy</button>
+        <button type="submit" class="btn-primary-orange">Xác Nhận</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL QUÊN MẬT KHẨU NHANH (QUICK RESET NGAY TẠI DASHBOARD, KHÔNG ĐỔI TRANG) -->
+<div class="modal-overlay" id="quickResetModal">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-box-head">
+      <h3>Quên Mật Khẩu Nhanh</h3>
+      <button type="button" class="modal-close-x" onclick="closeModal('quickResetModal')">&times;</button>
+    </div>
+    <div class="modal-box-body">
+      <div id="quickResetStep1">
+        <p style="font-size:13px; color:#666; margin-bottom:14px; line-height:1.45;">
+          Hệ thống sẽ tạo ngay mật khẩu ngẫu nhiên mới và gửi trực tiếp về Gmail liên kết với tài khoản của bạn.
+        </p>
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Tên đăng nhập hoặc Gmail</label>
+          <input type="text" class="form-input-text" id="quickResetIdentifier" placeholder="vd: user@gmail.com" required style="width:100%; max-width:none;">
+        </div>
+        <button type="button" class="btn-primary-orange" id="btnSubmitQuickReset" style="width:100%; justify-content:center;" onclick="handleQuickResetSubmit()">
+          Gửi mật khẩu mới về Gmail
+        </button>
+      </div>
+
+      <div id="quickResetStep2" style="display:none; text-align:center;">
+        <div style="font-size:36px; margin-bottom:8px;">✓</div>
+        <h4 style="font-size:16px; color:#10B981; margin-bottom:6px;">Đã gửi mật khẩu về Gmail thành công!</h4>
+        <p style="font-size:13px; color:#666; margin-bottom:14px;">
+          Mật khẩu mới đã được gửi về Gmail của bạn. Bạn cũng có thể xem và sao chép bên dưới:
+        </p>
+
+        <div class="pwd-highlight-box">
+          <span class="pwd-highlight-val" id="quickResetNewPwdDisplay">Book@••••</span>
+          <button type="button" class="btn-copy-pwd" id="btnCopyQuickResetPwd" onclick="copyQuickResetPassword()">
+            Sao chép
+          </button>
+        </div>
+
+        <p style="font-size:12px; color:#888; margin-top:10px;">
+          💡 Vui lòng kiểm tra Hộp thư đến hoặc hòm thư Rác / Spam trong Gmail.
+        </p>
+      </div>
+    </div>
+    <div class="modal-box-foot">
+      <button type="button" class="btn-modal-cancel" onclick="closeModal('quickResetModal')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CHI TIẾT ĐƠN HÀNG -->
+<div class="modal-overlay" id="orderDetailModal">
+  <div class="modal-box" style="max-width:580px;">
+    <div class="modal-box-head">
+      <h3>Chi Tiết Đơn Hàng</h3>
+      <button type="button" class="modal-close-x" onclick="closeModal('orderDetailModal')">&times;</button>
+    </div>
+    <div class="modal-box-body" id="orderDetailModalBody">
+      <!-- Populated via JS -->
+    </div>
+    <div class="modal-box-foot">
+      <button type="button" class="btn-modal-cancel" onclick="closeModal('orderDetailModal')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL THANH TOÁN CHI TIẾT ĐƠN HÀNG (TIỀN MẶT COD / QR BANKING / QR MOMO) -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal-box" style="max-width:540px;">
+    <div class="modal-box-head">
+      <h3>Thanh Toán Đơn Hàng</h3>
+      <button type="button" class="modal-close-x" onclick="closeModal('paymentModal')">&times;</button>
+    </div>
+    <form id="paymentForm" onsubmit="handleConfirmPaymentSubmit(event)">
+      <input type="hidden" id="payOrderId" value="">
+      <div class="modal-box-body">
+        <div style="padding:14px; background:#F8FAFC; border-radius:8px; border:1px solid #E2E8F0; margin-bottom:18px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+            <span style="color:#64748B;">Mã đơn hàng:</span>
+            <span class="mono" id="payOrderCode" style="font-weight:700; color:var(--amber-deep);">HD-OL-XXXX</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#64748B;">Tổng tiền cần thanh toán:</span>
+            <span class="mono" id="payOrderAmount" style="font-size:20px; font-weight:700; color:var(--amber-deep);">0₫</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:13.5px; font-weight:600; margin-bottom:10px; color:#1E293B;">
+            Chọn phương thức thanh toán:
+          </label>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <label style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1.5px solid #E2E8F0; border-radius:8px; cursor:pointer; transition:all .2s;" id="payMethodLabel_cash">
+              <input type="radio" name="payMethod" value="cash" checked onchange="onPaymentMethodChange('cash')" accent-color="#0F172A">
+              <div>
+                <div style="font-weight:600; font-size:14px; color:#1E293B;">Thanh toán khi nhận hàng (COD)</div>
+                <div style="font-size:12px; color:#64748B;">Nhận sách và thanh toán tiền mặt trực tiếp cho nhân viên giao hàng</div>
+              </div>
+            </label>
+
+            <label style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1.5px solid #E2E8F0; border-radius:8px; cursor:pointer; transition:all .2s;" id="payMethodLabel_transfer">
+              <input type="radio" name="payMethod" value="transfer" onchange="onPaymentMethodChange('transfer')" accent-color="#0F172A">
+              <div>
+                <div style="font-weight:600; font-size:14px; color:#1E293B;">Chuyển khoản Ngân hàng qua mã VietQR</div>
+                <div style="font-size:12px; color:#64748B;">Quét mã QR qua app ngân hàng 24/7 (Miễn phí giao dịch)</div>
+              </div>
+            </label>
+
+            <label style="display:flex; align-items:center; gap:12px; padding:12px 14px; border:1.5px solid #E2E8F0; border-radius:8px; cursor:pointer; transition:all .2s;" id="payMethodLabel_momo">
+              <input type="radio" name="payMethod" value="card" onchange="onPaymentMethodChange('momo')" accent-color="#0F172A">
+              <div>
+                <div style="font-weight:600; font-size:14px; color:#1E293B;">Ví điện tử MoMo</div>
+                <div style="font-size:12px; color:#64748B;">Quét mã QR qua ứng dụng Ví MoMo tiện lợi</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Khung hiển thị QR & Cú pháp chuyển khoản -->
+        <div id="qrPaymentSection" style="display:none; background:#FFF; border:1.5px dashed var(--gold); border-radius:10px; padding:18px; margin-bottom:16px; text-align:center;">
+          <div style="font-size:13px; font-weight:600; color:var(--navy-900); margin-bottom:12px;" id="qrSectionTitle">
+            MÃ QR THANH TOÁN TỰ ĐỘNG
+          </div>
+
+          <div style="display:inline-block; padding:10px; background:#FFF; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.08); margin-bottom:14px;">
+            <img id="qrImageDisplay" src="/images/qr-bank.jpg" alt="Mã QR" style="max-width:210px; width:100%; height:auto; display:block; border-radius:4px;" onerror="this.src='/images/qr-bank.jpg'">
+          </div>
+
+          <div style="background:#F8FAFC; border-radius:6px; padding:10px 14px; font-size:12.5px; text-align:left; line-height:1.6; margin-bottom:12px;">
+            <div><strong>Tài khoản thụ hưởng:</strong> <span id="qrReceiverName">TIEM SACH TINH HOA L'AMOUR</span></div>
+            <div><strong>Số tài khoản / SĐT:</strong> <span class="mono" id="qrAccountNumber" style="font-weight:600; color:#0A1930;">0987654321</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+              <span><strong>Cú pháp:</strong> <span class="mono" id="qrSyntaxText" style="color:var(--amber-deep); font-weight:700;">HD-OL-XXXX 0901234567</span></span>
+              <button type="button" class="btn-copy-pwd" style="padding:4px 10px; font-size:11px;" onclick="copyQrSyntax()">Sao chép</button>
+            </div>
+          </div>
+
+          <p style="font-size:11.5px; color:#64748B; line-height:1.4;">
+            💡 Sau khi hoàn tất chuyển khoản, vui lòng bấm nút <strong>"Xác nhận đã thanh toán"</strong> để nhân viên xác nhận.
+          </p>
+        </div>
+
+        <!-- Khung tải ảnh bill thanh toán (Dành cho Chuyển khoản / MoMo) -->
+        <div id="userPaymentProofSection" style="display:none; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:14px; margin-bottom:16px;">
+          <div style="font-size:13px; font-weight:600; color:#1E293B; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+            <span>📷</span> Đính kèm Bill chuyển khoản / Giao dịch (Khuyến nghị):
+          </div>
+          <div style="font-size:11.5px; color:#64748B; margin-bottom:10px;">
+            Tải lên biên lai chuyển khoản hoặc ảnh chụp màn hình giao dịch thành công để nhân viên đối soát nhanh nhất.
+          </div>
+
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <label for="userProofFileInput" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:8px 14px; background:#0F172A; color:#FFF; font-size:12.5px; font-weight:600; border-radius:6px; transition:background .2s;">
+              📁 Chọn ảnh biên lai
+            </label>
+            <input type="file" id="userProofFileInput" accept="image/*" style="display:none;" onchange="handleUserProofFileSelect(event)">
+            <span id="userProofFileName" style="font-size:12px; color:#64748B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:240px;">Chưa chọn ảnh</span>
+          </div>
+
+          <div id="userProofPreviewWrap" style="display:none; margin-top:12px; position:relative; width:fit-content;">
+            <img id="userProofPreviewImg" src="" alt="Bill Preview" style="max-height:120px; max-width:180px; border-radius:6px; border:1px solid #CBD5E1; object-fit:contain; background:#FFF; display:block;">
+            <button type="button" onclick="removeUserProofImage()" style="position:absolute; top:-6px; right:-6px; width:22px; height:22px; background:#EF4444; color:#FFF; border:none; border-radius:50%; font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;">×</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:6px;">
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Ghi chú thanh toán (Tùy chọn):</label>
+          <input type="text" class="form-input-text" id="payNoteInput" placeholder="VD: Đã chuyển khoản qua app Techcombank..." style="width:100%;">
+        </div>
+      </div>
+      <div class="modal-box-foot">
+        <button type="button" class="btn-modal-cancel" onclick="closeModal('paymentModal')">Trở Lại</button>
+        <button type="submit" class="btn-primary-orange" id="btnSubmitPayment">Xác Nhận Đã Thanh Toán</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL YÊU CẦU TRẢ HÀNG / HOÀN TIỀN -->
+<div class="modal-overlay" id="returnOrderModal">
+  <div class="modal-box" style="max-width:540px;">
+    <div class="modal-box-head">
+      <h3>Yêu Cầu Trả Hàng / Hoàn Tiền</h3>
+      <button type="button" class="modal-close-x" onclick="closeModal('returnOrderModal')">&times;</button>
+    </div>
+    <form id="returnOrderForm" onsubmit="handleReturnOrderSubmit(event)">
+      <input type="hidden" id="returnOrderId" value="">
+      <div class="modal-box-body">
+        <div style="padding:12px 14px; background:#FFF5F5; border-radius:8px; border:1px solid #FED7D7; margin-bottom:16px; font-size:13px; color:#C53030; line-height:1.5;">
+          🛡️ <strong>Chính sách hoàn trả L'Amour:</strong> Đổi trả & hoàn tiền 100% nếu sách bị lỗi in ấn, rách bìa hoặc giao sai sách trong vòng 7 ngày kể từ khi nhận hàng.
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Mã đơn hàng</label>
+            <input type="text" class="form-input-text" id="returnOrderCodeDisplay" disabled style="width:100%; background:#F1F5F9; font-weight:600;">
+          </div>
+
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Lý do yêu cầu trả hàng *</label>
+            <select class="form-input-text" id="returnReasonSelect" required style="width:100%;">
+              <option value="">-- Vui lòng chọn lý do --</option>
+              <option value="Sách bị rách bìa hoặc hư hỏng do vận chuyển">Sách bị rách bìa hoặc hư hỏng do vận chuyển</option>
+              <option value="Lỗi in ấn (thiếu trang, mất chữ, ngược trang)">Lỗi in ấn (thiếu trang, mất chữ, ngược trang)</option>
+              <option value="Giao sai tựa sách hoặc nhầm ấn bản">Giao sai tựa sách hoặc nhầm ấn bản</option>
+              <option value="Chưa nhận được sách nhưng hệ thống báo hoàn thành">Chưa nhận được sách nhưng hệ thống báo hoàn thành</option>
+              <option value="Lý do khác">Lý do khác...</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:13px; font-weight:600; margin-bottom:6px;">Mô tả chi tiết tình trạng sách *</label>
+            <textarea class="form-input-text" id="returnNoteText" rows="3" placeholder="Vui lòng mô tả chi tiết lỗi của sản phẩm..." required style="width:100%; height:auto; padding:8px 12px;"></textarea>
+          </div>
+
+          <!-- LỰA CHỌN PHƯƠNG THỨC HOÀN TIỀN -->
+          <div style="border-top:1px solid #E2E8F0; padding-top:14px;">
+            <label style="display:block; font-size:13px; font-weight:700; color:#1E293B; margin-bottom:8px;">
+              Phương thức nhận tiền hoàn:
+            </label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+              <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1.5px solid var(--gold); border-radius:8px; cursor:pointer; background:#FFF;" id="refundMethodLabel_transfer">
+                <input type="radio" name="refundMethodOption" value="transfer" checked onchange="toggleRefundMethodFields('transfer')" accent-color="#0F172A">
+                <span style="font-size:13px; font-weight:600; color:#0F172A;">Chuyển khoản (VietQR)</span>
+              </label>
+
+              <label style="display:flex; align-items:center; gap:8px; padding:10px 12px; border:1.5px solid #E2E8F0; border-radius:8px; cursor:pointer; background:#FFF;" id="refundMethodLabel_cash">
+                <input type="radio" name="refundMethodOption" value="cash" onchange="toggleRefundMethodFields('cash')" accent-color="#0F172A">
+                <span style="font-size:13px; font-weight:600; color:#0F172A;">Tiền mặt (tại tiệm)</span>
+              </label>
+            </div>
+
+            <!-- Khối thông tin ngân hàng (ẩn khi chọn tiền mặt) -->
+            <div id="returnBankFieldsSection" style="display:flex; flex-direction:column; gap:10px;">
+              <div>
+                <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Tên ngân hàng *</label>
+                <select class="form-input-text" id="returnBankName" style="width:100%;">
+                  <option value="">-- Chọn ngân hàng --</option>
+                  <option value="MB - NHTMCP Quan Doi">MB Bank - Ngân hàng Quân Đội</option>
+                  <option value="Vietcombank">Vietcombank - Ngoại Thương VN</option>
+                  <option value="Techcombank">Techcombank - Kỹ Thương VN</option>
+                  <option value="BIDV">BIDV - Đầu Tư & Phát Triển VN</option>
+                  <option value="VietinBank">VietinBank - Công Thương VN</option>
+                  <option value="Agribank">Agribank - Nông Nghiệp VN</option>
+                  <option value="TPBank">TPBank - Tiên Phong</option>
+                  <option value="VPBank">VPBank - Việt Nam Thịnh Vượng</option>
+                  <option value="MoMo">Ví MoMo</option>
+                </select>
+              </div>
+
+              <div style="display:flex; gap:10px;">
+                <div style="flex:1;">
+                  <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Số tài khoản / SĐT *</label>
+                  <input type="text" class="form-input-text" id="returnBankAccount" placeholder="Số tài khoản ngân hàng" style="width:100%;">
+                </div>
+                <div style="flex:1;">
+                  <label style="display:block; font-size:12.5px; font-weight:600; margin-bottom:4px;">Chủ tài khoản (viết hoa) *</label>
+                  <input type="text" class="form-input-text" id="returnBankHolder" placeholder="VD: NGUYEN VAN A" style="width:100%; text-transform:uppercase;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Ghi chú nhận tiền mặt -->
+            <div id="returnCashNoteSection" style="display:none; padding:10px 14px; background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:6px; font-size:12.5px; color:#475569; line-height:1.5;">
+              💵 Quý khách vui lòng mang sách hoàn trả tới trực tiếp quầy thu ngân L'Amour Bookstore để nhân viên đối soát và gửi lại tiền mặt.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-box-foot">
+        <button type="button" class="btn-modal-cancel" onclick="closeModal('returnOrderModal')">Hủy</button>
+        <button type="submit" class="btn-primary-orange" id="btnSubmitReturn">Gửi Yêu Cầu</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL XEM CHI TIẾT HOÀN TIỀN -->
+<div class="modal-overlay" id="returnDetailModal">
+  <div class="modal-box" style="max-width:500px;">
+    <div class="modal-box-head">
+      <h3>Chi Tiết Yêu Cầu Hoàn Tiền</h3>
+      <button type="button" class="modal-close-x" onclick="closeModal('returnDetailModal')">&times;</button>
+    </div>
+    <div class="modal-box-body" id="returnDetailModalBody">
+      <!-- Injected via JS -->
+    </div>
+    <div class="modal-box-foot">
+      <button type="button" class="btn-modal-cancel" onclick="closeModal('returnDetailModal')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTAINER CHỨA TOAST NOTIFICATION ĐỒNG BỘ TOÀN HỆ THỐNG -->
+<div id="toast-container"></div>
+
+<!-- FOOTER -->
+<footer style="background:var(--bg-page); border-top:1px solid var(--border-card); padding:28px 0; margin-top:auto; font-size:12.5px; color:var(--text-muted); text-align:center;">
+  <div style="max-width:1240px; margin:0 auto; padding:0 20px;">
+    © 2026 L'Amour Bookstore. Tiệm Sách Tinh Hoa — Không gian tri thức & nghệ thuật sống.
+  </div>
+</footer>
+
+<script src="/js/custom-dropdown.js"></script>
+<script>
+  // ================= GLOBAL STATE =================
+  let currentUserData = null;
+  let allUserOrders = [];
+  let currentOrderTab = 'all';
+  let vietnamProvincesData = [];
+
+  const fmtVND = n => (n || 0).toLocaleString('vi-VN') + '₫';
+
+  function formatDateTime(dateString) {
+    if (!dateString) return '--';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '--';
+    return date.toLocaleString('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour12: false
+    });
+  }
+
+  function toggleRefundMethodFields(method) {
+    const bankSection = document.getElementById('returnBankFieldsSection');
+    const cashSection = document.getElementById('returnCashNoteSection');
+    const lblTransfer = document.getElementById('refundMethodLabel_transfer');
+    const lblCash = document.getElementById('refundMethodLabel_cash');
+    const bankName = document.getElementById('returnBankName');
+    const bankAcc = document.getElementById('returnBankAccount');
+    const bankHolder = document.getElementById('returnBankHolder');
+
+    if (method === 'cash') {
+      if (bankSection) bankSection.style.display = 'none';
+      if (cashSection) cashSection.style.display = 'block';
+      if (lblTransfer) { lblTransfer.style.borderColor = '#E2E8F0'; }
+      if (lblCash) { lblCash.style.borderColor = 'var(--gold)'; }
+      if (bankName) bankName.required = false;
+      if (bankAcc) bankAcc.required = false;
+      if (bankHolder) bankHolder.required = false;
+    } else {
+      if (bankSection) bankSection.style.display = 'flex';
+      if (cashSection) cashSection.style.display = 'none';
+      if (lblTransfer) { lblTransfer.style.borderColor = 'var(--gold)'; }
+      if (lblCash) { lblCash.style.borderColor = '#E2E8F0'; }
+      if (bankName) bankName.required = true;
+      if (bankAcc) bankAcc.required = true;
+      if (bankHolder) bankHolder.required = true;
+    }
+  }
+
+  // ================= 1. HỆ THỐNG TOAST & CONFIRM MODAL CHUẨN =================
+  function showCustomToast(type = 'info', title = '', message = '') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      document.body.appendChild(container);
+    }
+    const icons = { success: '✓', error: '✕', warning: '!', info: 'ℹ' };
+    const defaultTitles = {
+      success: 'Thành công!',
+      error: 'Có lỗi xảy ra!',
+      warning: 'Cảnh báo!',
+      info: 'Thông báo'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `custom-toast toast-${type}`;
+    toast.innerHTML = `
+      <div class="toast-icon">${icons[type] || 'ℹ'}</div>
+      <div class="toast-content">
+        <div class="toast-title">${title || defaultTitles[type] || 'Thông báo'}</div>
+        <div class="toast-msg">${message}</div>
+      </div>
+      <button class="toast-close" onclick="this.parentElement.remove()" aria-label="Đóng">✕</button>
+      <div class="toast-progress"></div>
+    `;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 250);
+      }
+    }, 3000);
+  }
+
+  function showCustomConfirm(message = 'Bạn có chắc chắn muốn thực hiện thao tác này?') {
+    return new Promise((resolve) => {
+      let overlay = document.getElementById('custom-confirm-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'custom-confirm-overlay';
+        overlay.className = 'confirm-overlay';
+        overlay.innerHTML = `
+          <div class="confirm-modal">
+            <div class="confirm-icon">?</div>
+            <div class="confirm-title">Xác nhận thao tác</div>
+            <div class="confirm-msg" id="custom-confirm-msg"></div>
+            <div class="confirm-actions">
+              <button class="confirm-btn" id="custom-confirm-cancel">Hủy bỏ</button>
+              <button class="confirm-btn confirm-btn-primary" id="custom-confirm-ok">Đồng ý</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+      }
+      document.getElementById('custom-confirm-msg').textContent = message;
+      overlay.classList.add('active');
+
+      const okBtn = document.getElementById('custom-confirm-ok');
+      const cancelBtn = document.getElementById('custom-confirm-cancel');
+
+      const cleanup = () => {
+        overlay.classList.remove('active');
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+      };
+      const onOk = () => { cleanup(); resolve(true); };
+      const onCancel = () => { cleanup(); resolve(false); };
+
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+    });
+  }
+
+  // ================= 2. MASKING & REGEX VALIDATION HELPERS =================
+  const REGEX_NAME = /^[a-zA-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐàáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ\s]+$/;
+  const REGEX_PHONE = /^0[0-9]{8,9}$/;
+  const REGEX_CCCD = /^[0-9]{12}$/;
+
+  function maskEmail(email) {
+    if (!email) return 'Chưa cập nhật';
+    const parts = email.split('@');
+    if (parts.length < 2) return email;
+    const name = parts[0];
+    const domain = parts[1];
+    if (name.length <= 2) return name.charAt(0) + '***@' + domain;
+    return name.slice(0, 2) + '*'.repeat(Math.max(5, name.length - 2)) + '@' + domain;
+  }
+
+  function maskPhone(phone) {
+    if (!phone) return 'Chưa cập nhật';
+    const clean = phone.replace(/\D/g, '');
+    if (clean.length < 4) return clean;
+    return '*'.repeat(clean.length - 2) + clean.slice(-2);
+  }
+
+  function maskAccountNumber(num) {
+    if (!num) return '';
+    return '* ' + num.slice(-4);
+  }
+
+  // ================= 3. MODAL & TAB LOGIC =================
+  function openModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  }
+  function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.classList.remove('active');
+    });
+  });
+
+  function switchTab(tabName) {
+    document.querySelectorAll('.submenu-item').forEach(el => {
+      if (el.dataset.tab === tabName) el.classList.add('active');
+      else el.classList.remove('active');
+    });
+
+    document.querySelectorAll('.single-menu-item').forEach(el => {
+      if (el.dataset.tab === tabName) el.classList.add('active');
+      else el.classList.remove('active');
+    });
+
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    const targetPanel = document.getElementById('panel-' + tabName);
+    if (targetPanel) targetPanel.classList.add('active');
+
+    if (tabName === 'orders') {
+      fetchUserOrders(currentOrderTab);
+    }
+  }
+
+  function toggleSubmenu(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+    }
+  }
+
+  function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.classList.add('active');
+    } else {
+      input.type = 'password';
+      btn.classList.remove('active');
+    }
+  }
+
+  // ================= 4. TẢI DỮ LIỆU TỈNH / HUYỆN / XÃ CASCADING =================
+  async function loadVietnamProvinces() {
+    try {
+      const res = await fetch('/data/vietnam_provinces.json');
+      if (res.ok) {
+        vietnamProvincesData = await res.json();
+      } else {
+        // Fallback API công khai nếu file chưa kịp load
+        const fallbackRes = await fetch('https://provinces.open-api.vn/api/v1/?depth=3');
+        if (fallbackRes.ok) {
+          vietnamProvincesData = await fallbackRes.json();
+        }
+      }
+    } catch (e) {
+      console.warn('Dùng danh sách tỉnh thành dự phòng:', e);
+    }
+
+    populateProvincesSelect();
+  }
+
+  function populateProvincesSelect() {
+    const select = document.getElementById('addrProvinceSelect');
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Chọn Tỉnh/Thành phố --</option>';
+
+    if (Array.isArray(vietnamProvincesData) && vietnamProvincesData.length > 0) {
+      vietnamProvincesData.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name;
+        select.appendChild(opt);
+      });
+      if (window.UniversalDropdown) UniversalDropdown.sync(select);
+    }
+  }
+
+  function onProvinceChange(selectedDistrict = '', selectedWard = '') {
+    const provSelect = document.getElementById('addrProvinceSelect');
+    const distSelect = document.getElementById('addrDistrictSelect');
+    const wardSelect = document.getElementById('addrWardSelect');
+
+    const provName = provSelect.value;
+    distSelect.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
+    wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+
+    if (!provName) {
+      distSelect.disabled = true;
+      wardSelect.disabled = true;
+      if (window.UniversalDropdown) {
+        UniversalDropdown.sync(distSelect);
+        UniversalDropdown.sync(wardSelect);
+      }
+      return;
+    }
+
+    const provinceObj = vietnamProvincesData.find(p => p.name === provName);
+    if (provinceObj && Array.isArray(provinceObj.districts)) {
+      provinceObj.districts.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.name;
+        opt.textContent = d.name;
+        if (selectedDistrict && d.name === selectedDistrict) opt.selected = true;
+        distSelect.appendChild(opt);
+      });
+      distSelect.disabled = false;
+
+      if (selectedDistrict) {
+        onDistrictChange(selectedWard);
+      } else {
+        wardSelect.disabled = true;
+      }
+    } else {
+      distSelect.disabled = false;
+      wardSelect.disabled = false;
+    }
+    if (window.UniversalDropdown) {
+      UniversalDropdown.sync(distSelect);
+      UniversalDropdown.sync(wardSelect);
+    }
+  }
+
+  function onDistrictChange(selectedWard = '') {
+    const provSelect = document.getElementById('addrProvinceSelect');
+    const distSelect = document.getElementById('addrDistrictSelect');
+    const wardSelect = document.getElementById('addrWardSelect');
+
+    const provName = provSelect.value;
+    const distName = distSelect.value;
+    wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+
+    if (!distName) {
+      wardSelect.disabled = true;
+      if (window.UniversalDropdown) UniversalDropdown.sync(wardSelect);
+      return;
+    }
+
+    const provinceObj = vietnamProvincesData.find(p => p.name === provName);
+    if (provinceObj && Array.isArray(provinceObj.districts)) {
+      const districtObj = provinceObj.districts.find(d => d.name === distName);
+      if (districtObj && Array.isArray(districtObj.wards)) {
+        districtObj.wards.forEach(w => {
+          const opt = document.createElement('option');
+          opt.value = w.name;
+          opt.textContent = w.name;
+          if (selectedWard && w.name === selectedWard) opt.selected = true;
+          wardSelect.appendChild(opt);
+        });
+      }
+    }
+    wardSelect.disabled = false;
+    if (window.UniversalDropdown) UniversalDropdown.sync(wardSelect);
+  }
+
+  // ================= 5. PROFILE (HỒ SƠ CỦA TÔI) =================
+  async function loadUserProfile() {
+    try {
+      const res = await fetch('/api/user/profile');
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Không thể tải thông tin cá nhân');
+      }
+
+      currentUserData = result.data;
+      renderProfileUI(currentUserData);
+      renderBankAccountsUI(currentUserData.bankAccounts || []);
+      renderAddressesUI(currentUserData.addresses || []);
+      renderIdentityUI(currentUserData.identityCard || {});
+
+    } catch (err) {
+      console.error('Lỗi tải profile:', err);
+      showCustomToast('error', 'Lỗi kết nối', 'Không thể tải thông tin tài khoản.');
+    }
+  }
+
+  function renderProfileUI(user) {
+    const avatarSrc = user.avatar || '/images/default-avatar.png';
+    document.getElementById('navAvatarImg').src = avatarSrc;
+    document.getElementById('sideAvatarImg').src = avatarSrc;
+    document.getElementById('profileAvatarBig').src = avatarSrc;
+
+    const displayName = user.name || 'Người dùng';
+    document.getElementById('navUserName').textContent = displayName;
+    document.getElementById('sideUserName').textContent = displayName;
+
+    document.getElementById('profileUsernameDisplay').textContent = user.email ? user.email.split('@')[0] : (user.name || 'user');
+    document.getElementById('inputProfileName').value = user.name || '';
+    document.getElementById('profileEmailDisplay').textContent = maskEmail(user.email);
+    document.getElementById('profilePhoneDisplay').textContent = maskPhone(user.phone);
+
+    const gender = user.gender || 'Nam';
+    const radio = document.querySelector(`input[name="gender"][value="${gender}"]`);
+    if (radio) radio.checked = true;
+
+    if (user.birthday) {
+      document.getElementById('inputProfileBirthday').value = user.birthday.slice(0, 10);
+    }
+  }
+
+  async function handleSaveProfile(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('inputProfileName').value.trim();
+    if (!name) {
+      showCustomToast('warning', 'Thiếu thông tin', 'Vui lòng nhập họ và tên của bạn!');
+      return;
+    }
+
+    if (!REGEX_NAME.test(name)) {
+      showCustomToast('error', 'Tên không hợp lệ', 'Họ và tên chỉ được chứa chữ cái tiếng Việt và khoảng trắng, không chứa số hoặc ký tự đặc biệt!');
+      return;
+    }
+
+    const genderInput = document.querySelector('input[name="gender"]:checked');
+    const gender = genderInput ? genderInput.value : 'Nam';
+    const birthday = document.getElementById('inputProfileBirthday').value;
+
+    const btn = document.getElementById('btnSaveProfile');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, gender, birthday })
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Lỗi cập nhật hồ sơ');
+      }
+
+      currentUserData = result.data;
+      renderProfileUI(currentUserData);
+      showCustomToast('success', 'Thành công', 'Cập nhật hồ sơ thành công!');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Lưu';
+    }
+  }
+
+  async function handleAvatarFileSelected(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Kiểm tra định dạng và dung lượng (Tối đa 2MB, chỉ PNG, JPEG, JPG, WEBP)
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    const hasValidExt = /\.(png|jpe?g|webp)$/i.test(file.name);
+    const isValidMime = validTypes.includes(file.type);
+
+    if (!isValidMime || !hasValidExt || file.size > 2 * 1024 * 1024) {
+      showCustomToast('error', 'Ảnh không hợp lệ', 'Vui lòng chỉ chọn file hình ảnh (.PNG, .JPEG, .WEBP) và dung lượng dưới 2MB!');
+      e.target.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      showCustomToast('info', 'Đang tải lên', 'Đang cập nhật ảnh đại diện...');
+      const res = await fetch('/api/user/avatar', {
+        method: 'POST',
+        body: formData
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Lỗi tải ảnh đại diện');
+      }
+
+      document.getElementById('navAvatarImg').src = result.avatar;
+      document.getElementById('sideAvatarImg').src = result.avatar;
+      document.getElementById('profileAvatarBig').src = result.avatar;
+      showCustomToast('success', 'Thành công', 'Cập nhật ảnh đại diện thành công!');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    }
+  }
+
+  function openPhoneModal() {
+    if (currentUserData && currentUserData.phone) {
+      document.getElementById('newPhoneInput').value = currentUserData.phone;
+    }
+    openModal('phoneModal');
+  }
+
+  async function handleUpdatePhone(e) {
+    e.preventDefault();
+    const phone = document.getElementById('newPhoneInput').value.trim();
+
+    if (!REGEX_PHONE.test(phone)) {
+      showCustomToast('error', 'Số điện thoại không đúng', 'Số điện thoại phải bắt đầu bằng số 0 và có đúng 9 hoặc 10 chữ số!');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Không thể cập nhật số điện thoại');
+      }
+
+      currentUserData = result.data;
+      renderProfileUI(currentUserData);
+      closeModal('phoneModal');
+      showCustomToast('success', 'Thành công', 'Cập nhật số điện thoại thành công!');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    }
+  }
+
+  // ================= 6. NGÂN HÀNG (BANK ACCOUNTS) =================
+  function showCreditCardNotice() {
+    showCustomToast('warning', 'Thông báo', 'Chức năng liên kết Thẻ Tín Dụng/Ghi Nợ hiện đang được phát triển!');
+  }
+
+  function renderBankAccountsUI(banks) {
+    const container = document.getElementById('bankCardsContainer');
+    if (!banks || banks.length === 0) {
+      container.innerHTML = `<div class="empty-bank-box">Bạn chưa có tài khoản ngân hàng liên kết nào.</div>`;
+      return;
+    }
+
+    container.innerHTML = banks.map(b => {
+      const isDef = b.isDefault === true;
+      return `
+        <div class="bank-card-item">
+          <div class="bank-card-left">
+            <div class="bank-logo-box">★</div>
+            <div class="bank-card-info">
+              <h4>
+                <span>${b.bankName}</span>
+                <span class="badge-approved">✓ Đã duyệt</span>
+                ${isDef ? '<span class="badge-default-teal">MẶC ĐỊNH</span>' : ''}
+              </h4>
+              <div class="bank-meta-text">Họ Và Tên: ${b.accountHolder}</div>
+              <div class="bank-meta-text">Chi nhánh: ${b.branch || 'Toàn quốc'}</div>
+            </div>
+          </div>
+
+          <div class="bank-number-col">
+            ${maskAccountNumber(b.accountNumber)}
+          </div>
+
+          <div class="bank-actions-col">
+            <a href="javascript:void(0)" class="action-link" style="color:#555;" onclick="handleDeleteBank('${b._id}')">Xóa</a>
+            <button type="button" class="btn-bank-default ${isDef ? 'disabled' : ''}" ${isDef ? 'disabled' : `onclick="handleSetDefaultBank('${b._id}')"`}>
+              Thiết Lập Mặc Định
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function openAddBankModal() {
+    document.getElementById('addBankForm').reset();
+    openModal('addBankModal');
+  }
+
+  async function handleSaveBank(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmitAddBank');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    const bankName = document.getElementById('bankNameInput').value;
+    const accountNumber = document.getElementById('bankAccountNumInput').value.trim();
+    const accountHolder = document.getElementById('bankHolderInput').value.trim();
+    const branch = document.getElementById('bankBranchInput').value.trim();
+    const isDefault = document.getElementById('bankDefaultCheck').checked;
+
+    try {
+      const res = await fetch('/api/user/bank', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bankName, accountNumber, accountHolder, branch, isDefault })
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Lỗi liên kết ngân hàng');
+      }
+
+      renderBankAccountsUI(result.data);
+      closeModal('addBankModal');
+      showCustomToast('success', 'Thành công', 'Liên kết tài khoản ngân hàng thành công!');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Hoàn Thành';
+    }
+  }
+
+  async function handleSetDefaultBank(id) {
+    try {
+      const res = await fetch(`/api/user/bank/default/${id}`, { method: 'PUT' });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Không thể thiết lập mặc định');
+      }
+
+      renderBankAccountsUI(result.data);
+      showCustomToast('success', 'Thành công', 'Đã thiết lập tài khoản ngân hàng mặc định!');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    }
+  }
+
+  async function handleDeleteBank(id) {
+    const ok = await showCustomConfirm('Bạn có chắc chắn muốn xóa tài khoản ngân hàng liên kết này?');
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`/api/user/bank/${id}`, { method: 'DELETE' });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Không thể xóa ngân hàng');
+      }
+
+      renderBankAccountsUI(result.data);
+      showCustomToast('success', 'Thành công', 'Đã xóa tài khoản ngân hàng thành công!');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    }
+  }
+
+  // ================= 7. ĐỊA CHỈ (ADDRESSES VỚI CASCADING SELECTS) =================
+  function renderAddressesUI(addresses) {
+    const container = document.getElementById('addressListContainer');
+    if (!addresses || addresses.length === 0) {
+      container.innerHTML = `<div style="text-align:center; padding:40px 10px; color:#888;">Bạn chưa lưu địa chỉ giao hàng nào.</div>`;
+      return;
+    }
+
+    container.innerHTML = addresses.map(addr => {
+      const isDef = addr.isDefault === true;
+      const fullAddr = [addr.detailAddress, addr.ward, addr.district, addr.province].filter(Boolean).join(', ');
+
+      return `
+        <div class="address-item-card">
+          <div class="address-left">
+            <div class="address-person-row">
+              <span class="address-name">${addr.fullName}</span>
+              <span class="address-phone">(+84) ${addr.phone.replace(/^0/, '')}</span>
+            </div>
+            <div class="address-detail-text">${fullAddr}</div>
+            ${isDef ? '<span class="badge-address-default">Mặc định</span>' : ''}
+          </div>
+
+          <div class="address-right">
+            <div class="address-link-actions">
+              <a href="javascript:void(0)" class="action-link" onclick="openEditAddressModal('${addr._id}')">Cập nhật</a>
+              ${!isDef ? `<a href="javascript:void(0)" class="action-link" style="color:#555;" onclick="handleDeleteAddress('${addr._id}')">Xóa</a>` : ''}
+            </div>
+            <button type="button" class="btn-bank-default ${isDef ? 'disabled' : ''}" ${isDef ? 'disabled' : `onclick="handleSetDefaultAddress('${addr._id}')"`}>
+              Thiết lập mặc định
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function openAddAddressModal() {
+    document.getElementById('addressModalTitle').textContent = 'Địa chỉ mới';
+    document.getElementById('addressForm').reset();
+    document.getElementById('editAddressId').value = '';
+
+    populateProvincesSelect();
+    document.getElementById('addrDistrictSelect').innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
+    document.getElementById('addrDistrictSelect').disabled = true;
+    document.getElementById('addrWardSelect').innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+    document.getElementById('addrWardSelect').disabled = true;
+
+    openModal('addressModal');
+  }
+
+  function openEditAddressModal(id) {
+    if (!currentUserData || !currentUserData.addresses) return;
+    const addr = currentUserData.addresses.find(a => a._id === id);
+    if (!addr) return;
+
+    document.getElementById('addressModalTitle').textContent = 'Cập nhật địa chỉ';
+    document.getElementById('editAddressId').value = addr._id;
+    document.getElementById('addrFullName').value = addr.fullName || '';
+    document.getElementById('addrPhone').value = addr.phone || '';
+    document.getElementById('addrDetail').value = addr.detailAddress || '';
+    document.getElementById('addrDefaultCheck').checked = addr.isDefault === true;
+
+    populateProvincesSelect();
+
+    const provSelect = document.getElementById('addrProvinceSelect');
+    provSelect.value = addr.province || '';
+
+    // Khởi tạo cascade cho District & Ward
+    onProvinceChange(addr.district || '', addr.ward || '');
+
+    openModal('addressModal');
+  }
+
+  async function handleSaveAddress(e) {
+    e.preventDefault();
+
+    const fullName = document.getElementById('addrFullName').value.trim();
+    const phone = document.getElementById('addrPhone').value.trim();
+    const province = document.getElementById('addrProvinceSelect').value;
+    const district = document.getElementById('addrDistrictSelect').value;
+    const ward = document.getElementById('addrWardSelect').value;
+    const detailAddress = document.getElementById('addrDetail').value.trim();
+    const isDefault = document.getElementById('addrDefaultCheck').checked;
+
+    if (!fullName || !REGEX_NAME.test(fullName)) {
+      showCustomToast('error', 'Lỗi nhập liệu', 'Họ và tên người nhận chỉ được chứa chữ cái tiếng Việt và khoảng trắng!');
+      return;
+    }
+
+    if (!phone || !REGEX_PHONE.test(phone)) {
+      showCustomToast('error', 'Lỗi nhập liệu', 'Số điện thoại người nhận phải bắt đầu bằng số 0 và có đúng 9 hoặc 10 chữ số!');
+      return;
+    }
+
+    if (!province || !district || !ward) {
+      showCustomToast('warning', 'Thiếu thông tin', 'Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện và Phường/Xã!');
+      return;
+    }
+
+    if (!detailAddress) {
+      showCustomToast('warning', 'Thiếu thông tin', 'Vui lòng nhập địa chỉ cụ thể (số nhà, tên đường...)!');
+      return;
+    }
+
+    const btn = document.getElementById('btnSubmitAddress');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    const editId = document.getElementById('editAddressId').value;
+    const payload = { fullName, phone, province, district, ward, detailAddress, isDefault };
+
+    try {
+      const url = editId ? `/api/user/address/${editId}` : '/api/user/address';
+      const method = editId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Lỗi lưu địa chỉ');
+      }
+
+      currentUserData.addresses = result.data;
+      renderAddressesUI(result.data);
+      closeModal('addressModal');
+      showCustomToast('success', 'Thành công', editId ? 'Cập nhật địa chỉ thành công!' : 'Thêm địa chỉ mới thành công!');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Hoàn Thành';
+    }
+  }
+
+  async function handleSetDefaultAddress(id) {
+    try {
+      const res = await fetch(`/api/user/address/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isDefault: true })
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Không thể đặt làm mặc định');
+      }
+
+      currentUserData.addresses = result.data;
+      renderAddressesUI(result.data);
+      showCustomToast('success', 'Thành công', 'Đã thiết lập địa chỉ mặc định!');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    }
+  }
+
+  async function handleDeleteAddress(id) {
+    const ok = await showCustomConfirm('Bạn có chắc chắn muốn xóa địa chỉ nhận hàng này?');
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`/api/user/address/${id}`, { method: 'DELETE' });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Không thể xóa địa chỉ');
+      }
+
+      currentUserData.addresses = result.data;
+      renderAddressesUI(result.data);
+      showCustomToast('success', 'Thành công', 'Đã xóa địa chỉ thành công!');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    }
+  }
+
+  // ================= 8. ĐỔI MẬT KHẨU (KHÔNG NHẢY TRANG) =================
+  async function handleChangePassword(e) {
+    e.preventDefault();
+    const oldPassword = document.getElementById('oldPwdInput').value;
+    const newPassword = document.getElementById('newPwdInput').value;
+    const confirmPassword = document.getElementById('confirmNewPwdInput').value;
+
+    if (newPassword !== confirmPassword) {
+      showCustomToast('error', 'Không khớp', 'Mật khẩu mới và xác nhận mật khẩu không khớp nhau!');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      showCustomToast('error', 'Độ dài mật khẩu', 'Mật khẩu mới phải có tối thiểu 6 ký tự!');
+      return;
+    }
+
+    const btn = document.getElementById('btnSubmitChangePwd');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    try {
+      const res = await fetch('/api/user/change-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword, newPassword })
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Đổi mật khẩu thất bại');
+      }
+
+      document.getElementById('changePasswordForm').reset();
+      showCustomToast('success', 'Thành công', 'Đổi mật khẩu thành công! Mật khẩu mới đã được cập nhật.');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Lưu';
+    }
+  }
+
+  // Quick Reset Password Modal ngay tại dashboard
+  let currentGeneratedPwd = '';
+  function openQuickResetModal() {
+    document.getElementById('quickResetStep1').style.display = 'block';
+    document.getElementById('quickResetStep2').style.display = 'none';
+    const input = document.getElementById('quickResetIdentifier');
+    if (currentUserData && currentUserData.email) {
+      input.value = currentUserData.email;
+    } else {
+      input.value = '';
+    }
+    openModal('quickResetModal');
+  }
+
+  async function handleQuickResetSubmit() {
+    const identifier = document.getElementById('quickResetIdentifier').value.trim();
+    if (!identifier) {
+      showCustomToast('warning', 'Thiếu thông tin', 'Vui lòng nhập tên đăng nhập hoặc Gmail của bạn!');
+      return;
+    }
+
+    const btn = document.getElementById('btnSubmitQuickReset');
+    btn.disabled = true;
+    btn.textContent = 'Đang gửi mật khẩu về Gmail...';
+
+    try {
+      const res = await fetch('/api/auth/quick-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier })
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Đặt lại mật khẩu thất bại');
+      }
+
+      currentGeneratedPwd = result.newPassword;
+      document.getElementById('quickResetNewPwdDisplay').textContent = currentGeneratedPwd;
+      document.getElementById('quickResetStep1').style.display = 'none';
+      document.getElementById('quickResetStep2').style.display = 'block';
+      showCustomToast('success', 'Thành công', 'Mật khẩu mới đã được gửi về Gmail: ' + (result.email || identifier));
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Gửi mật khẩu mới về Gmail';
+    }
+  }
+
+  async function copyQuickResetPassword() {
+    if (!currentGeneratedPwd) return;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(currentGeneratedPwd);
+      } else {
+        const temp = document.createElement('input');
+        temp.value = currentGeneratedPwd;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+      }
+
+      const btn = document.getElementById('btnCopyQuickResetPwd');
+      btn.classList.add('copied');
+      btn.textContent = 'Đã sao chép!';
+      showCustomToast('success', 'Đã sao chép', 'Mật khẩu mới đã được lưu vào khay nhớ tạm.');
+
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = 'Sao chép';
+      }, 2500);
+
+    } catch (e) {
+      showCustomToast('error', 'Lỗi', 'Không thể tự động sao chép. Vui lòng chọn và sao chép thủ công.');
+    }
+  }
+
+  // ================= 9. THÔNG TIN CÁ NHÂN (CCCD) =================
+  function renderIdentityUI(idCard) {
+    document.getElementById('cccdFullName').value = idCard.fullName || '';
+    document.getElementById('cccdIdNumber').value = idCard.idNumber || '';
+    document.getElementById('cccdAddress').value = idCard.permanentAddress || '';
+    updateCccdCharCount();
+  }
+
+  function updateCccdCharCount() {
+    const text = document.getElementById('cccdAddress').value || '';
+    document.getElementById('cccdCharCount').textContent = text.length;
+  }
+
+  async function handleSaveIdentity(e) {
+    e.preventDefault();
+
+    const fullName = document.getElementById('cccdFullName').value.trim();
+    const idNumber = document.getElementById('cccdIdNumber').value.trim();
+    const permanentAddress = document.getElementById('cccdAddress').value.trim();
+
+    if (!fullName || !REGEX_NAME.test(fullName)) {
+      showCustomToast('error', 'Tên không hợp lệ', 'Họ và tên trên CCCD chỉ được chứa chữ cái tiếng Việt và khoảng trắng!');
+      return;
+    }
+
+    if (!REGEX_CCCD.test(idNumber)) {
+      showCustomToast('error', 'CCCD không đúng', 'Số định danh cá nhân (CCCD) phải gồm đúng 12 chữ số!');
+      return;
+    }
+
+    if (!permanentAddress) {
+      showCustomToast('warning', 'Thiếu thông tin', 'Vui lòng nhập địa chỉ nơi thường trú trên CCCD!');
+      return;
+    }
+
+    const btn = document.getElementById('btnSubmitIdentity');
+    btn.disabled = true;
+    btn.textContent = 'Đang lưu...';
+
+    try {
+      const res = await fetch('/api/user/identity', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, idNumber, permanentAddress })
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Lỗi lưu thông tin CCCD');
+      }
+
+      showCustomToast('success', 'Thành công', 'Cập nhật thông tin CCCD thành công!');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Xác Nhận';
+    }
+  }
+
+  // ================= 10. ĐƠN MUA (SHOPEE ORDERS LIFECYCLE) =================
+  async function fetchUserOrders(status = 'all', searchQuery = '') {
+    const container = document.getElementById('ordersContainer');
+    container.innerHTML = `<div style="text-align:center; padding:40px; color:#888;">Đang tải danh sách đơn hàng...</div>`;
+
+    try {
+      let url = `/api/user/orders?status=${status}`;
+      if (searchQuery) url += `&q=${encodeURIComponent(searchQuery)}`;
+
+      const res = await fetch(url);
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Không thể tải đơn hàng');
+      }
+
+      allUserOrders = result.data || [];
+      renderOrdersUI(allUserOrders);
+
+    } catch (err) {
+      console.error('Lỗi tải đơn mua:', err);
+      container.innerHTML = `<div style="text-align:center; padding:40px; color:#E11D48;">Lỗi khi tải đơn mua: ${err.message}</div>`;
+    }
+  }
+
+  function renderOrdersUI(orders) {
+    const container = document.getElementById('ordersContainer');
+
+    if (!orders || orders.length === 0) {
+      container.innerHTML = `
+        <div class="empty-orders-shopee">
+          <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <path d="M16 10a4 4 0 0 1-8 0"></path>
+          </svg>
+          <p>Chưa có đơn hàng trong mục này</p>
+          <a href="/products" class="btn-primary-orange" style="padding:10px 28px;">Mua Sắm Ngay</a>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = orders.map(order => {
+      const items = order.items || [];
+      const totalAmount = order.finalAmount || order.totalAmount || 0;
+      const status = (order.status || '').toLowerCase();
+
+      let statusLabel = 'ĐANG XỬ LÝ';
+      let statusIcon = '📦';
+      let actionsHtml = '';
+      let retBannerHtml = '';
+
+      let statusClass = 'status-badge-pending';
+      if (status === 'pending_confirmation' || status === 'pending_payment' || status === 'unpaid') {
+        const isMomo = (order.paymentMethod === 'momo');
+        const isPaid = (order.paymentStatus === 'paid');
+
+        if (isMomo) {
+          if (isPaid) {
+            statusLabel = 'ĐÃ THANH TOÁN (MOMO)';
+            statusIcon = '✓';
+            statusClass = 'status-badge-completed';
+            retBannerHtml = `
+              <div style="padding:10px 14px; background:#D1FAE5; border:1px solid #A7F3D0; border-radius:6px; font-size:12.5px; color:#065F46; margin:10px 16px 0; display:flex; align-items:center; gap:8px;">
+                <span style="font-size:16px;">✓</span>
+                <div><strong>Đã chuyển tiền MoMo thành công!</strong> Mã GD: <strong class="mono">${order.momoTransaction?.transId || 'Đã ghi nhận'}</strong> — Cửa hàng đang chuẩn bị sách.</div>
+              </div>
+            `;
+          } else {
+            statusLabel = 'CHƯA CHUYỂN TIỀN';
+            statusIcon = '•';
+            statusClass = 'status-badge-cancelled';
+            retBannerHtml = `
+              <div style="padding:10px 14px; background:#FEE2E2; border:1px solid #FECACA; border-radius:6px; font-size:12.5px; color:#991B1B; margin:10px 16px 0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:16px;">📱</span>
+                  <div><strong>Chưa chuyển tiền MoMo:</strong> Đơn hàng đang chờ thanh toán để được giao.</div>
+                </div>
+                <button type="button" onclick="openPaymentModal('${order._id}')" style="background:#A50064; color:#FFF; border:0; padding:5px 12px; border-radius:5px; font-weight:700; font-size:12px; cursor:pointer;">
+                  Thanh toán ngay
+                </button>
+              </div>
+            `;
+          }
+        } else {
+          statusLabel = 'Chờ xác nhận';
+          statusIcon = '•';
+          statusClass = 'status-badge-pending';
+          retBannerHtml = `
+            <div style="padding:10px 14px; background:#FEF3C7; border:1px solid #FCD34D; border-radius:6px; font-size:12.5px; color:#92400E; margin:10px 16px 0; display:flex; align-items:center; gap:8px;">
+              <span style="font-size:15px;">⏳</span>
+              <div><strong>Đã gửi xác nhận chuyển khoản</strong> - Chờ nhân viên đối soát</div>
+            </div>
+          `;
+        }
+
+        actionsHtml = `
+          ${(isMomo && !isPaid) ? `
+            <button type="button" class="btn-order-action" style="background:#A50064; color:#FFF; border-color:#A50064; font-weight:700;" onclick="openPaymentModal('${order._id}')">
+              📱 Thanh Toán MoMo
+            </button>
+          ` : ''}
+          <button type="button" class="btn-order-action btn-cancel-order" onclick="handleCancelOrder('${order._id}')">
+            Hủy Đơn
+          </button>
+          <button type="button" class="btn-order-action btn-order-detail" onclick="handleViewOrderDetail('${order._id}')">
+            Xem Chi Tiết
+          </button>
+        `;
+      } else if (status === 'delivering' || status === 'processing') {
+        statusLabel = 'CHỜ GIAO HÀNG';
+        statusIcon = '🛵';
+        statusClass = 'status-badge-shipping';
+        actionsHtml = `
+          <button type="button" class="btn-order-action btn-order-detail" onclick="handleViewOrderDetail('${order._id}')">
+            Xem Chi Tiết
+          </button>
+          <button type="button" class="btn-order-action btn-reorder" onclick="handleReorder('${order._id}')">
+            Mua Lại
+          </button>
+        `;
+      } else if (status === 'shipping') {
+        statusLabel = 'ĐANG VẬN CHUYỂN';
+        statusIcon = '🚚';
+        statusClass = 'status-badge-shipping';
+        actionsHtml = `
+          <button type="button" class="btn-order-action btn-order-detail" onclick="handleViewOrderDetail('${order._id}')">
+            Xem Chi Tiết
+          </button>
+          <button type="button" class="btn-order-action btn-reorder" onclick="handleReorder('${order._id}')">
+            Mua Lại
+          </button>
+        `;
+      } else if (status === 'completed' || status === 'paid') {
+        statusLabel = 'HOÀN THÀNH';
+        statusIcon = '✓';
+        statusClass = 'status-badge-completed';
+        actionsHtml = `
+          <button type="button" class="btn-order-action btn-reorder" onclick="handleReorder('${order._id}')">
+            Mua Lại
+          </button>
+          <button type="button" class="btn-order-action btn-cancel-order" onclick="openReturnOrderModal('${order._id}')">
+            Trả hàng / Hoàn tiền
+          </button>
+          <button type="button" class="btn-order-action btn-order-detail" onclick="handleViewOrderDetail('${order._id}')">
+            Xem Chi Tiết
+          </button>
+        `;
+      } else if (status === 'cancelled' || status === 'overdue') {
+        statusLabel = 'ĐÃ HỦY';
+        statusIcon = '✕';
+        statusClass = 'status-badge-cancelled';
+        actionsHtml = `
+          <button type="button" class="btn-order-action btn-reorder" onclick="handleReorder('${order._id}')">
+            Mua Lại
+          </button>
+          <button type="button" class="btn-order-action btn-order-detail" onclick="handleViewOrderDetail('${order._id}')">
+            Xem Chi Tiết
+          </button>
+        `;
+      } else if (status === 'returned') {
+        const retReq = order.returnRequest || {};
+        const retStatus = retReq.status || 'requested';
+
+        if (retStatus === 'requested') {
+          statusLabel = 'CHỜ TIẾP NHẬN';
+          statusIcon = '⏳';
+          statusClass = 'status-badge-pending';
+          retBannerHtml = `
+            <div style="padding:10px 14px; background:#FEF3C7; border:1px solid #FCD34D; border-radius:6px; font-size:12.5px; color:#92400E; margin:10px 16px 0; display:flex; align-items:center; gap:8px;">
+              <span>⏳</span>
+              <div><strong>Đã gửi yêu cầu trả hàng:</strong> Đang chờ nhân viên L'Amour tiếp nhận và điều phối lấy sách.</div>
+            </div>
+          `;
+        } else if (retStatus === 'shipping_back') {
+          statusLabel = 'ĐANG THU HỒI SÁCH';
+          statusIcon = '🚚';
+          statusClass = 'status-badge-shipping';
+          retBannerHtml = `
+            <div style="padding:10px 14px; background:#EDE9FE; border:1px solid #DDD6FE; border-radius:6px; font-size:12.5px; color:#5B21B6; font-weight:600; margin:10px 16px 0; display:flex; align-items:center; gap:8px;">
+              <span style="font-size:16px;">🚚</span>
+              <div>Đơn vị vận chuyển đang đến lấy sách hoàn trả về tiệm</div>
+            </div>
+          `;
+        } else if (['inspected_ok', 'approved_transferred_to_warehouse', 'warehouse_restocked', 'warehouse_returned_supplier', 'warehouse_discarded'].includes(retStatus)) {
+          statusLabel = 'HOÀN TIỀN THÀNH CÔNG';
+          statusIcon = '✓';
+          statusClass = 'status-badge-completed';
+          retBannerHtml = `
+            <div style="padding:10px 14px; background:#D1FAE5; border:1px solid #A7F3D0; border-radius:6px; font-size:12.5px; color:#065F46; font-weight:600; margin:10px 16px 0; display:flex; align-items:center; gap:8px;">
+              <span style="font-size:16px;">✓</span>
+              <div>Đã kiểm tra sách đạt chuẩn & hoàn tiền thành công!</div>
+            </div>
+          `;
+        } else if (retStatus === 'rejected') {
+          statusLabel = 'TỪ CHỐI HOÀN TRẢ';
+          statusIcon = '✕';
+          statusClass = 'status-badge-cancelled';
+          retBannerHtml = `
+            <div style="padding:10px 14px; background:#FEE2E2; border:1px solid #FECACA; border-radius:6px; font-size:12.5px; color:#991B1B; font-weight:600; margin:10px 16px 0; display:flex; align-items:center; gap:8px;">
+              <span>✕</span>
+              <div>Yêu cầu bị từ chối: ${retReq.inspectionNote || 'Không đáp ứng điều kiện hoàn trả'}</div>
+            </div>
+          `;
+        }
+
+        actionsHtml = `
+          <button type="button" class="btn-order-action" style="background:#FFF; border:1.5px solid #C7A15A; color:#0A1930; font-weight:700;" onclick="openReturnDetailModal('${order._id}')">
+            Chi Tiết Hoàn Tiền
+          </button>
+          <button type="button" class="btn-order-action btn-reorder" onclick="handleReorder('${order._id}')">
+            Mua Lại
+          </button>
+          <button type="button" class="btn-order-action btn-order-detail" onclick="handleViewOrderDetail('${order._id}')">
+            Xem Chi Tiết
+          </button>
+        `;
+      }
+
+      const itemsHtml = items.map(item => {
+        const book = item.book || {};
+        const title = book.title || 'Tác phẩm sách kinh điển';
+        const cover = book.coverImage || '/images/covers/default-book.svg';
+        const price = item.price || book.price || 0;
+        const qty = item.quantity || 1;
+
+        return `
+          <div class="order-item-row">
+            <div class="order-item-left">
+              <img class="order-book-thumb" src="${cover}" alt="${title}" onerror="this.src='/images/covers/default-book.svg'">
+              <div class="order-book-info">
+                <h5>${title}</h5>
+                <div class="order-book-qty">x${qty}</div>
+              </div>
+            </div>
+            <div class="order-item-price">${fmtVND(price)}</div>
+          </div>
+        `;
+      }).join('');
+
+      const isOnline = (order.orderType === 'online') || (order.invoiceCode && order.invoiceCode.startsWith('HD-OL'));
+      const channelBadgeHtml = isOnline
+        ? `<span style="font-size:11px; font-weight:700; padding:2.5px 8px; border-radius:4px; background:#E0F2FE; color:#0369A1; border:1px solid #BAE6FD; display:inline-flex; align-items:center; gap:4px;">🌐 Mua Online</span>`
+        : `<span style="font-size:11px; font-weight:700; padding:2.5px 8px; border-radius:4px; background:#FEF3C7; color:#B45309; border:1px solid #FDE68A; display:inline-flex; align-items:center; gap:4px;">🏬 Mua Trực Tiếp</span>`;
+
+      return `
+        <div class="order-card" id="orderCard_${order._id}">
+          <div class="order-card-header">
+            <div class="shop-tag-wrap" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span class="mall-badge">Mall</span>
+              <span>L'Amour Bookstore</span>
+              ${channelBadgeHtml}
+              <a href="/products" class="btn-view-shop">Xem Shop</a>
+            </div>
+            <div class="order-status-right">
+              <span class="order-status-badge ${statusClass}">
+                <span>${statusIcon}</span>
+                <span>${statusLabel}</span>
+              </span>
+            </div>
+          </div>
+
+          ${retBannerHtml}
+
+          <div class="order-items-list">
+            ${itemsHtml}
+          </div>
+
+          <div class="order-card-footer">
+            <div class="order-total-display">
+              Thành tiền: <span class="order-total-price">${fmtVND(totalAmount)}</span>
+            </div>
+
+            <div class="order-actions-group">
+              ${actionsHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function switchOrderSubTab(status) {
+    currentOrderTab = status;
+    document.querySelectorAll('.order-tab-btn').forEach(b => {
+      const bStatus = b.dataset.status;
+      const bAlias = b.dataset.alias;
+      if (bStatus === status || bAlias === status || (status === 'pending_confirmation' && bStatus === 'pending_payment')) {
+        b.classList.add('active');
+      } else {
+        b.classList.remove('active');
+      }
+    });
+    const searchVal = document.getElementById('orderSearchInput').value.trim();
+    fetchUserOrders(status, searchVal);
+  }
+
+  let searchTimeout = null;
+  function handleOrderSearch(e) {
+    clearTimeout(searchTimeout);
+    const q = e.target.value.trim();
+    searchTimeout = setTimeout(() => {
+      fetchUserOrders(currentOrderTab, q);
+    }, 300);
+  }
+
+  function handleReorder(orderId) {
+    const order = allUserOrders.find(o => o._id === orderId);
+    if (!order || !order.items || order.items.length === 0) {
+      showCustomToast('error', 'Lỗi', 'Không tìm thấy dữ liệu đơn hàng để mua lại!');
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem('lamour_cart');
+      const cart = stored ? JSON.parse(stored) : {};
+
+      order.items.forEach(item => {
+        const book = item.book || {};
+        const bId = book._id || item.book;
+        if (!bId) return;
+
+        if (cart[bId]) {
+          cart[bId].qty += (item.quantity || 1);
+        } else {
+          cart[bId] = {
+            id: bId,
+            title: book.title || 'Sách L\'Amour',
+            price: item.price || book.price || 0,
+            coverImage: book.coverImage || '',
+            qty: item.quantity || 1
+          };
+        }
+      });
+
+      localStorage.setItem('lamour_cart', JSON.stringify(cart));
+      updateNavCartCount();
+      showCustomToast('success', 'Đã thêm vào giỏ', 'Đang chuyển hướng sang trang thanh toán...');
+
+      setTimeout(() => {
+        window.location.href = '/cart';
+      }, 600);
+
+    } catch (err) {
+      showCustomToast('error', 'Lỗi giỏ hàng', 'Có lỗi xảy ra khi thêm vào giỏ hàng.');
+    }
+  }
+
+  async function handleCancelOrder(orderId) {
+    const ok = await showCustomConfirm('Bạn có chắc chắn muốn hủy đơn hàng này?');
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`/api/user/orders/${orderId}/cancel`, {
+        method: 'PUT'
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Không thể hủy đơn hàng');
+      }
+
+      showCustomToast('success', 'Thành công', 'Hủy đơn hàng thành công!');
+      fetchUserOrders(currentOrderTab);
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    }
+  }
+
+  // ================= MODAL THANH TOÁN (PAYMENT) =================
+  let currentPayOrder = null;
+  let uploadedUserProofUrl = '';
+
+  function handleUserProofFileSelect(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showCustomToast('warning', 'Tệp không hợp lệ', 'Vui lòng chỉ chọn tệp hình ảnh (JPG, PNG, WEBP...)');
+      event.target.value = '';
+      return;
+    }
+
+    const nameLabel = document.getElementById('userProofFileName');
+    nameLabel.textContent = file.name + ' (Đang tải lên...)';
+
+    const formData = new FormData();
+    formData.append('paymentProof', file);
+
+    fetch('/api/invoices/upload-proof', {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success && data.url) {
+        uploadedUserProofUrl = data.url;
+        nameLabel.textContent = '✓ ' + file.name;
+        document.getElementById('userProofPreviewImg').src = data.url;
+        document.getElementById('userProofPreviewWrap').style.display = 'block';
+        showCustomToast('success', 'Đã tải lên', 'Ảnh biên lai đã được tải lên thành công.');
+      } else {
+        throw new Error(data.message || 'Lỗi tải ảnh');
+      }
+    })
+    .catch(err => {
+      console.error('Lỗi upload bill:', err);
+      showCustomToast('error', 'Lỗi tải ảnh', err.message || 'Không thể tải ảnh biên lai');
+      nameLabel.textContent = 'Chưa chọn ảnh';
+      event.target.value = '';
+    });
+  }
+
+  function removeUserProofImage() {
+    uploadedUserProofUrl = '';
+    const fileInp = document.getElementById('userProofFileInput');
+    if (fileInp) fileInp.value = '';
+    const nameLabel = document.getElementById('userProofFileName');
+    if (nameLabel) nameLabel.textContent = 'Chưa chọn ảnh';
+    const previewWrap = document.getElementById('userProofPreviewWrap');
+    if (previewWrap) previewWrap.style.display = 'none';
+    const previewImg = document.getElementById('userProofPreviewImg');
+    if (previewImg) previewImg.src = '';
+  }
+
+  function openPaymentModal(orderId) {
+    const order = allUserOrders.find(o => o._id === orderId);
+    if (!order) return;
+    currentPayOrder = order;
+
+    document.getElementById('payOrderId').value = order._id;
+    document.getElementById('payOrderCode').textContent = order.invoiceCode || order._id;
+    document.getElementById('payOrderAmount').textContent = fmtVND(order.finalAmount || order.totalAmount || 0);
+    document.getElementById('payNoteInput').value = '';
+
+    // Khởi tạo bill thanh toán nếu có sẵn
+    if (order.paymentProof) {
+      uploadedUserProofUrl = order.paymentProof;
+      document.getElementById('userProofFileName').textContent = '✓ Đã có ảnh biên lai đính kèm';
+      document.getElementById('userProofPreviewImg').src = order.paymentProof;
+      document.getElementById('userProofPreviewWrap').style.display = 'block';
+    } else {
+      removeUserProofImage();
+    }
+
+    // Mặc định chọn theo phương thức hiện tại hoặc transfer
+    let radioVal = 'cash';
+    if (order.paymentMethod === 'transfer' || order.paymentMethod === 'Banking') radioVal = 'transfer';
+    else if (order.paymentMethod === 'card' || order.paymentMethod === 'MoMo') radioVal = 'momo';
+
+    const radio = document.querySelector(`input[name="payMethod"][value="${radioVal === 'momo' ? 'card' : radioVal}"]`);
+    if (radio) radio.checked = true;
+    onPaymentMethodChange(radioVal);
+
+    // Cập nhật cú pháp chuyển khoản
+    const phone = order.customerPhone || (currentUserData ? currentUserData.phone : '') || '';
+    const syntax = `${order.invoiceCode || 'HD'} ${phone}`.trim();
+    document.getElementById('qrSyntaxText').textContent = syntax;
+
+    openModal('paymentModal');
+  }
+
+  let _userPaymentInfo = null;
+  async function getUserPaymentInfo() {
+    if (_userPaymentInfo) return _userPaymentInfo;
+    try {
+      const res = await fetch('/api/settings/payment-info');
+      const data = await res.json();
+      if (data && data.success && data.paymentInfo) {
+        _userPaymentInfo = data.paymentInfo;
+        return _userPaymentInfo;
+      }
+    } catch (e) {
+      console.warn('Lỗi lấy thông tin thanh toán:', e);
+    }
+    return {
+      bankAccount: { bankName: 'Ngân hàng Quân Đội (MB Bank)', accountNumber: '0987654321', accountHolder: 'TIEM SACH TINH HOA L\'AMOUR' },
+      bankQrImage: '/images/qr-bank.jpg',
+      momo: { phone: '0987654321', holder: 'L\'AMOUR BOOKSTORE' },
+      momoQrImage: '/images/qr-momo.jpg'
+    };
+  }
+
+  async function onPaymentMethodChange(method) {
+    const qrSection = document.getElementById('qrPaymentSection');
+    const qrImg = document.getElementById('qrImageDisplay');
+    const qrTitle = document.getElementById('qrSectionTitle');
+    const qrReceiver = document.getElementById('qrReceiverName');
+    const qrAccount = document.getElementById('qrAccountNumber');
+    const btnSubmit = document.getElementById('btnSubmitPayment');
+    const proofSection = document.getElementById('userPaymentProofSection');
+
+    if (method === 'transfer') {
+      qrSection.style.display = 'block';
+      if (proofSection) proofSection.style.display = 'block';
+      const info = await getUserPaymentInfo();
+      const bank = info.bankAccount || {};
+      const bankName = bank.bankName || 'Ngân Hàng';
+      const accNum = bank.accountNumber || '---';
+      const holder = bank.accountHolder || 'TIEM SACH TINH HOA L\'AMOUR';
+      qrImg.src = info.bankQrImage || bank.qrImage || '/images/qr-bank.jpg';
+      qrTitle.textContent = 'MÃ VIETQR ' + bankName.toUpperCase();
+      qrReceiver.textContent = holder;
+      qrAccount.textContent = accNum + ' (' + bankName + ')';
+      btnSubmit.textContent = 'Xác Nhận Đã Chuyển Khoản';
+    } else if (method === 'momo') {
+      qrSection.style.display = 'block';
+      if (proofSection) proofSection.style.display = 'block';
+      const info = await getUserPaymentInfo();
+      const momo = info.momo || {};
+      const phone = momo.phone || '0987654321';
+      const holder = momo.holder || 'L\'AMOUR BOOKSTORE';
+      qrImg.src = info.momoQrImage || momo.qrImage || '/images/qr-momo.jpg';
+      qrTitle.textContent = 'MÃ QR VÍ ĐIỆN TỬ MOMO';
+      qrReceiver.textContent = holder;
+      qrAccount.textContent = phone + ' (Ví MoMo)';
+      btnSubmit.textContent = 'Xác Nhận Đã Thanh Toán MoMo';
+    } else {
+      qrSection.style.display = 'none';
+      if (proofSection) proofSection.style.display = 'none';
+      btnSubmit.textContent = 'Xác Nhận Thanh Toán COD';
+    }
+  }
+
+  async function copyQrSyntax() {
+    const text = document.getElementById('qrSyntaxText').textContent;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const temp = document.createElement('input');
+        temp.value = text;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+      }
+      showCustomToast('success', 'Đã sao chép', 'Cú pháp chuyển khoản đã được sao chép.');
+    } catch (e) {
+      showCustomToast('info', 'Cú pháp', text);
+    }
+  }
+
+  async function handleConfirmPaymentSubmit(e) {
+    e.preventDefault();
+    if (!currentPayOrder) return;
+
+    const methodRadio = document.querySelector('input[name="payMethod"]:checked');
+    const selectedMethod = methodRadio ? methodRadio.value : 'cash';
+    const payNote = document.getElementById('payNoteInput').value.trim();
+
+    const btn = document.getElementById('btnSubmitPayment');
+    btn.disabled = true;
+    btn.textContent = 'Đang xử lý...';
+
+    try {
+      const res = await fetch(`/api/user/orders/${currentPayOrder._id}/pay`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paymentMethod: selectedMethod === 'card' ? 'MoMo' : (selectedMethod === 'transfer' ? 'transfer' : 'cash'),
+          paymentNote: payNote,
+          paymentProof: uploadedUserProofUrl || ''
+        })
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Không thể xác nhận thanh toán');
+      }
+
+      closeModal('paymentModal');
+      showCustomToast('success', 'Thành công', result.message || 'Đã ghi nhận thanh toán!');
+      fetchUserOrders(currentOrderTab);
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Xác Nhận Đã Thanh Toán';
+    }
+  }
+
+  // ================= MODAL TRẢ HÀNG / HOÀN TIỀN =================
+  let currentReturnOrder = null;
+  function openReturnOrderModal(orderId) {
+    const order = allUserOrders.find(o => o._id === orderId);
+    if (!order) return;
+    currentReturnOrder = order;
+
+    document.getElementById('returnOrderId').value = order._id;
+    document.getElementById('returnOrderCodeDisplay').value = order.invoiceCode || order._id;
+    document.getElementById('returnReasonSelect').value = '';
+    document.getElementById('returnNoteText').value = '';
+
+    // Mặc định chọn chuyển khoản
+    const radioTransfer = document.querySelector('input[name="refundMethodOption"][value="transfer"]');
+    if (radioTransfer) radioTransfer.checked = true;
+    toggleRefundMethodFields('transfer');
+
+    // Auto-fill bank if user has saved accounts
+    if (currentUserData && currentUserData.bankAccounts && currentUserData.bankAccounts.length > 0) {
+      const defBank = currentUserData.bankAccounts.find(b => b.isDefault) || currentUserData.bankAccounts[0];
+      if (defBank) {
+        document.getElementById('returnBankName').value = defBank.bankName || '';
+        document.getElementById('returnBankAccount').value = defBank.accountNumber || '';
+        document.getElementById('returnBankHolder').value = (defBank.accountHolder || '').toUpperCase();
+      }
+    } else {
+      document.getElementById('returnBankName').value = '';
+      document.getElementById('returnBankAccount').value = '';
+      document.getElementById('returnBankHolder').value = currentUserData ? (currentUserData.name || '').toUpperCase() : '';
+    }
+
+    openModal('returnOrderModal');
+  }
+
+  async function handleReturnOrderSubmit(e) {
+    e.preventDefault();
+    if (!currentReturnOrder) return;
+
+    const reason = document.getElementById('returnReasonSelect').value;
+    const note = document.getElementById('returnNoteText').value.trim();
+    const refundMethod = document.querySelector('input[name="refundMethodOption"]:checked')?.value || 'transfer';
+    const refundBank = document.getElementById('returnBankName').value;
+    const refundAccount = document.getElementById('returnBankAccount').value.trim();
+    const refundHolder = document.getElementById('returnBankHolder').value.trim();
+
+    if (!reason) {
+      showCustomToast('warning', 'Thiếu thông tin', 'Vui lòng chọn lý do trả hàng!');
+      return;
+    }
+
+    if (refundMethod === 'transfer') {
+      if (!refundBank || !refundAccount || !refundHolder) {
+        showCustomToast('warning', 'Thiếu thông tin', 'Vui lòng cung cấp đầy đủ thông tin tài khoản ngân hàng để nhận tiền hoàn!');
+        return;
+      }
+    }
+
+    const btn = document.getElementById('btnSubmitReturn');
+    btn.disabled = true;
+    btn.textContent = 'Đang gửi...';
+
+    try {
+      const res = await fetch(`/api/user/orders/${currentReturnOrder._id}/return-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reason,
+          note,
+          refundMethod,
+          bankInfo: {
+            bankName: refundBank,
+            accountNumber: refundAccount,
+            accountHolder: refundHolder
+          },
+          refundBank,
+          refundAccount,
+          refundHolder
+        })
+      });
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Không thể gửi yêu cầu trả hàng');
+      }
+
+      closeModal('returnOrderModal');
+      showCustomToast('success', 'Thành công', 'Gửi yêu cầu trả hàng / hoàn tiền thành công! Đơn hàng đã chuyển sang tab Trả hàng/Hoàn tiền.');
+      switchOrderSubTab('returned');
+
+    } catch (err) {
+      showCustomToast('error', 'Thất bại', err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Gửi Yêu Cầu';
+    }
+  }
+
+  function openReturnDetailModal(orderId) {
+    const order = allUserOrders.find(o => o._id === orderId);
+    if (!order) return;
+
+    const retReq = order.returnRequest || {};
+    const retStatus = retReq.status || 'requested';
+    const refundMethod = retReq.refundMethod || (order.returnRefundInfo && order.returnRefundInfo.accountNumber ? 'transfer' : 'cash');
+    const refund = retReq.bankInfo || order.returnRefundInfo || {};
+
+    const requestedAtStr = formatDateTime(retReq.requestedAt || order.returnRequestedAt || order.createdAt);
+    const receivedAtStr = formatDateTime(retReq.receivedAt);
+    const inspectedAtStr = formatDateTime(retReq.inspectedAt);
+
+    let statusHeaderHtml = '';
+    if (retStatus === 'requested') {
+      statusHeaderHtml = `
+        <div style="padding:14px; background:#FEF3C7; border-radius:8px; border:1px solid #FCD34D;">
+          <div style="font-weight:700; color:#92400E; font-size:14px; margin-bottom:4px;">🟡 Trạng thái: Chờ tiếp nhận yêu cầu</div>
+          <div style="font-size:12.5px; color:#78350F;">Đội ngũ chăm sóc khách hàng L'Amour đã ghi nhận yêu cầu và sẽ liên hệ điều phối đơn vị vận chuyển thu hồi sách trong 24 giờ làm việc.</div>
+        </div>
+      `;
+    } else if (retStatus === 'shipping_back') {
+      statusHeaderHtml = `
+        <div style="padding:14px; background:#EDE9FE; border-radius:8px; border:1px solid #DDD6FE;">
+          <div style="font-weight:700; color:#5B21B6; font-size:14px; margin-bottom:4px;">🟣 Trạng thái: Đang thu hồi sách về kho</div>
+          <div style="font-size:12.5px; color:#4C1D95;">Đơn vị vận chuyển đang đến lấy sách hoàn trả về tiệm sách L'Amour để nhân viên tiến hành kiểm tra thực tế.</div>
+          <div style="font-size:11.5px; color:#6D28D9; margin-top:4px;">Tiếp nhận lúc: <strong>${receivedAtStr}</strong></div>
+        </div>
+      `;
+    } else if (['inspected_ok', 'approved_transferred_to_warehouse', 'warehouse_restocked', 'warehouse_returned_supplier', 'warehouse_discarded'].includes(retStatus)) {
+      statusHeaderHtml = `
+        <div style="padding:14px; background:#D1FAE5; border-radius:8px; border:1px solid #A7F3D0;">
+          <div style="font-weight:700; color:#065F46; font-size:14px; margin-bottom:4px;">🟢 Trạng thái: Đã hoàn tiền thành công</div>
+          <div style="font-size:12.5px; color:#047857;">Nhân viên đã kiểm định sách đạt chuẩn và thực hiện hoàn tiền đầy đủ cho quý khách.</div>
+          <div style="font-size:11.5px; color:#059669; margin-top:4px;">Hoàn tất lúc: <strong>${inspectedAtStr}</strong> ${retReq.inspectionNote ? `· Ghi chú: <em>${retReq.inspectionNote}</em>` : ''}</div>
+        </div>
+      `;
+    } else if (retStatus === 'rejected') {
+      statusHeaderHtml = `
+        <div style="padding:14px; background:#FEE2E2; border-radius:8px; border:1px solid #FECACA;">
+          <div style="font-weight:700; color:#991B1B; font-size:14px; margin-bottom:4px;">🔴 Trạng thái: Yêu cầu đã bị từ chối</div>
+          <div style="font-size:12.5px; color:#7F1D1D;">Rất tiếc yêu cầu hoàn trả không đáp ứng điều kiện theo chính sách của tiệm sách.</div>
+          <div style="font-size:12px; color:#B91C1C; margin-top:4px;"><strong>Lý do từ chối:</strong> ${retReq.inspectionNote || order.returnReason || 'Không hợp lệ'}</div>
+        </div>
+      `;
+    }
+
+    let refundInfoHtml = '';
+    if (refundMethod === 'cash') {
+      refundInfoHtml = `
+        <div style="background:#F8FAFC; border-radius:8px; padding:12px 14px; border:1px solid #E2E8F0;">
+          <h4 style="font-size:13.5px; margin-bottom:8px; font-weight:700; color:#1E293B;">Phương thức hoàn tiền:</h4>
+          <div style="color:#0F172A; font-weight:600;">💵 Nhận tiền mặt trực tiếp tại quầy L'Amour Bookstore</div>
+          <div style="font-size:12px; color:#64748B; margin-top:2px;">Quý khách vui lòng mang sách hoàn trả tới quầy thu ngân tiệm để nhận tiền.</div>
+          <div style="margin-top:8px; font-size:13.5px;"><strong>Số tiền hoàn:</strong> <span class="mono" style="font-size:18px; font-weight:700; color:var(--amber-deep);">${fmtVND(order.finalAmount || order.totalAmount || 0)}</span></div>
+        </div>
+      `;
+    } else {
+      refundInfoHtml = `
+        <div style="background:#F8FAFC; border-radius:8px; padding:12px 14px; border:1px solid #E2E8F0;">
+          <h4 style="font-size:13.5px; margin-bottom:8px; font-weight:700; color:#1E293B;">Tài khoản nhận tiền hoàn (VietQR):</h4>
+          <div><strong>Ngân hàng:</strong> ${refund.bankName || 'Chưa cập nhật'}</div>
+          <div><strong>Số tài khoản:</strong> <span class="mono" style="font-weight:700;">${refund.accountNumber || 'Chưa cập nhật'}</span></div>
+          <div><strong>Chủ tài khoản:</strong> ${refund.accountHolder || 'Chưa cập nhật'}</div>
+          <div style="margin-top:8px; font-size:13.5px;"><strong>Số tiền hoàn:</strong> <span class="mono" style="font-size:18px; font-weight:700; color:var(--amber-deep);">${fmtVND(order.finalAmount || order.totalAmount || 0)}</span></div>
+        </div>
+      `;
+    }
+
+    const body = document.getElementById('returnDetailModalBody');
+    body.innerHTML = `
+      <div style="font-size:13px; line-height:1.6; display:flex; flex-direction:column; gap:14px;">
+        ${statusHeaderHtml}
+
+        <div style="background:#F8FAFC; border-radius:8px; padding:12px 14px; border:1px solid #E2E8F0;">
+          <div><strong>Mã đơn hàng:</strong> <span class="mono" style="color:var(--amber-deep); font-weight:700;">${order.invoiceCode || order._id}</span></div>
+          <div><strong>Thời gian gửi yêu cầu:</strong> ${requestedAtStr}</div>
+          <div><strong>Lý do trả hàng:</strong> <span style="color:#C53030;">${retReq.reason || order.returnReason || 'Sách lỗi / hư hại do vận chuyển'}</span></div>
+        </div>
+
+        ${refundInfoHtml}
+      </div>
+    `;
+
+    openModal('returnDetailModal');
+  }
+
+  function handleViewOrderDetail(orderId) {
+    const order = allUserOrders.find(o => o._id === orderId);
+    if (!order) return;
+
+    const dateStr = formatDateTime(order.createdAt);
+    const items = order.items || [];
+    const totalAmount = order.finalAmount || order.totalAmount || 0;
+
+    let pm = order.paymentMethod || 'cash';
+    if (pm === 'transfer' || pm === 'Banking') pm = 'Chuyển khoản (VietQR)';
+    else if (pm === 'cash' || pm === 'COD') pm = 'Thanh toán khi nhận hàng (COD)';
+    else if (pm === 'pos' || pm === 'card' || pm === 'MoMo') pm = 'Thẻ POS / Ví điện tử';
+
+    const isOnline = (order.orderType === 'online') || (order.invoiceCode && order.invoiceCode.startsWith('HD-OL'));
+    const channelDetailText = isOnline
+      ? `<span style="font-weight:700; color:#0369A1; background:#E0F2FE; padding:2px 8px; border-radius:4px; border:1px solid #BAE6FD;">🌐 Đặt mua trực tuyến (Online)</span>`
+      : `<span style="font-weight:700; color:#B45309; background:#FEF3C7; padding:2px 8px; border-radius:4px; border:1px solid #FDE68A;">🏬 Mua trực tiếp tại tiệm (Tại quầy)</span>`;
+
+    const modalBody = document.getElementById('orderDetailModalBody');
+    modalBody.innerHTML = `
+      <div style="font-size:13px; line-height:1.6; display:flex; flex-direction:column; gap:14px;">
+        <div style="padding:12px; background:#F8F9FA; border-radius:4px; border:1px solid #EBEBEB;">
+          <div><strong>Mã đơn hàng:</strong> <span class="mono" style="color:var(--amber-deep); font-weight:700;">${order.invoiceCode || order._id}</span></div>
+          <div style="margin-top:2px;"><strong>Kênh mua hàng:</strong> ${channelDetailText}</div>
+          <div style="margin-top:2px;"><strong>Thời gian đặt hàng:</strong> ${dateStr}</div>
+          <div><strong>Phương thức thanh toán:</strong> ${pm}</div>
+          <div><strong>Người nhận:</strong> ${order.customerName || 'Khách hàng'} - ${order.customerPhone || ''}</div>
+          <div><strong>Địa chỉ giao hàng:</strong> ${order.customerAddress || 'Tại tiệm L\'Amour Bookstore'}</div>
+          ${order.momoTransaction && (order.momoTransaction.transId || order.paymentStatus === 'paid') ? `
+            <div style="margin-top:8px; padding:10px 12px; background:#FFF5F9; border:1px solid #FFB2D6; border-radius:6px; font-size:12px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight:700; color:#A50064;">📱 Biên lai điện tử MoMo:</span>
+                <span style="color:#059669; font-weight:700;">✓ MoMo Đã xác nhận</span>
+              </div>
+              <div style="margin-top:4px; color:#475569;">
+                Mã giao dịch MoMo: <strong class="mono" style="color:#0F172A;">${order.momoTransaction.transId || 'Đã ghi nhận'}</strong><br>
+                Thời gian thanh toán: <span>${order.momoTransaction.paidAt ? new Date(order.momoTransaction.paidAt).toLocaleString('vi-VN') : '--'}</span>
+              </div>
+            </div>
+          ` : ''}
+          ${order.paymentNote ? `<div style="margin-top:4px; color:#2563EB;"><strong>Ghi chú thanh toán:</strong> ${order.paymentNote}</div>` : ''}
+          ${order.paymentProof ? `
+            <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #CBD5E1; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:14px;">📷</span>
+                <span><strong>Biên lai thanh toán:</strong> <span style="color:#059669; font-weight:600;">✓ Đã đính kèm ảnh bill</span></span>
+              </div>
+              <a href="${order.paymentProof}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:#0F172A; color:#FFF; font-size:12px; font-weight:600; border-radius:4px; text-decoration:none;">Xem ảnh bill gốc ↗</a>
+            </div>
+          ` : ''}
+          ${order.returnReason ? `<div style="margin-top:4px; color:#DC2626;"><strong>Lý do hoàn tiền:</strong> ${order.returnReason}</div>` : ''}
+        </div>
+
+        <div>
+          <h4 style="font-size:14px; margin-bottom:8px; border-bottom:1px solid #EEE; padding-bottom:6px;">Danh sách sản phẩm (${items.length}):</h4>
+          ${items.map(it => {
+            const b = it.book || {};
+            const cover = it.coverImage || it.imageUrl || b.coverImage || b.imageUrl || '/images/covers/default-book.svg';
+            return `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dashed #F0F0F0;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <img src="${cover}" onerror="this.src='/images/covers/default-book.svg'" style="width:36px; height:48px; object-fit:cover; border-radius:4px; border:1px solid #E2E8F0; flex-shrink:0; background:#f8fafc;" />
+                  <div>
+                    <div style="font-weight:600; color:#333;">${b.title || it.title || 'Sách'}</div>
+                    <div style="font-size:12px; color:#888;">Số lượng: x${it.quantity || 1}</div>
+                  </div>
+                </div>
+                <div class="mono" style="font-weight:600;">${fmtVND(it.price || 0)}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div style="text-align:right; margin-top:8px; font-size:15px;">
+          Tổng tiền thanh toán: <span class="mono" style="font-size:20px; font-weight:700; color:var(--amber-deep);">${fmtVND(totalAmount)}</span>
+        </div>
+      </div>
+    `;
+
+    openModal('orderDetailModal');
+  }
+
+  // ================= 11. ĐĂNG XUẤT (VỚI CUSTOM CONFIRM) =================
+  async function handleLogout() {
+    const ok = await showCustomConfirm('Bạn có chắc chắn muốn đăng xuất tài khoản?');
+    if (!ok) return;
+
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {}
+    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('user');
+    sessionStorage.clear();
+    window.location.replace('/login');
+  }
+
+  function updateNavCartCount() {
+    try {
+      const stored = localStorage.getItem('lamour_cart');
+      const cart = stored ? JSON.parse(stored) : {};
+      const count = Object.values(cart).reduce((sum, it) => sum + (it.qty || 0), 0);
+      const el = document.getElementById('navCartCount');
+      if (el) el.textContent = count;
+    } catch (e) {}
+  }
+
+  // ================= 12. GẮN SỰ KIỆN CHẶN NHẬP LIỆU CHẶT CHẼ =================
+  function setupInputValidators() {
+    // 1. Ô Họ tên: Chặn triệt để con số và ký tự lạ, chỉ cho phép chữ cái tiếng Việt và khoảng trắng
+    const nameInputs = [
+      document.getElementById('inputProfileName'),
+      document.getElementById('addrFullName'),
+      document.getElementById('cccdFullName')
+    ].filter(Boolean);
+
+    nameInputs.forEach(input => {
+      input.addEventListener('input', function() {
+        this.value = this.value
+          .replace(/[0-9]/g, '')
+          .replace(/[^a-zA-ZÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐàáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ\s]/g, '');
+      });
+    });
+
+    // 2. Ô Số điện thoại: Chỉ cho gõ số, tối đa 10 số
+    const phoneInputs = [
+      document.getElementById('addrPhone'),
+      document.getElementById('newPhoneInput')
+    ].filter(Boolean);
+
+    phoneInputs.forEach(input => {
+      input.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+      });
+    });
+
+    // 3. Ô CCCD: Chỉ cho gõ số, tối đa 12 số
+    const cccdInput = document.getElementById('cccdIdNumber');
+    if (cccdInput) {
+      cccdInput.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '').slice(0, 12);
+      });
+    }
+  }
+
+  // ================= 13. KHỞI CHẠY =================
+  window.addEventListener('DOMContentLoaded', () => {
+    updateNavCartCount();
+    setupInputValidators();
+    loadVietnamProvinces();
+    loadUserProfile();
+
+    // Khởi tạo Universal Custom Dropdown cho toàn bộ user portal
+    if (window.UniversalDropdown) {
+      UniversalDropdown.attachAll();
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let tabParam = urlParams.get('tab');
+    const hash = (window.location.hash || '').replace('#', '').trim();
+    if (!tabParam && (hash === 'orders' || ['profile', 'bank', 'address', 'password', 'identity', 'orders'].includes(hash))) {
+      tabParam = hash;
+    }
+
+    if (tabParam && ['profile', 'bank', 'address', 'password', 'identity', 'orders'].includes(tabParam)) {
+      switchTab(tabParam);
+      if (tabParam === 'orders') {
+        const subtab = urlParams.get('subtab') || 'pending_confirmation';
+        switchOrderSubTab(subtab);
+      }
+    }
+  });
+</script>
+
+</body>
+</html>

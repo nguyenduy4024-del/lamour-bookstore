@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đăng nhập & Đăng ký — L'Amour Bookstore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ TOKENS (Đồng bộ toàn hệ thống L'Amour) ============ */
+  :root {
+    --navy-900: #0A1930;
+    --navy-800: #0F2444;
+    --navy-700: #173461;
+    --navy-500: #2E5590;
+    --navy-300: #7C9BC7;
+    --navy-100: #EEF2F8;
+    --cream: #FAF7F1;
+    --paper: #FFFFFF;
+    --gold: #C7A15A;
+    --gold-dark: #9C7C3B;
+    --gold-100: #FBF3E3;
+    --ink: #12203A;
+    --muted: #5C6B85;
+    --line: #E4DFD3;
+    --danger: #B5533C;
+    --danger-100: #FBEDE8;
+    --success: #2E7D32;
+    --success-100: #E8F5E9;
+    --radius: 8px;
+    --shadow-card: 0 20px 50px -12px rgba(10, 25, 48, 0.25);
+    --shadow-soft: 0 10px 30px -15px rgba(10, 25, 48, 0.15);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  a { color: inherit; text-decoration: none; }
+  button { font-family: inherit; cursor: pointer; }
+  h1, h2, h3 { font-family: 'Fraunces', serif; margin: 0; color: var(--navy-900); }
+  
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+  /* ============ NAVBAR ============ */
+  header.nav {
+    background: rgba(250, 247, 241, 0.94);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 0;
+    position: relative;
+    z-index: 10;
+  }
+  .nav-inner {
+    max-width: 1220px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand { display: flex; flex-direction: column; }
+  .brand .name {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--navy-900);
+    line-height: 1;
+  }
+  .brand .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--gold-dark);
+    margin-top: 4px;
+  }
+
+  .back-home {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--navy-700);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color .15s ease, transform .15s ease;
+  }
+  .back-home:hover { color: var(--gold-dark); transform: translateX(-3px); }
+
+  /* ============ MAIN AUTH CONTAINER & 3D FLIP CARD ============ */
+  main.auth-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background:
+      radial-gradient(60% 60% at 85% 15%, rgba(199, 161, 90, 0.1), transparent 60%),
+      radial-gradient(50% 50% at 15% 85%, rgba(46, 85, 144, 0.12), transparent 60%);
+  }
+
+  .flip-card-container {
+    width: 100%;
+    max-width: 460px;
+    height: 630px;
+    perspective: 1000px;
+  }
+
+  .flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .flip-card-inner.is-flipped {
+    transform: rotateY(180deg);
+  }
+
+  .flip-card-front,
+  .flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 36px 32px 28px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow-y: auto;
+  }
+
+  .flip-card-back {
+    transform: rotateY(180deg);
+  }
+
+  /* Eyebrow & Header */
+  .auth-header { text-align: center; margin-bottom: 20px; }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gold-dark);
+    margin-bottom: 6px;
+  }
+  .auth-header h2 {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+  .auth-header p {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 6px 0 0;
+  }
+
+  /* Perforation motif */
+  .perforation {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+  }
+  .perforation span {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--line); flex: 0 0 auto;
+  }
+  .perforation .rule { flex: 1 1 auto; height: 1px; background: var(--line); }
+
+  /* Forms */
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .form-group label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--navy-900);
+  }
+
+  /* Password Input Wrapper & Eye Icon */
+  .input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+  .input-wrapper input {
+    width: 100%;
+    padding-right: 42px;
+  }
+  
+  .form-group input {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 11px 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    color: var(--ink);
+    background: var(--paper);
+    outline: 0;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .form-group input:focus {
+    border-color: var(--navy-500);
+    box-shadow: 0 0 0 3px rgba(46, 85, 144, 0.12);
+  }
+  .form-group input::placeholder { color: #A0AEC0; }
+  .form-group .hint {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .toggle-password-btn {
+    position: absolute;
+    right: 10px;
+    background: transparent;
+    border: none;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
+    user-select: none;
+  }
+  .toggle-password-btn:hover {
+    color: var(--navy-900);
+    background-color: var(--navy-100);
+  }
+  .toggle-password-btn.active {
+    color: var(--gold-dark);
+    background-color: var(--gold-100);
+  }
+
+  /* Submit Button */
+  .btn-submit {
+    width: 100%;
+    background: var(--navy-900);
+    color: var(--cream);
+    border: 1px solid var(--navy-900);
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 999px;
+    margin-top: 10px;
+    transition: background .15s ease, transform .1s ease, box-shadow .15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-submit:hover {
+    background: var(--navy-700);
+    box-shadow: 0 4px 12px rgba(10, 25, 48, 0.2);
+  }
+  .btn-submit:active { transform: translateY(1px); }
+  .btn-submit:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  .form-footer {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .form-footer a {
+    color: var(--navy-700);
+    font-weight: 600;
+    border-bottom: 1px dashed var(--navy-500);
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .form-footer a:hover { color: var(--gold-dark); border-color: var(--gold-dark); }
+
+  /* Footer copyright */
+  footer.auth-footer {
+    text-align: center;
+    padding: 20px;
+    font-size: 12px;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    background: var(--cream);
+  }
+
+  /* Spinner */
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+    display: none;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ============ MODERN TOAST & CUSTOM CONFIRM SYSTEM ============ */
+  #toast-container {
+    position: fixed; top: 20px; right: 20px; z-index: 99999;
+    display: flex; flex-direction: column; gap: 10px; max-width: 380px; width: calc(100% - 40px);
+    pointer-events: none;
+  }
+  .custom-toast {
+    pointer-events: auto; background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-radius: 12px; padding: 14px 16px; position: relative; overflow: hidden;
+    box-shadow: 0 12px 32px -8px rgba(10, 25, 48, 0.18), 0 0 0 1px rgba(255,255,255,0.6);
+    display: flex; align-items: flex-start; gap: 12px;
+    animation: toastIn 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  .custom-toast.hide { animation: toastOut 0.3s ease forwards; }
+  @keyframes toastIn { from { opacity: 0; transform: translateX(50px) scale(0.95); } to { opacity: 1; transform: translateX(0) scale(1); } }
+  @keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(60px); } }
+  .toast-icon { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; font-weight: 700; color: #fff; }
+  .toast-success .toast-icon { background: #10B981; }
+  .toast-error .toast-icon { background: #EF4444; }
+  .toast-warning .toast-icon { background: #F59E0B; }
+  .toast-info .toast-icon { background: #3B82F6; }
+  .toast-content { flex: 1; }
+  .toast-title { font-weight: 600; font-size: 13.5px; margin-bottom: 2px; color: #0F172A; }
+  .toast-msg { font-size: 12.5px; color: #475569; line-height: 1.4; }
+  .toast-close { border: 0; background: transparent; color: #94A3B8; font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .toast-close:hover { color: #0F172A; }
+  .toast-progress { position: absolute; bottom: 0; left: 0; height: 3px; width: 100%; animation: toastProgress 3s linear forwards; }
+  .toast-success .toast-progress { background: #10B981; }
+  .toast-error .toast-progress { background: #EF4444; }
+  .toast-warning .toast-progress { background: #F59E0B; }
+  .toast-info .toast-progress { background: #3B82F6; }
+  @keyframes toastProgress { from { width: 100%; } to { width: 0%; } }
+
+  .confirm-overlay {
+    position: fixed; inset: 0; z-index: 100000;
+    background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s ease;
+  }
+  .confirm-overlay.active { opacity: 1; pointer-events: auto; }
+  .confirm-modal {
+    background: #FFFFFF; border-radius: 16px; max-width: 400px; width: 100%;
+    padding: 24px 26px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    transform: scale(0.9); transition: transform 0.2s ease; text-align: center;
+  }
+  .confirm-overlay.active .confirm-modal { transform: scale(1); }
+  .confirm-icon {
+    width: 48px; height: 48px; border-radius: 50%; background: #FEF3C7; color: #D97706;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 14px; font-size: 22px; font-weight: 700;
+  }
+  .confirm-title { font-size: 18px; font-weight: 600; color: #0F172A; margin-bottom: 8px; font-family: 'Fraunces', serif; }
+  .confirm-msg { font-size: 13.5px; color: #475569; margin-bottom: 22px; line-height: 1.5; }
+  .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+  .confirm-btn { flex: 1; padding: 10px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600; border: 1px solid #CBD5E1; background: #FFF; color: #334155; cursor: pointer; transition: all 0.15s ease; }
+  .confirm-btn:hover { background: #F8FAFC; }
+  .confirm-btn-primary { background: #0F172A; color: #FFF; border-color: #0F172A; }
+  .confirm-btn-primary:hover { background: #1E293B; }
+
+  /* ============ FORGOT PASSWORD MODAL & LINK ============ */
+  .forgot-link-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 5px;
+  }
+  .forgot-pwd-link {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--navy-500);
+    text-decoration: none;
+    transition: color 0.15s ease;
+    cursor: pointer;
+    user-select: none;
+  }
+  .forgot-pwd-link:hover {
+    color: var(--gold-dark);
+    text-decoration: underline;
+  }
+
+  .forgot-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    background: rgba(10, 25, 48, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .forgot-modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .forgot-modal-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    max-width: 440px;
+    width: 100%;
+    padding: 34px 28px 28px;
+    box-shadow: 0 25px 60px -15px rgba(10, 25, 48, 0.38);
+    transform: scale(0.92) translateY(12px);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  .forgot-modal-overlay.active .forgot-modal-card {
+    transform: scale(1) translateY(0);
+  }
+  .forgot-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+  }
+  .forgot-modal-close:hover {
+    color: var(--navy-900);
+    background: var(--navy-100);
+  }
+  .forgot-modal-header {
+    text-align: center;
+    margin-bottom: 22px;
+  }
+  .forgot-modal-title {
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--navy-900);
+    margin: 4px 0 8px;
+  }
+  .forgot-modal-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .forgot-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    animation: toastIn 0.25s ease forwards;
+  }
+  .forgot-alert-danger {
+    background: var(--danger-100);
+    border: 1px solid rgba(181, 83, 60, 0.35);
+    color: var(--danger);
+  }
+  .forgot-alert-icon {
+    font-weight: 700;
+    flex-shrink: 0;
+    font-size: 14px;
+  }
+
+  .forgot-success-box {
+    animation: toastIn 0.3s ease forwards;
+    text-align: center;
+  }
+  .success-header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--success-100);
+    color: var(--success);
+    border: 1px solid rgba(46, 125, 50, 0.25);
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .success-badge-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--success);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+  }
+  .success-instruction {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 14px;
+    line-height: 1.45;
+    text-align: left;
+  }
+
+  .password-display-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--gold-100);
+    border: 1.5px dashed var(--gold);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+  .password-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 21px;
+    font-weight: 600;
+    color: var(--navy-900);
+    letter-spacing: 1.5px;
+    user-select: all;
+    word-break: break-all;
+  }
+  .btn-copy-pwd {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--paper);
+    color: var(--gold-dark);
+    border: 1px solid var(--gold);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    font-family: 'Inter', sans-serif;
+  }
+  .btn-copy-pwd:hover {
+    background: var(--gold);
+    color: #fff;
+  }
+  .btn-copy-pwd.copied {
+    background: var(--success);
+    border-color: var(--success);
+    color: #fff;
+  }
+
+  .auto-fill-notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--navy-100);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--navy-700);
+    text-align: left;
+    margin-bottom: 8px;
+  }
+  .auto-fill-notice svg {
+    color: var(--navy-500);
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 480px) {
+    .flip-card-container { height: 650px; }
+    .flip-card-front, .flip-card-back { padding: 28px 20px 20px; }
+    .forgot-modal-card { padding: 28px 20px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<header class="nav">
+  <div class="nav-inner">
+    <a href="/" class="brand" aria-label="L'Amour Bookstore — Trang chủ">
+      <span class="name">L'Amour</span>
+      <span class="tag">Bookstore</span>
+    </a>
+    <a href="/" class="back-home">
+      ← Quay lại Trang chủ
+    </a>
+  </div>
+</header>
+
+<!-- MAIN AUTH CONTENT WITH 3D CARD FLIP -->
+<main class="auth-container">
+  <div class="flip-card-container">
+    <div class="flip-card-inner" id="flipCardInner">
+      
+      <!-- FRONT SIDE: FORM ĐĂNG NHẬP -->
+      <div class="flip-card-front">
+        <div>
+          <div class="auth-header">
+            <div class="eyebrow">Tài khoản L'Amour</div>
+            <h2 id="loginTitle">Chào mừng bạn trở lại</h2>
+            <p id="loginSub">Đăng nhập để xem lịch sử mua hàng và quản lý tài khoản.</p>
+          </div>
+
+          <!-- FORM ĐĂNG NHẬP -->
+          <form id="loginForm" class="auth-form" novalidate>
+            <div class="form-group">
+              <label for="loginEmail">Email</label>
+              <input type="email" id="loginEmail" placeholder="vd: user1@gmail.com" required autocomplete="email">
+            </div>
+
+            <div class="form-group">
+              <label for="loginPassword">Mật khẩu</label>
+              <div class="input-wrapper">
+                <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+                <button type="button" class="toggle-password-btn" id="loginPasswordToggle" aria-label="Hiện/Ẩn mật khẩu" tabIndex="-1">
+                  <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+              <div class="forgot-link-wrapper">
+                <a href="javascript:void(0)" id="openForgotModalBtn" class="forgot-pwd-link">Quên mật khẩu?</a>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="loginSubmitBtn">
+              <span class="spinner" id="loginSpinner"></span>
+              <span>Đăng nhập</span>
+            </button>
+
+            <div class="form-footer">
+              Chưa có tài khoản? <a href="#" onclick="switchTab('register'); return false;">Đăng ký ngay</a>
+            </div>
+          </form>
+        </div>
+
+        <div class="perforation"><span></span><span></span><span></span><div class="rule"></div></div>
+      </div>
+
+      <!-- BACK SIDE: FORM ĐĂNG KÝ -->
+      <div class="flip-card-back">
+        <div>
+          <div class="auth-header">
+            <div class="eyebrow">Tài khoản L'Amour</div>
+            <h2 id="regTitle">Tạo tài khoản mới</h2>
+            <p id="regSub">Tham gia L'Amour Bookstore để trải nghiệm dịch vụ sách tốt nhất.</p>
+          </div>
+
+          <!-- FORM ĐĂNG KÝ -->
+          <form id="registerForm" class="auth-form" novalidate>
+            <div class="form-group">
+              <label for="regName">Họ và tên</label>
+              <input type="text" id="regName" name="regName" placeholder="Nguyễn Văn A" required autocomplete="name">
+            </div>
+
+            <div class="form-group">
+              <label for="regEmail">Email</label>
+              <input type="email" id="regEmail" placeholder="vd: user@gmail.com" required autocomplete="email">
+            </div>
+
+            <div class="form-group">
+              <label for="regPhone">Số điện thoại</label>
+              <input type="tel" id="regPhone" name="regPhone" placeholder="vd: 0901234567" required autocomplete="tel" maxlength="10">
+              <span class="hint">Bắt đầu bằng số 0, gồm 9 hoặc 10 chữ số</span>
+            </div>
+
+            <div class="form-group">
+              <label for="regPassword">Mật khẩu</label>
+              <div class="input-wrapper">
+                <input type="password" id="regPassword" placeholder="Tối thiểu 6 ký tự" required autocomplete="new-password" minlength="6">
+                <button type="button" class="toggle-password-btn" id="regPasswordToggle" aria-label="Hiện/Ẩn mật khẩu" tabIndex="-1">
+                  <svg class="eye-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn-submit" id="regSubmitBtn">
+              <span class="spinner" id="regSpinner"></span>
+              <span>Tạo tài khoản</span>
+            </button>
+
+            <div class="form-footer">
+              Đã có tài khoản? <a href="#" onclick="switchTab('login'); return false;">Đăng nhập ngay</a>
+            </div>
+          </form>
+        </div>
+
+        <div class="perforation"><span></span><span></span><span></span><div class="rule"></div></div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- MODAL QUÊN MẬT KHẨU NHANH -->
+<div class="forgot-modal-overlay" id="forgotModalOverlay" aria-hidden="true">
+  <div class="forgot-modal-card" role="dialog" aria-modal="true" aria-labelledby="forgotModalTitle">
+    <button type="button" class="forgot-modal-close" id="closeForgotModalBtn" aria-label="Đóng">&times;</button>
+    
+    <div class="forgot-modal-header">
+      <div class="eyebrow">Khôi phục truy cập</div>
+      <h3 id="forgotModalTitle" class="forgot-modal-title">Quên mật khẩu nhanh</h3>
+      <p class="forgot-modal-desc">Nhập tên đăng nhập hoặc Gmail của bạn, hệ thống sẽ tự động tạo mật khẩu ngẫu nhiên mới và gửi trực tiếp về Gmail đó.</p>
+    </div>
+
+    <!-- Alert lỗi (ẩn mặc định) -->
+    <div class="forgot-alert forgot-alert-danger" id="forgotAlertBox" style="display: none;">
+      <span class="forgot-alert-icon">✕</span>
+      <span class="forgot-alert-msg" id="forgotAlertMsg"></span>
+    </div>
+
+    <!-- BƯỚC 1: FORM NHẬP TÊN ĐĂNG NHẬP / EMAIL -->
+    <form id="forgotPasswordForm" novalidate>
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label for="forgotIdentifier">Tên đăng nhập hoặc Gmail của bạn</label>
+        <input type="text" id="forgotIdentifier" placeholder="vd: user1@gmail.com hoặc admin1" required autocomplete="username">
+      </div>
+
+      <button type="submit" class="btn-submit" id="forgotSubmitBtn">
+        <span class="spinner" id="forgotSpinner"></span>
+        <span id="forgotBtnText">Gửi mật khẩu mới về Gmail</span>
+      </button>
+    </form>
+
+    <!-- BƯỚC 2: KẾT QUẢ CẤP MẬT KHẨU MỚI -->
+    <div id="forgotSuccessBox" class="forgot-success-box" style="display: none;">
+      <div class="success-header-badge">
+        <span class="success-badge-icon">✓</span>
+        <span>Đã gửi mật khẩu về Gmail thành công!</span>
+      </div>
+      
+      <p class="success-instruction">Mật khẩu mới ngẫu nhiên đã được gửi thành công đến hòm thư:</p>
+      <div id="sentEmailBox" style="margin: 8px 0 14px; font-weight:700; color:#0A1930; font-size:15px; word-break:break-all; background:#FAF8F5; padding:9px 14px; border-radius:8px; border:1px solid #E2DBD0; text-align:center;">
+        user@gmail.com
+      </div>
+
+      <p style="font-size:12.5px; color:#64748B; margin: 0 0 12px; line-height:1.5; text-align:center;">
+        Vui lòng kiểm tra <strong>Hộp thư đến</strong> (hoặc hòm thư Rác / Spam) của Gmail. Bạn cũng có thể sao chép nhanh mật khẩu dưới đây:
+      </p>
+
+      <div class="password-display-box">
+        <div class="password-val" id="newPasswordDisplay">Book@••••</div>
+        <button type="button" class="btn-copy-pwd" id="copyPasswordBtn" title="Sao chép mật khẩu">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span id="copyBtnText">Sao chép</span>
+        </button>
+      </div>
+
+      <div class="auto-fill-notice">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>Đã tự động điền mật khẩu mới vào form Đăng nhập!</span>
+      </div>
+
+      <button type="button" class="btn-submit" id="forgotDoneLoginBtn" style="margin-top: 16px;">
+        <span>Đăng nhập ngay</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="auth-footer">
+  © 2026 L'Amour Bookstore. Tất cả quyền được bảo lưu.
+</footer>
+
+<script>
+  // ---------- GLOBAL CUSTOM TOAST & CONFIRM SYSTEM ----------
+  function showCustomToast(type = 'info', title = '', message = '') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      document.body.appendChild(container);
+    }
+    const icons = { success: '✓', error: '✕', warning: '!', info: 'i' };
+    const defaultTitles = { success: 'Thành công!', error: 'Có lỗi xảy ra!', warning: 'Cảnh báo!', info: 'Thông báo' };
+    const toast = document.createElement('div');
+    toast.className = `custom-toast toast-${type}`;
+    toast.innerHTML = `
+      <div class="toast-icon">${icons[type] || 'i'}</div>
+      <div class="toast-content">
+        <div class="toast-title">${title || defaultTitles[type] || 'Thông báo'}</div>
+        <div class="toast-msg">${message}</div>
+      </div>
+      <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+      <div class="toast-progress"></div>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+      if (toast.parentElement) {
+        toast.classList.add('hide');
+        setTimeout(() => toast.remove(), 300);
+      }
+    }, 3000);
+  }
+
+  function showCustomConfirm(message = 'Bạn có chắc chắn muốn thực hiện thao tác này?') {
+    return new Promise((resolve) => {
+      let overlay = document.getElementById('custom-confirm-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'custom-confirm-overlay';
+        overlay.className = 'confirm-overlay';
+        overlay.innerHTML = `
+          <div class="confirm-modal">
+            <div class="confirm-icon">?</div>
+            <div class="confirm-title">Xác nhận thao tác</div>
+            <div class="confirm-msg" id="custom-confirm-msg"></div>
+            <div class="confirm-actions">
+              <button class="confirm-btn" id="custom-confirm-cancel">Hủy bỏ</button>
+              <button class="confirm-btn confirm-btn-primary" id="custom-confirm-ok">Đồng ý</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+      }
+      document.getElementById('custom-confirm-msg').textContent = message;
+      overlay.classList.add('active');
+      const okBtn = document.getElementById('custom-confirm-ok');
+      const cancelBtn = document.getElementById('custom-confirm-cancel');
+      const cleanup = () => {
+        overlay.classList.remove('active');
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+      };
+      const onOk = () => { cleanup(); resolve(true); };
+      const onCancel = () => { cleanup(); resolve(false); };
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+    });
+  }
+
+  // ---------- TAB SWITCHING & 3D CARD FLIP LOGIC ----------
+  function switchTab(tab) {
+    const flipCardInner = document.getElementById('flipCardInner');
+    if (tab === 'register') {
+      if (flipCardInner) flipCardInner.classList.add('is-flipped');
+    } else {
+      if (flipCardInner) flipCardInner.classList.remove('is-flipped');
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'register' || window.location.hash === '#register') {
+      switchTab('register');
+    }
+  });
+
+  // ---------- LOGIC ICON MẮT ẨN/HIỆN MẬT KHẨU ----------
+  function setupSmartPasswordToggle(inputId, toggleBtnId) {
+    const inputEl = document.getElementById(inputId);
+    const toggleBtn = document.getElementById(toggleBtnId);
+    if (!inputEl || !toggleBtn) return;
+
+    let isClicked = false;
+    toggleBtn.addEventListener('mouseenter', () => { if (!isClicked) inputEl.type = 'text'; });
+    toggleBtn.addEventListener('mouseleave', () => { if (!isClicked) inputEl.type = 'password'; });
+    toggleBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      isClicked = !isClicked;
+      if (isClicked) {
+        inputEl.type = 'text';
+        toggleBtn.classList.add('active');
+      } else {
+        inputEl.type = 'password';
+        toggleBtn.classList.remove('active');
+      }
+    });
+  }
+
+  // ---------- HÀM TIỆN ÍCH TOÀN CỤC CHẶN VÀ KIỂM SOÁT NHẬP LIỆU ----------
+  function setupStrictValidation() {
+    // 1. Ô SĐT: Chỉ cho gõ số và tối đa 10 chữ số
+    const phoneInputs = document.querySelectorAll('input[id*="phone" i], input[name*="phone" i], input[type="tel"]');
+    phoneInputs.forEach(input => {
+      input.setAttribute('maxlength', '10');
+      input.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        if (this.value.length > 10) {
+          this.value = this.value.slice(0, 10);
+        }
+      });
+    });
+
+    // 2. Ô Họ tên: Tự động xóa mọi con số, chỉ cho phép chữ cái và khoảng trắng
+    const nameInputs = document.querySelectorAll('input[id*="name" i], input[name*="name" i], input[id*="Name"], input[name*="Name"]');
+    nameInputs.forEach(input => {
+      const idOrName = (input.id + ' ' + input.name).toLowerCase();
+      if (idOrName.includes('email') || idOrName.includes('user')) return;
+
+      input.addEventListener('input', function() {
+        this.value = this.value
+          .replace(/[0-9]/g, '')
+          .replace(/[^a-zA-ZàáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ\s]/g, '');
+      });
+    });
+
+    // 3. Ô Giá/Số lượng/Tiền: Chỉ cho gõ số
+    const numericInputs = document.querySelectorAll('input[id*="price" i], input[name*="price" i], input[id*="qty" i], input[name*="qty" i], input[id*="quantity" i], input[name*="quantity" i], input[id*="amount" i], input[name*="amount" i]');
+    numericInputs.forEach(input => {
+      input.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setupSmartPasswordToggle('loginPassword', 'loginPasswordToggle');
+    setupSmartPasswordToggle('regPassword', 'regPasswordToggle');
+    setupStrictValidation();
+  });
+
+  // ---------- XỬ LÝ ĐĂNG KÝ (REGISTER) ----------
+  document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const password = document.getElementById('regPassword').value;
+
+    if (!name || !email || !phone || !password) {
+      showCustomToast('error', 'Lỗi nhập liệu', 'Vui lòng điền đầy đủ tất cả các trường dữ liệu.');
+      return;
+    }
+
+    const nameRegex = /^[a-zA-ZàáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđÀÁẢÃẠÂẦẤẨẪẬĂẰẮẲẴẶÈÉẺẼẸÊỀẾỂỄỆÌÍỈĨỊÒÓỎÕỌÔỒỐỔỖỘƠỜỚỞỠỢÙÚỦŨỤƯỪỨỬỮỰỲÝỶỸỴĐ\s]+$/;
+    if (!nameRegex.test(name)) {
+      showCustomToast('error', 'Lỗi nhập liệu', 'Họ và tên chỉ được chứa chữ cái và khoảng trắng, không chứa số.');
+      return;
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      showCustomToast('error', 'Lỗi nhập liệu', 'Email không đúng định dạng (Ví dụ: nguyenvana@gmail.com).');
+      return;
+    }
+
+    const phoneRegex = /^0[0-9]{8,9}$/;
+    if (!phoneRegex.test(phone)) {
+      showCustomToast('error', 'Lỗi nhập liệu', 'Số điện thoại phải bắt đầu bằng số 0 và có 9 hoặc 10 chữ số.');
+      return;
+    }
+
+    if (password.length < 6) {
+      showCustomToast('error', 'Lỗi nhập liệu', 'Mật khẩu phải có tối thiểu 6 ký tự.');
+      return;
+    }
+
+    const submitBtn = document.getElementById('regSubmitBtn');
+    const spinner = document.getElementById('regSpinner');
+    submitBtn.disabled = true;
+    spinner.style.display = 'inline-block';
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Đăng ký không thành công. Vui lòng thử lại.');
+      }
+
+      showCustomToast('success', 'Đăng ký thành công', 'Tài khoản của bạn đã được khởi tạo! Đang chuyển sang Đăng nhập...');
+      document.getElementById('registerForm').reset();
+      document.getElementById('loginEmail').value = email;
+
+      setTimeout(() => { switchTab('login'); }, 1500);
+
+    } catch (error) {
+      showCustomToast('error', 'Đăng ký thất bại', error.message || 'Đã có lỗi xảy ra trong quá trình đăng ký.');
+    } finally {
+      submitBtn.disabled = false;
+      spinner.style.display = 'none';
+    }
+  });
+
+  // ---------- XỬ LÝ ĐĂNG NHẬP (LOGIN) ----------
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+
+    if (!email || !password) {
+      showCustomToast('error', 'Thiếu thông tin', 'Vui lòng nhập đầy đủ Email và Mật khẩu.');
+      return;
+    }
+
+    const submitBtn = document.getElementById('loginSubmitBtn');
+    const spinner = document.getElementById('loginSpinner');
+    submitBtn.disabled = true;
+    spinner.style.display = 'inline-block';
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Tài khoản hoặc mật khẩu không chính xác.');
+      }
+
+      try {
+        localStorage.setItem('currentUser', JSON.stringify(data));
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('authToken', data.token);
+        }
+      } catch (e) {}
+
+      showCustomToast('success', 'Đăng nhập thành công', 'Xin chào! Đang chuyển hướng...');
+
+      setTimeout(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectParam = urlParams.get('redirect');
+        window.location.href = redirectParam || data.redirectUrl || '/user-dashboard';
+      }, 800);
+
+    } catch (error) {
+      showCustomToast('error', 'Đăng nhập thất bại', error.message || 'Lỗi hệ thống khi đăng nhập.');
+    } finally {
+      submitBtn.disabled = false;
+      spinner.style.display = 'none';
+    }
+  });
+
+  // ---------- LOGIC MODAL QUÊN MẬT KHẨU NHANH ----------
+  const forgotModalOverlay = document.getElementById('forgotModalOverlay');
+  const openForgotModalBtn = document.getElementById('openForgotModalBtn');
+  const closeForgotModalBtn = document.getElementById('closeForgotModalBtn');
+  const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+  const forgotIdentifierInput = document.getElementById('forgotIdentifier');
+  const forgotSubmitBtn = document.getElementById('forgotSubmitBtn');
+  const forgotSpinner = document.getElementById('forgotSpinner');
+  const forgotBtnText = document.getElementById('forgotBtnText');
+  const forgotAlertBox = document.getElementById('forgotAlertBox');
+  const forgotAlertMsg = document.getElementById('forgotAlertMsg');
+  const forgotSuccessBox = document.getElementById('forgotSuccessBox');
+  const newPasswordDisplay = document.getElementById('newPasswordDisplay');
+  const copyPasswordBtn = document.getElementById('copyPasswordBtn');
+  const copyBtnText = document.getElementById('copyBtnText');
+  const forgotDoneLoginBtn = document.getElementById('forgotDoneLoginBtn');
+
+  let currentNewPassword = '';
+
+  function openForgotModal() {
+    if (!forgotModalOverlay) return;
+    forgotModalOverlay.classList.add('active');
+    forgotModalOverlay.setAttribute('aria-hidden', 'false');
+
+    // Reset trạng thái form
+    forgotPasswordForm.style.display = 'block';
+    forgotSuccessBox.style.display = 'none';
+    forgotAlertBox.style.display = 'none';
+    forgotSubmitBtn.disabled = false;
+    forgotSpinner.style.display = 'none';
+    forgotBtnText.textContent = 'Gửi mật khẩu mới về Gmail';
+
+    // Tự động điền email nếu người dùng đã gõ trước đó ở form Đăng nhập
+    const currentLoginEmail = document.getElementById('loginEmail').value.trim();
+    if (currentLoginEmail) {
+      forgotIdentifierInput.value = currentLoginEmail;
+    }
+
+    setTimeout(() => forgotIdentifierInput.focus(), 150);
+  }
+
+  function closeForgotModal() {
+    if (!forgotModalOverlay) return;
+    forgotModalOverlay.classList.remove('active');
+    forgotModalOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  if (openForgotModalBtn) {
+    openForgotModalBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openForgotModal();
+    });
+  }
+
+  if (closeForgotModalBtn) {
+    closeForgotModalBtn.addEventListener('click', closeForgotModal);
+  }
+
+  if (forgotModalOverlay) {
+    forgotModalOverlay.addEventListener('click', (e) => {
+      if (e.target === forgotModalOverlay) {
+        closeForgotModal();
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && forgotModalOverlay && forgotModalOverlay.classList.contains('active')) {
+      closeForgotModal();
+    }
+  });
+
+  // Tự động mở popup nếu URL có ?mode=forgot hoặc hash #forgot
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'forgot' || window.location.hash === '#forgot') {
+      openForgotModal();
+    }
+  });
+
+  // Xử lý gửi yêu cầu reset mật khẩu nhanh
+  if (forgotPasswordForm) {
+    forgotPasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const identifier = forgotIdentifierInput.value.trim();
+
+      if (!identifier) {
+        forgotAlertMsg.textContent = 'Vui lòng nhập tên đăng nhập hoặc Gmail của bạn!';
+        forgotAlertBox.style.display = 'flex';
+        forgotIdentifierInput.focus();
+        return;
+      }
+
+      forgotAlertBox.style.display = 'none';
+      forgotSubmitBtn.disabled = true;
+      forgotSpinner.style.display = 'inline-block';
+      forgotBtnText.textContent = 'Đang gửi mật khẩu về Gmail...';
+
+      try {
+        const res = await fetch('/api/auth/quick-reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ identifier })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || 'Tài khoản hoặc Gmail không tồn tại trong hệ thống!');
+        }
+
+        currentNewPassword = data.newPassword;
+        newPasswordDisplay.textContent = currentNewPassword;
+
+        // Cập nhật hiển thị email đã gửi
+        const sentEmailBox = document.getElementById('sentEmailBox');
+        if (sentEmailBox && data.email) {
+          sentEmailBox.textContent = data.email;
+        }
+
+        // Tự động điền mật khẩu mới và email vào form Đăng nhập
+        const loginPasswordInput = document.getElementById('loginPassword');
+        if (loginPasswordInput) {
+          loginPasswordInput.value = currentNewPassword;
+        }
+        if (data.email) {
+          const loginEmailInput = document.getElementById('loginEmail');
+          if (loginEmailInput) {
+            loginEmailInput.value = data.email;
+          }
+        }
+
+        // Chuyển sang màn hình thông báo kết quả
+        forgotPasswordForm.style.display = 'none';
+        forgotSuccessBox.style.display = 'block';
+
+        showCustomToast('success', 'Đã gửi mật khẩu về Gmail!', 'Mật khẩu mới đã được gửi tới hộp thư ' + (data.email || identifier));
+
+      } catch (err) {
+        forgotAlertMsg.textContent = err.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!';
+        forgotAlertBox.style.display = 'flex';
+        forgotIdentifierInput.focus();
+      } finally {
+        forgotSubmitBtn.disabled = false;
+        forgotSpinner.style.display = 'none';
+        forgotBtnText.textContent = 'Gửi mật khẩu mới về Gmail';
+      }
+    });
+  }
+
+  // Nút Sao chép mật khẩu
+  if (copyPasswordBtn) {
+    copyPasswordBtn.addEventListener('click', async () => {
+      if (!currentNewPassword) return;
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(currentNewPassword);
+        } else {
+          const tempInput = document.createElement('input');
+          tempInput.value = currentNewPassword;
+          document.body.appendChild(tempInput);
+          tempInput.select();
+          document.execCommand('copy');
+          document.body.removeChild(tempInput);
+        }
+
+        copyPasswordBtn.classList.add('copied');
+        copyBtnText.textContent = 'Đã sao chép!';
+        showCustomToast('success', 'Đã sao chép!', 'Mật khẩu mới đã được lưu vào khay nhớ tạm.');
+
+        setTimeout(() => {
+          copyPasswordBtn.classList.remove('copied');
+          copyBtnText.textContent = 'Sao chép';
+        }, 2500);
+
+      } catch (err) {
+        showCustomToast('error', 'Lỗi sao chép', 'Không thể tự động sao chép. Vui lòng copy thủ công.');
+      }
+    });
+  }
+
+  // Nút "Đăng nhập ngay" sau khi reset thành công
+  if (forgotDoneLoginBtn) {
+    forgotDoneLoginBtn.addEventListener('click', () => {
+      closeForgotModal();
+      const loginBtn = document.getElementById('loginSubmitBtn');
+      if (loginBtn) {
+        loginBtn.focus();
+      }
+    });
+  }
+</script>
+</body>
+</html>
