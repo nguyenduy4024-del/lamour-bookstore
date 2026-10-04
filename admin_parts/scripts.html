@@ -829,7 +829,7 @@
 
     async function loadAnalytics() {
       try {
-        await initAnalyticsFilterDropdowns();
+        initAnalyticsFilterDropdowns();
 
         const params = new URLSearchParams();
         if (analyticsFilter.startDate) params.append('startDate', analyticsFilter.startDate);
@@ -1160,7 +1160,7 @@
       if (!loyalData) return;
 
       const summary = loyalData.summary || {};
-      const allList = loyalData.allCustomers || loyalData.topSpenders || [];
+      const allList = (loyalData.allCustomers || loyalData.topSpenders || []).slice(0, 50);
       const topSpendersAll = loyalData.topSpenders || [];
       const topFrequentAll = loyalData.topFrequent || [];
 
@@ -1195,7 +1195,10 @@
       }
 
       const countBadge = document.getElementById('adminCustTableCountBadge');
-      if (countBadge) countBadge.textContent = `${allList.length} khách hàng`;
+      if (countBadge) {
+        const totalCust = summary.totalLoyalCustomers || allList.length;
+        countBadge.textContent = `${totalCust.toLocaleString('vi-VN')} khách hàng (Top ${allList.length})`;
+      }
 
       // 2. Biểu đồ Chart.js: Top Khách Hàng Chi Tiêu Nhiều Nhất (VIP Spenders)
       const ctxSpend = document.getElementById('adminCustLoyaltySpendChart');

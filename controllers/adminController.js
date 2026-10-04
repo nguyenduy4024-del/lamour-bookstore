@@ -234,8 +234,8 @@ const getAnalyticsReport = async (req, res) => {
       Invoice.countDocuments(baseMatch),
       Invoice.countDocuments({ ...allPeriodMatch, status: 'cancelled' }),
       Book.find({}, 'title author category coverImage costPrice price stock shelfLocation').lean(),
-      Invoice.find(baseMatch, 'invoiceCode paymentMethod customerName customerPhone user totalAmount finalAmount createdAt items').lean(),
-      Invoice.find(refundMatch, 'invoiceCode finalAmount totalAmount returnRequest items').lean()
+      Invoice.find(baseMatch, 'invoiceCode paymentMethod customerName customerPhone user totalAmount finalAmount createdAt items.book items.price items.quantity items.costPrice').lean(),
+      Invoice.find(refundMatch, 'invoiceCode finalAmount totalAmount returnRequest items.book items.price items.quantity items.costPrice').lean()
     ]);
 
     const successRate = totalOrdersInPeriod > 0 ? Math.round((completedOrdersCount / totalOrdersInPeriod) * 100) : 100;
@@ -632,9 +632,8 @@ const getAnalyticsReport = async (req, res) => {
       };
     });
 
-    const topSpenders = [...allLoyalCustomers]
-      .sort((a, b) => b.totalSpent - a.totalSpent)
-      .slice(0, 15);
+    const sortedLoyalCustomers = [...allLoyalCustomers].sort((a, b) => b.totalSpent - a.totalSpent);
+    const topSpenders = sortedLoyalCustomers.slice(0, 15);
 
     const topFrequent = [...allLoyalCustomers]
       .sort((a, b) => b.orderCount - a.orderCount || b.totalSpent - a.totalSpent)
@@ -656,7 +655,7 @@ const getAnalyticsReport = async (req, res) => {
       },
       topSpenders,
       topFrequent,
-      allCustomers: allLoyalCustomers
+      allCustomers: sortedLoyalCustomers.slice(0, 50)
     };
 
     const payload = {
