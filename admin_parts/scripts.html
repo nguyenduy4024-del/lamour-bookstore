@@ -918,6 +918,14 @@
           }
         }
 
+    function toggleChannelBreakdownDetail() {
+      const box = document.getElementById('anChannelDetailBox');
+      if (!box) return;
+      const isHidden = box.style.display === 'none' || box.style.display === '';
+      box.style.display = isHidden ? 'flex' : 'none';
+    }
+    window.toggleChannelBreakdownDetail = toggleChannelBreakdownDetail;
+
         // 3. Render Channels & Category Breakdown
         const ch = data.channelBreakdown || { pos: { revenue: 0, orders: 0, percent: 50 }, online: { revenue: 0, orders: 0, percent: 50 } };
         const posPct = ch.pos && ch.pos.percent !== undefined ? ch.pos.percent : 50;
@@ -927,14 +935,28 @@
         if (ratioLabel) ratioLabel.textContent = 'POS: ' + posPct + '% | Online: ' + olPct + '%';
 
         const posBar = document.getElementById('anChannelBarPos');
-        if (posBar) posBar.style.width = posPct + '%';
+        if (posBar) {
+          posBar.style.width = posPct + '%';
+          posBar.style.background = '#0284C7';
+          posBar.title = 'Tại quầy (POS): ' + formatVND(ch.pos ? ch.pos.revenue : 0) + ' (' + (ch.pos ? (ch.pos.orders || ch.pos.count || 0) : 0) + ' đơn) - Nhấn để xem';
+        }
         const olBar = document.getElementById('anChannelBarOnline');
-        if (olBar) olBar.style.width = olPct + '%';
+        if (olBar) {
+          olBar.style.width = olPct + '%';
+          olBar.style.background = '#10B981';
+          olBar.title = 'Online: ' + formatVND(ch.online ? ch.online.revenue : 0) + ' (' + (ch.online ? (ch.online.orders || ch.online.count || 0) : 0) + ' đơn) - Nhấn để xem';
+        }
 
         const posStats = document.getElementById('anPosStats');
-        if (posStats) posStats.textContent = formatVND(ch.pos ? ch.pos.revenue : 0) + ' (' + (ch.pos ? (ch.pos.orders || ch.pos.count || 0) : 0) + ' đơn)';
+        if (posStats) {
+          posStats.textContent = formatVND(ch.pos ? ch.pos.revenue : 0) + ' (' + (ch.pos ? (ch.pos.orders || ch.pos.count || 0) : 0) + ' đơn)';
+          posStats.style.color = '#0284C7';
+        }
         const olStats = document.getElementById('anOnlineStats');
-        if (olStats) olStats.textContent = formatVND(ch.online ? ch.online.revenue : 0) + ' (' + (ch.online ? (ch.online.orders || ch.online.count || 0) : 0) + ' đơn)';
+        if (olStats) {
+          olStats.textContent = formatVND(ch.online ? ch.online.revenue : 0) + ' (' + (ch.online ? (ch.online.orders || ch.online.count || 0) : 0) + ' đơn)';
+          olStats.style.color = '#10B981';
+        }
 
         // Top categories
         const catBox = document.getElementById('anCategoryBreakdown');

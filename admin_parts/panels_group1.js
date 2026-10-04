@@ -332,16 +332,27 @@ module.exports = `
             <!-- Tỷ trọng Kênh POS vs Online -->
             <div style="margin-bottom:20px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <strong style="font-size:13px; color:var(--navy-900);">Tỷ Trọng Kênh Bán</strong>
-                <span id="anChannelRatioLabel" style="font-size:12px; font-family:'IBM Plex Mono',monospace; font-weight:600;">POS: 0% | Online: 0%</span>
+                <strong style="font-size:13px; color:var(--navy-900); display:flex; align-items:center; gap:6px;">
+                  Tỷ Trọng Kênh Bán
+                  <span style="font-size:11px; font-weight:500; color:#0284C7; cursor:pointer; text-decoration:underline;" onclick="toggleChannelBreakdownDetail()">(Nhấn để xem chi tiết)</span>
+                </strong>
+                <span id="anChannelRatioLabel" style="font-size:12px; font-family:'IBM Plex Mono',monospace; font-weight:600; cursor:pointer;" onclick="toggleChannelBreakdownDetail()">POS: 0% | Online: 0%</span>
               </div>
-              <div id="anChannelBar" style="height:10px; width:100%; background:var(--navy-100); border-radius:99px; overflow:hidden; display:flex;">
-                <div id="anChannelBarPos" style="height:100%; width:50%; background:#2563EB;" title="POS"></div>
-                <div id="anChannelBarOnline" style="height:100%; width:50%; background:#10B981;" title="Online"></div>
+              <div id="anChannelBar" onclick="toggleChannelBreakdownDetail()" style="height:14px; width:100%; background:var(--navy-100); border-radius:99px; overflow:hidden; display:flex; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.08); transition:transform 0.2s ease;" title="Nhấn vào thanh để xem chi tiết Tại quầy & Online">
+                <div id="anChannelBarPos" style="height:100%; width:50%; background:#0284C7; transition:width 0.4s ease;" title="Tại quầy (POS)"></div>
+                <div id="anChannelBarOnline" style="height:100%; width:50%; background:#10B981; transition:width 0.4s ease;" title="Online"></div>
               </div>
-              <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:6px; color:var(--muted);">
-                <span>🏪 Tại quầy: <strong id="anPosStats" style="color:var(--navy-900);">0₫ (0 đơn)</strong></span>
-                <span>🌐 Online: <strong id="anOnlineStats" style="color:var(--navy-900);">0₫ (0 đơn)</strong></span>
+
+              <!-- Chi tiết kênh bán: Ẩn mặc định, chỉ hiện khi ấn vào thanh -->
+              <div id="anChannelDetailBox" style="display:none; margin-top:10px; padding:10px 14px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; font-size:12.5px; transition:all 0.2s ease;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#0284C7;"></span>
+                  <span style="color:#0284C7; font-weight:700; font-size:13px;">🏪 Tại quầy: <span id="anPosStats" style="color:#0284C7; font-weight:800;">0₫ (0 đơn)</span></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10B981;"></span>
+                  <span style="color:#10B981; font-weight:700; font-size:13px;">🌐 Online: <span id="anOnlineStats" style="color:#10B981; font-weight:800;">0₫ (0 đơn)</span></span>
+                </div>
               </div>
             </div>
 
