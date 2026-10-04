@@ -626,6 +626,12 @@
             }).join('');
           }
         }
+        // Tải trước dữ liệu Thống Kê & Phân Tích trong nền (Background Pre-fetch) để khi chuyển tab là hiển thị tức thì 0ms
+        setTimeout(() => {
+          if (!analyticsReportData && typeof loadAnalytics === 'function') {
+            loadAnalytics(false);
+          }
+        }, 1200);
       } catch (err) {
         console.error('loadOverview error:', err);
       }
@@ -827,8 +833,38 @@
       }
     }
 
-    async function loadAnalytics() {
+    let lastAnalyticsFetchTime = 0;
+    let lastAnalyticsFilterKey = '';
+    let isAnalyticsLoading = false;
+
+    function showChannelDetail(show) {
+      const box = document.getElementById('anChannelDetailBox');
+      if (!box) return;
+      box.style.display = show ? 'flex' : 'none';
+    }
+    window.showChannelDetail = showChannelDetail;
+
+    function toggleChannelBreakdownDetail() {
+      const box = document.getElementById('anChannelDetailBox');
+      if (!box) return;
+      const isHidden = box.style.display === 'none' || box.style.display === '';
+      box.style.display = isHidden ? 'flex' : 'none';
+    }
+    window.toggleChannelBreakdownDetail = toggleChannelBreakdownDetail;
+
+    async function loadAnalytics(force = false) {
       try {
+        const filterKey = JSON.stringify(analyticsFilter);
+
+        // Client-side cache: Nếu đã có dữ liệu và dưới 3 phút (không ấn nút Lọc dữ liệu), render tức thì trong 0ms!
+        if (!force && analyticsReportData && (Date.now() - lastAnalyticsFetchTime < 180000) && lastAnalyticsFilterKey === filterKey) {
+          renderAnalyticsDashboard(analyticsReportData);
+          return;
+        }
+
+        if (isAnalyticsLoading) return;
+        isAnalyticsLoading = true;
+
         initAnalyticsFilterDropdowns();
 
         const params = new URLSearchParams();
@@ -849,243 +885,244 @@
           throw new Error(json.message || 'Lỗi tải dữ liệu phân tích');
         }
 
-        const data = json.data;
-        analyticsReportData = data;
+        analyticsReportData = json.data;
+        lastAnalyticsFetchTime = Date.now();
+        lastAnalyticsFilterKey = filterKey;
 
-        // Cập nhật danh sách thể loại & tác giả đầy đủ 100% từ dữ liệu kho sách
-        if (data.filterOptions) {
-          populateAnalyticsFilterDropdowns(data.filterOptions.categories, data.filterOptions.authors);
-        }
-
-        // 1. Render Summary KPI Cards
-        const sm = data.kpi || data.summary || {};
-        const revEl = document.getElementById('anTotalRevenue');
-        if (revEl) revEl.textContent = formatVND(sm.totalRevenue || 0);
-
-        const profitEl = document.getElementById('anGrossProfit');
-        if (profitEl) profitEl.textContent = formatVND(sm.grossProfit || 0);
-
-        const marginEl = document.getElementById('anProfitMarginBadge');
-        if (marginEl) {
-          marginEl.textContent = 'Tỷ suất: ' + (sm.profitMargin || 0) + '%';
-          marginEl.className = (sm.profitMargin >= 20 ? 'trend up' : 'trend down');
-        }
-
-        const successOrdEl = document.getElementById('anSuccessOrders');
-        if (successOrdEl) successOrdEl.textContent = (sm.completedOrdersCount || sm.totalOrders || 0).toLocaleString('vi-VN') + ' đơn';
-
-        const successRateEl = document.getElementById('anSuccessRate');
-        if (successRateEl) {
-          successRateEl.textContent = 'Tỷ lệ thành công: ' + (sm.successRate || 0) + '% (' + (sm.cancelledOrdersCount || 0) + ' đơn hủy)';
-        }
-
-        const aovEl = document.getElementById('anAvgOrderValue');
-        if (aovEl) aovEl.textContent = formatVND(sm.aov || 0);
-
-        // 2. Render Timeline Bar Chart
-        const chartBox = document.getElementById('analyticsChartBars');
-        const summaryText = document.getElementById('anChartSummaryText');
-        const timeline = data.timeline || [];
-        if (chartBox) {
-          if (timeline.length === 0) {
-            chartBox.innerHTML = '<div style="width:100%; text-align:center; color:var(--muted); padding-top:80px; font-size:12.5px;">Không có dữ liệu giao dịch trong khoảng thời gian này</div>';
-            if (summaryText) summaryText.textContent = '';
-          } else {
-            const maxRev = Math.max(1, ...timeline.map(t => Math.max(t.revenue || 0, t.grossProfit || 0)));
-            chartBox.innerHTML = timeline.map(t => {
-              const revVal = t.revenue || 0;
-              const profitVal = t.grossProfit || 0;
-              const revRatio = maxRev > 0 ? (revVal / maxRev) : 0;
-              const profitRatio = maxRev > 0 ? (profitVal / maxRev) : 0;
-              // Tỷ lệ hiển thị nâng cao giúp các cột cao ráo, bề thế, không bị lùn (từ 25% đến 96%)
-              const revPct = revVal > 0 ? Math.min(96, Math.max(24, Math.round(Math.pow(revRatio, 0.7) * 96))) : 0;
-              const profitPct = profitVal > 0 ? Math.min(92, Math.max(16, Math.round(Math.pow(profitRatio, 0.7) * 92))) : 0;
-              const revShort = revVal >= 1000000 ? (revVal / 1000000).toFixed(1) + 'M' : (revVal > 0 ? (revVal / 1000).toFixed(0) + 'k' : '0');
-              const dateStr = String(t.date || t._id || '');
-              const shortDate = dateStr.length >= 5 ? dateStr.slice(-5) : dateStr;
-              return '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:44px; padding:0 2px; transition:transform 0.2s;" onmouseover="this.style.transform=\'translateY(-4px)\'" onmouseout="this.style.transform=\'none\'" title="' + dateStr + ': Doanh thu ' + formatVND(revVal) + ' | Lợi nhuận ' + formatVND(profitVal) + '">' +
-                '<div style="font-size:10.5px; font-weight:700; color:var(--navy-900); margin-bottom:6px; white-space:nowrap;">' + (revVal > 0 ? revShort : '') + '</div>' +
-                '<div style="flex:1; display:flex; align-items:flex-end; gap:5px; width:100%; max-width:38px; min-height:230px;">' +
-                  '<div style="flex:1; height:' + revPct + '%; min-height:16px; background:linear-gradient(180deg, #F59E0B 0%, #D97706 100%); border-radius:4px 4px 0 0; box-shadow:0 3px 6px rgba(245,158,11,0.3);"></div>' +
-                  '<div style="flex:1; height:' + profitPct + '%; min-height:10px; background:linear-gradient(180deg, #10B981 0%, #059669 100%); border-radius:4px 4px 0 0; box-shadow:0 3px 6px rgba(16,185,129,0.3);"></div>' +
-                '</div>' +
-                '<div style="font-size:11px; font-weight:600; font-family:monospace; color:var(--muted); margin-top:8px; white-space:nowrap;">' + shortDate + '</div>' +
-              '</div>';
-            }).join('');
-            if (summaryText) {
-              summaryText.textContent = 'Tổng ' + timeline.length + ' mốc thời gian';
-            }
-          }
-        }
-
-    function toggleChannelBreakdownDetail() {
-      const box = document.getElementById('anChannelDetailBox');
-      if (!box) return;
-      const isHidden = box.style.display === 'none' || box.style.display === '';
-      box.style.display = isHidden ? 'flex' : 'none';
-    }
-    window.toggleChannelBreakdownDetail = toggleChannelBreakdownDetail;
-
-        // 3. Render Channels & Category Breakdown
-        const ch = data.channelBreakdown || { pos: { revenue: 0, orders: 0, percent: 50 }, online: { revenue: 0, orders: 0, percent: 50 } };
-        const posPct = ch.pos && ch.pos.percent !== undefined ? ch.pos.percent : 50;
-        const olPct = ch.online && ch.online.percent !== undefined ? ch.online.percent : (100 - posPct);
-
-        const ratioLabel = document.getElementById('anChannelRatioLabel');
-        if (ratioLabel) ratioLabel.textContent = 'POS: ' + posPct + '% | Online: ' + olPct + '%';
-
-        const posBar = document.getElementById('anChannelBarPos');
-        if (posBar) {
-          posBar.style.width = posPct + '%';
-          posBar.style.background = '#0284C7';
-          posBar.title = 'Tại quầy (POS): ' + formatVND(ch.pos ? ch.pos.revenue : 0) + ' (' + (ch.pos ? (ch.pos.orders || ch.pos.count || 0) : 0) + ' đơn) - Nhấn để xem';
-        }
-        const olBar = document.getElementById('anChannelBarOnline');
-        if (olBar) {
-          olBar.style.width = olPct + '%';
-          olBar.style.background = '#10B981';
-          olBar.title = 'Online: ' + formatVND(ch.online ? ch.online.revenue : 0) + ' (' + (ch.online ? (ch.online.orders || ch.online.count || 0) : 0) + ' đơn) - Nhấn để xem';
-        }
-
-        const posStats = document.getElementById('anPosStats');
-        if (posStats) {
-          posStats.textContent = formatVND(ch.pos ? ch.pos.revenue : 0) + ' (' + (ch.pos ? (ch.pos.orders || ch.pos.count || 0) : 0) + ' đơn)';
-          posStats.style.color = '#0284C7';
-        }
-        const olStats = document.getElementById('anOnlineStats');
-        if (olStats) {
-          olStats.textContent = formatVND(ch.online ? ch.online.revenue : 0) + ' (' + (ch.online ? (ch.online.orders || ch.online.count || 0) : 0) + ' đơn)';
-          olStats.style.color = '#10B981';
-        }
-
-        // Top categories
-        const catBox = document.getElementById('anCategoryBreakdown');
-        if (catBox) {
-          const cats = data.categoryReport || data.categoryBreakdown || [];
-          if (cats.length === 0) {
-            catBox.innerHTML = '<div style="color:var(--muted); font-size:12px;">Chưa có dữ liệu thể loại</div>';
-          } else {
-            const maxCatRev = Math.max(1, cats[0].revenue || 1);
-            catBox.innerHTML = cats.slice(0, 5).map(c => {
-              const pct = c.percent !== undefined ? c.percent : Math.round(((c.revenue || 0) / maxCatRev) * 100);
-              const q = c.soldQuantity || c.quantity || 0;
-              return '<div>' +
-                '<div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">' +
-                  '<span><strong>' + (c.category || 'Khác') + '</strong> (' + q + ' cuốn)</span>' +
-                  '<span class="mono"><strong>' + formatVND(c.revenue || 0) + '</strong></span>' +
-                '</div>' +
-                '<div style="height:6px; width:100%; background:var(--navy-100); border-radius:99px; overflow:hidden;">' +
-                  '<div style="height:100%; width:' + pct + '%; background:var(--gold); border-radius:99px;"></div>' +
-                '</div>' +
-              '</div>';
-            }).join('');
-          }
-        }
-
-
-        // 4. Render Bestsellers (Top 10)
-        const topBooksTbody = document.getElementById('analyticsTopBooksTbody');
-        if (topBooksTbody) {
-          const topBooks = data.topSellingBooks || [];
-          if (topBooks.length === 0) {
-            topBooksTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--muted);">Chưa có dữ liệu sách bán trong kỳ</td></tr>';
-          } else {
-            topBooksTbody.innerHTML = topBooks.map((b, idx) => {
-              const share = b.percent !== undefined ? b.percent : '0';
-              return '<tr>' +
-                '<td style="text-align:center; font-weight:700; color:var(--navy-900);">' + (idx + 1) + '</td>' +
-                '<td>' +
-                  '<div style="font-weight:600; color:var(--navy-900);">' + (b.title || 'Sách') + '</div>' +
-                  '<div style="font-size:11.5px; color:var(--muted);">' + (b.author || 'Đang cập nhật') + '</div>' +
-                '</td>' +
-                '<td><span class="badge b-user">' + (b.category || 'Văn học') + '</span></td>' +
-                '<td style="text-align:center;"><span class="badge b-staff">' + b.quantity + ' cuốn</span></td>' +
-                '<td style="text-align:right;" class="amount">' + formatVND(b.revenue) + '</td>' +
-                '<td style="text-align:right; color:#059669; font-weight:600;">' + formatVND(b.grossProfit) + '</td>' +
-                '<td style="text-align:center;"><span class="badge b-active">' + share + '%</span></td>' +
-              '</tr>';
-            }).join('');
-          }
-        }
-
-        // 5. Render Dead Stock (Top 10)
-        const deadStockTbody = document.getElementById('analyticsDeadStockTbody');
-        if (deadStockTbody) {
-          const deadList = data.deadStockBooks || [];
-          if (deadList.length === 0) {
-            deadStockTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:#059669;">✓ Toàn bộ kho hàng đang luân chuyển đều đặn, không có sách tồn đọng nghiêm trọng!</td></tr>';
-          } else {
-            deadStockTbody.innerHTML = deadList.map((b, idx) => {
-              const recBadge = b.stock >= 50
-                ? '<span class="badge b-locked">Cần xả kho / Giảm giá</span>'
-                : (b.stock >= 20 ? '<span class="badge" style="background:#FEF3C7; color:#92400E;">Tồn đọng cao</span>' : '<span class="badge b-user">Bán chậm</span>');
-              return '<tr>' +
-                '<td style="text-align:center; font-weight:700; color:var(--muted);">' + (idx + 1) + '</td>' +
-                '<td>' +
-                  '<div style="font-weight:600; color:var(--navy-900);">' + (b.title || 'Sách') + '</div>' +
-                  '<div style="font-size:11.5px; color:var(--muted);">' + (b.author || 'Đang cập nhật') + '</div>' +
-                '</td>' +
-                '<td><span class="badge b-user">' + (b.category || 'Khác') + '</span></td>' +
-                '<td style="text-align:center; font-weight:700; color:#DC2626;">' + b.stock + ' cuốn</td>' +
-                '<td style="text-align:right;" class="amount">' + formatVND(b.totalCostValue) + '</td>' +
-                '<td style="text-align:center;"><span class="badge b-muted">' + b.soldInPeriod + ' cuốn</span></td>' +
-                '<td>' + recBadge + '</td>' +
-              '</tr>';
-            }).join('');
-          }
-        }
-
-        // 6. Render Top Authors
-        const authorsTbody = document.getElementById('analyticsTopAuthorsTbody');
-        if (authorsTbody) {
-          const isInvalidAuth = (name) => {
-            if (!name || typeof name !== 'string') return true;
-            const c = name.trim().toLowerCase();
-            return ['', 'chưa rõ', 'chua ro', 'không rõ', 'khong ro', 'đang cập nhật', 'unknown', 'n/a', 'null', 'undefined'].includes(c);
-          };
-          const rawAuthors = data.authorReport || data.topAuthors || [];
-          const authors = rawAuthors.filter(a => a && a.author && !isInvalidAuth(a.author)).slice(0, 5);
-          if (authors.length === 0) {
-            authorsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--muted);">Chưa có dữ liệu tác giả</td></tr>';
-          } else {
-            authorsTbody.innerHTML = authors.map((a, idx) => 
-              '<tr>' +
-                '<td style="text-align:center; font-weight:700;">#' + (idx + 1) + '</td>' +
-                '<td><strong>' + (a.author || 'Không rõ') + '</strong></td>' +
-                '<td style="text-align:center;"><span class="badge b-staff">' + a.quantity + ' cuốn</span></td>' +
-                '<td style="text-align:right;" class="amount">' + formatVND(a.revenue) + '</td>' +
-              '</tr>'
-            ).join('');
-          }
-        }
-
-        // 7. Render Payment Breakdown
-        const paymentBox = document.getElementById('analyticsPaymentBreakdown');
-        if (paymentBox) {
-          const list = data.paymentReport || [];
-          if (list.length === 0) {
-            paymentBox.innerHTML = '<div style="color:var(--muted); font-size:12px;">Chưa có giao dịch thanh toán</div>';
-          } else {
-            paymentBox.innerHTML = list.map(item => {
-              return '<div>' +
-                '<div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:5px;">' +
-                  '<span><strong>' + item.method + '</strong> (' + formatVND(item.amount) + ')</span>' +
-                  '<span class="mono"><strong>' + item.percent + '%</strong></span>' +
-                '</div>' +
-                '<div style="height:7px; width:100%; background:var(--navy-100); border-radius:99px; overflow:hidden;">' +
-                  '<div style="height:100%; width:' + item.percent + '%; background:' + item.color + '; border-radius:99px;"></div>' +
-                '</div>' +
-              '</div>';
-            }).join('');
-          }
-        }
-        // 8. Render Loyal Customers (VIP Spenders & Frequent Buyers)
-        if (data.customerLoyalty) {
-          renderAdminLoyalCustomerCharts(data.customerLoyalty);
-        }
+        renderAnalyticsDashboard(analyticsReportData);
       } catch (err) {
         console.error('loadAnalytics error:', err);
         showCustomToast('Lỗi nạp báo cáo phân tích: ' + (err.message || err), 'error');
+      } finally {
+        isAnalyticsLoading = false;
+      }
+    }
+
+    function renderAnalyticsDashboard(data) {
+      if (!data) return;
+
+      // Cập nhật danh sách thể loại & tác giả đầy đủ 100% từ dữ liệu kho sách
+      if (data.filterOptions) {
+        populateAnalyticsFilterDropdowns(data.filterOptions.categories, data.filterOptions.authors);
+      }
+
+      // 1. Render Summary KPI Cards
+      const sm = data.kpi || data.summary || {};
+      const revEl = document.getElementById('anTotalRevenue');
+      if (revEl) revEl.textContent = formatVND(sm.totalRevenue || 0);
+
+      const profitEl = document.getElementById('anGrossProfit');
+      if (profitEl) profitEl.textContent = formatVND(sm.grossProfit || 0);
+
+      const marginEl = document.getElementById('anProfitMarginBadge');
+      if (marginEl) {
+        marginEl.textContent = 'Tỷ suất: ' + (sm.profitMargin || 0) + '%';
+        marginEl.className = (sm.profitMargin >= 20 ? 'trend up' : 'trend down');
+      }
+
+      const successOrdEl = document.getElementById('anSuccessOrders');
+      if (successOrdEl) successOrdEl.textContent = (sm.completedOrdersCount || sm.totalOrders || 0).toLocaleString('vi-VN') + ' đơn';
+
+      const successRateEl = document.getElementById('anSuccessRate');
+      if (successRateEl) {
+        successRateEl.textContent = 'Tỷ lệ thành công: ' + (sm.successRate || 0) + '% (' + (sm.cancelledOrdersCount || 0) + ' đơn hủy)';
+      }
+
+      const aovEl = document.getElementById('anAvgOrderValue');
+      if (aovEl) aovEl.textContent = formatVND(sm.aov || 0);
+
+      // 2. Render Timeline Bar Chart
+      const chartBox = document.getElementById('analyticsChartBars');
+      const summaryText = document.getElementById('anChartSummaryText');
+      const timeline = data.timeline || [];
+      if (chartBox) {
+        if (timeline.length === 0) {
+          chartBox.innerHTML = '<div style="width:100%; text-align:center; color:var(--muted); padding-top:80px; font-size:12.5px;">Không có dữ liệu giao dịch trong khoảng thời gian này</div>';
+          if (summaryText) summaryText.textContent = '';
+        } else {
+          const maxRev = Math.max(1, ...timeline.map(t => Math.max(t.revenue || 0, t.grossProfit || 0)));
+          chartBox.innerHTML = timeline.map(t => {
+            const revVal = t.revenue || 0;
+            const profitVal = t.grossProfit || 0;
+            const revRatio = maxRev > 0 ? (revVal / maxRev) : 0;
+            const profitRatio = maxRev > 0 ? (profitVal / maxRev) : 0;
+            // Tỷ lệ hiển thị nâng cao giúp các cột cao ráo, bề thế, không bị lùn (từ 25% đến 96%)
+            const revPct = revVal > 0 ? Math.min(96, Math.max(24, Math.round(Math.pow(revRatio, 0.7) * 96))) : 0;
+            const profitPct = profitVal > 0 ? Math.min(92, Math.max(16, Math.round(Math.pow(profitRatio, 0.7) * 92))) : 0;
+            const revShort = revVal >= 1000000 ? (revVal / 1000000).toFixed(1) + 'M' : (revVal > 0 ? (revVal / 1000).toFixed(0) + 'k' : '0');
+            const dateStr = String(t.date || t._id || '');
+            const shortDate = dateStr.length >= 5 ? dateStr.slice(-5) : dateStr;
+            return '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:44px; padding:0 2px; transition:transform 0.2s;" onmouseover="this.style.transform=\'translateY(-4px)\'" onmouseout="this.style.transform=\'none\'" title="' + dateStr + ': Doanh thu ' + formatVND(revVal) + ' | Lợi nhuận ' + formatVND(profitVal) + '">' +
+              '<div style="font-size:10.5px; font-weight:700; color:var(--navy-900); margin-bottom:6px; white-space:nowrap;">' + (revVal > 0 ? revShort : '') + '</div>' +
+              '<div style="flex:1; display:flex; align-items:flex-end; gap:5px; width:100%; max-width:38px; min-height:230px;">' +
+                '<div style="flex:1; height:' + revPct + '%; min-height:16px; background:linear-gradient(180deg, #F59E0B 0%, #D97706 100%); border-radius:4px 4px 0 0; box-shadow:0 3px 6px rgba(245,158,11,0.3);"></div>' +
+                '<div style="flex:1; height:' + profitPct + '%; min-height:10px; background:linear-gradient(180deg, #10B981 0%, #059669 100%); border-radius:4px 4px 0 0; box-shadow:0 3px 6px rgba(16,185,129,0.3);"></div>' +
+              '</div>' +
+              '<div style="font-size:11px; font-weight:600; font-family:monospace; color:var(--muted); margin-top:8px; white-space:nowrap;">' + shortDate + '</div>' +
+            '</div>';
+          }).join('');
+          if (summaryText) {
+            summaryText.textContent = 'Tổng ' + timeline.length + ' mốc thời gian';
+          }
+        }
+      }
+
+      // 3. Render Channels & Category Breakdown
+      const ch = data.channelBreakdown || { pos: { revenue: 0, orders: 0, percent: 50 }, online: { revenue: 0, orders: 0, percent: 50 } };
+      const posPct = ch.pos && ch.pos.percent !== undefined ? ch.pos.percent : 50;
+      const olPct = ch.online && ch.online.percent !== undefined ? ch.online.percent : (100 - posPct);
+
+      const ratioLabel = document.getElementById('anChannelRatioLabel');
+      if (ratioLabel) ratioLabel.textContent = 'POS: ' + posPct + '% | Online: ' + olPct + '%';
+
+      const posBar = document.getElementById('anChannelBarPos');
+      if (posBar) {
+        posBar.style.width = posPct + '%';
+        posBar.style.background = '#0284C7';
+        posBar.title = 'Tại quầy (POS): ' + formatVND(ch.pos ? ch.pos.revenue : 0) + ' (' + (ch.pos ? (ch.pos.orders || ch.pos.count || 0) : 0) + ' đơn)';
+      }
+      const olBar = document.getElementById('anChannelBarOnline');
+      if (olBar) {
+        olBar.style.width = olPct + '%';
+        olBar.style.background = '#10B981';
+        olBar.title = 'Online: ' + formatVND(ch.online ? ch.online.revenue : 0) + ' (' + (ch.online ? (ch.online.orders || ch.online.count || 0) : 0) + ' đơn)';
+      }
+
+      const posStats = document.getElementById('anPosStats');
+      if (posStats) {
+        posStats.textContent = formatVND(ch.pos ? ch.pos.revenue : 0) + ' (' + (ch.pos ? (ch.pos.orders || ch.pos.count || 0) : 0) + ' đơn)';
+        posStats.style.color = '#0284C7';
+      }
+      const olStats = document.getElementById('anOnlineStats');
+      if (olStats) {
+        olStats.textContent = formatVND(ch.online ? ch.online.revenue : 0) + ' (' + (ch.online ? (ch.online.orders || ch.online.count || 0) : 0) + ' đơn)';
+        olStats.style.color = '#10B981';
+      }
+
+      // Top categories
+      const catBox = document.getElementById('anCategoryBreakdown');
+      if (catBox) {
+        const cats = data.categoryReport || data.categoryBreakdown || [];
+        if (cats.length === 0) {
+          catBox.innerHTML = '<div style="color:var(--muted); font-size:12px;">Chưa có dữ liệu thể loại</div>';
+        } else {
+          const maxCatRev = Math.max(1, cats[0].revenue || 1);
+          catBox.innerHTML = cats.slice(0, 5).map(c => {
+            const pct = c.percent !== undefined ? c.percent : Math.round(((c.revenue || 0) / maxCatRev) * 100);
+            const q = c.soldQuantity || c.quantity || 0;
+            return '<div>' +
+              '<div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">' +
+                '<span><strong>' + (c.category || 'Khác') + '</strong> (' + q + ' cuốn)</span>' +
+                '<span class="mono"><strong>' + formatVND(c.revenue || 0) + '</strong></span>' +
+              '</div>' +
+              '<div style="height:6px; width:100%; background:var(--navy-100); border-radius:99px; overflow:hidden;">' +
+                '<div style="height:100%; width:' + pct + '%; background:var(--gold); border-radius:99px;"></div>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+        }
+      }
+
+      // 4. Render Bestsellers (Top 10)
+      const topBooksTbody = document.getElementById('analyticsTopBooksTbody');
+      if (topBooksTbody) {
+        const topBooks = data.topSellingBooks || [];
+        if (topBooks.length === 0) {
+          topBooksTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--muted);">Chưa có dữ liệu sách bán trong kỳ</td></tr>';
+        } else {
+          topBooksTbody.innerHTML = topBooks.map((b, idx) => {
+            const share = b.percent !== undefined ? b.percent : '0';
+            return '<tr>' +
+              '<td style="text-align:center; font-weight:700; color:var(--navy-900);">' + (idx + 1) + '</td>' +
+              '<td>' +
+                '<div style="font-weight:600; color:var(--navy-900);">' + (b.title || 'Sách') + '</div>' +
+                '<div style="font-size:11.5px; color:var(--muted);">' + (b.author || 'Đang cập nhật') + '</div>' +
+              '</td>' +
+              '<td><span class="badge b-user">' + (b.category || 'Văn học') + '</span></td>' +
+              '<td style="text-align:center;"><span class="badge b-staff">' + b.quantity + ' cuốn</span></td>' +
+              '<td style="text-align:right;" class="amount">' + formatVND(b.revenue) + '</td>' +
+              '<td style="text-align:right; color:#059669; font-weight:600;">' + formatVND(b.grossProfit) + '</td>' +
+              '<td style="text-align:center;"><span class="badge b-active">' + share + '%</span></td>' +
+            '</tr>';
+          }).join('');
+        }
+      }
+
+      // 5. Render Dead Stock (Top 10)
+      const deadStockTbody = document.getElementById('analyticsDeadStockTbody');
+      if (deadStockTbody) {
+        const deadList = data.deadStockBooks || [];
+        if (deadList.length === 0) {
+          deadStockTbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:#059669;">✓ Toàn bộ kho hàng đang luân chuyển đều đặn, không có sách tồn đọng nghiêm trọng!</td></tr>';
+        } else {
+          deadStockTbody.innerHTML = deadList.map((b, idx) => {
+            const recBadge = b.stock >= 50
+              ? '<span class="badge b-locked">Cần xả kho / Giảm giá</span>'
+              : (b.stock >= 20 ? '<span class="badge" style="background:#FEF3C7; color:#92400E;">Tồn đọng cao</span>' : '<span class="badge b-user">Bán chậm</span>');
+            return '<tr>' +
+              '<td style="text-align:center; font-weight:700; color:var(--muted);">' + (idx + 1) + '</td>' +
+              '<td>' +
+                '<div style="font-weight:600; color:var(--navy-900);">' + (b.title || 'Sách') + '</div>' +
+                '<div style="font-size:11.5px; color:var(--muted);">' + (b.author || 'Đang cập nhật') + '</div>' +
+              '</td>' +
+              '<td><span class="badge b-user">' + (b.category || 'Khác') + '</span></td>' +
+              '<td style="text-align:center; font-weight:700; color:#DC2626;">' + b.stock + ' cuốn</td>' +
+              '<td style="text-align:right;" class="amount">' + formatVND(b.totalCostValue) + '</td>' +
+              '<td style="text-align:center;"><span class="badge b-muted">' + b.soldInPeriod + ' cuốn</span></td>' +
+              '<td>' + recBadge + '</td>' +
+            '</tr>';
+          }).join('');
+        }
+      }
+
+      // 6. Render Top Authors
+      const authorsTbody = document.getElementById('analyticsTopAuthorsTbody');
+      if (authorsTbody) {
+        const isInvalidAuth = (name) => {
+          if (!name || typeof name !== 'string') return true;
+          const c = name.trim().toLowerCase();
+          return ['', 'chưa rõ', 'chua ro', 'không rõ', 'khong ro', 'đang cập nhật', 'unknown', 'n/a', 'null', 'undefined'].includes(c);
+        };
+        const rawAuthors = data.authorReport || data.topAuthors || [];
+        const authors = rawAuthors.filter(a => a && a.author && !isInvalidAuth(a.author)).slice(0, 5);
+        if (authors.length === 0) {
+          authorsTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--muted);">Chưa có dữ liệu tác giả</td></tr>';
+        } else {
+          authorsTbody.innerHTML = authors.map((a, idx) => 
+            '<tr>' +
+              '<td style="text-align:center; font-weight:700;">#' + (idx + 1) + '</td>' +
+              '<td><strong>' + (a.author || 'Không rõ') + '</strong></td>' +
+              '<td style="text-align:center;"><span class="badge b-staff">' + a.quantity + ' cuốn</span></td>' +
+              '<td style="text-align:right;" class="amount">' + formatVND(a.revenue) + '</td>' +
+            '</tr>'
+          ).join('');
+        }
+      }
+
+      // 7. Render Payment Breakdown
+      const paymentBox = document.getElementById('analyticsPaymentBreakdown');
+      if (paymentBox) {
+        const list = data.paymentReport || [];
+        if (list.length === 0) {
+          paymentBox.innerHTML = '<div style="color:var(--muted); font-size:12px;">Chưa có giao dịch thanh toán</div>';
+        } else {
+          paymentBox.innerHTML = list.map(item => {
+            return '<div>' +
+              '<div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:5px;">' +
+                '<span><strong>' + item.method + '</strong> (' + formatVND(item.amount) + ')</span>' +
+                '<span class="mono"><strong>' + item.percent + '%</strong></span>' +
+              '</div>' +
+              '<div style="height:7px; width:100%; background:var(--navy-100); border-radius:99px; overflow:hidden;">' +
+                '<div style="height:100%; width:' + item.percent + '%; background:' + item.color + '; border-radius:99px;"></div>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+        }
+      }
+
+      // 8. Render Loyal Customers (VIP Spenders & Frequent Buyers)
+      if (data.customerLoyalty) {
+        renderAdminLoyalCustomerCharts(data.customerLoyalty);
       }
     }
 

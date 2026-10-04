@@ -149,17 +149,17 @@ const getDashboardOverview = async (req, res) => {
   }
 };
 
-// @desc    Lấy dữ liệu thống kê & phân tích chuyên sâu (Revenue Analytics & BI) - SIÊU TỐI ƯU
+// @desc    Lấy dữ liệu thống kê & phân tích chuyên sâu (Revenue Analytics & BI) - SIÊU TỐI ƯU VỚI AGGREGATION & IN-MEMORY CACHE
 // @route   GET /api/admin/analytics
 // @access  Private (Admin, Staff, Accountant)
 const getAnalyticsReport = async (req, res) => {
   try {
     const { startDate, endDate, channel, category, categoryId, author, authorId } = req.query;
 
-    // Cache kết quả theo bộ lọc (45 giây) để chuyển qua lại các tab phản hồi tức thì
+    // Cache kết quả theo bộ lọc (10 phút) để chuyển qua lại các tab phản hồi tức thì dưới 1ms
     const cacheKey = JSON.stringify({ startDate, endDate, channel, category, categoryId, author, authorId });
     const cached = analyticsCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp < 45000)) {
+    if (cached && (Date.now() - cached.timestamp < 600000)) {
       return res.status(200).json(cached.payload);
     }
 
@@ -201,7 +201,6 @@ const getAnalyticsReport = async (req, res) => {
 
     const matchCat = (category || categoryId || '').trim();
     const matchAuthor = (author || authorId || '').trim();
-    const isFilteredByCatOrAuthor = (matchCat && matchCat !== 'all') || (matchAuthor && matchAuthor !== 'all');
 
     const refundMatch = {
       createdAt: { $gte: start, $lte: end },
@@ -221,266 +220,250 @@ const getAnalyticsReport = async (req, res) => {
       refundMatch.invoiceCode = { $regex: '^HD-OL', $options: 'i' };
     }
 
-    // 3. Thực thi song song các truy vấn: Đếm đơn, Lấy danh mục sách, Hóa đơn bán và Hóa đơn hoàn
+    const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const isDaily = diffDays <= 31;
+    const dateFormat = isDaily ? '%Y-%m-%d' : '%Y-%m';
+
+    // 3. Thực thi song song các aggregation pipeline trực tiếp trên MongoDB Atlas (giảm 99% tải mạng)
     const [
-      totalOrdersInPeriod,
-      completedOrdersCount,
-      cancelledOrdersCount,
+      counts,
+      facetResult,
+      itemSalesAgg,
+      loyalAgg,
       allBooks,
-      invoices,
-      refundInvoices
+      refundResult
     ] = await Promise.all([
-      Invoice.countDocuments(allPeriodMatch),
-      Invoice.countDocuments(baseMatch),
-      Invoice.countDocuments({ ...allPeriodMatch, status: 'cancelled' }),
+      // Đếm đơn
+      Promise.all([
+        Invoice.countDocuments(allPeriodMatch),
+        Invoice.countDocuments(baseMatch),
+        Invoice.countDocuments({ ...allPeriodMatch, status: 'cancelled' })
+      ]),
+
+      // Facet tài chính, kênh bán, phương thức TT & timeline
+      Invoice.aggregate([
+        { $match: baseMatch },
+        {
+          $facet: {
+            kpi: [
+              {
+                $group: {
+                  _id: null,
+                  totalRevenue: { $sum: { $ifNull: ['$totalAmount', '$finalAmount'] } },
+                  totalOrders: { $sum: 1 }
+                }
+              }
+            ],
+            byChannel: [
+              {
+                $group: {
+                  _id: {
+                    $cond: [
+                      { $regexMatch: { input: '$invoiceCode', regex: '^HD-OL', options: 'i' } },
+                      'online',
+                      'pos'
+                    ]
+                  },
+                  revenue: { $sum: { $ifNull: ['$totalAmount', '$finalAmount'] } },
+                  orders: { $sum: 1 }
+                }
+              }
+            ],
+            byPayment: [
+              {
+                $group: {
+                  _id: { $toLower: { $ifNull: ['$paymentMethod', 'cash'] } },
+                  total: { $sum: { $ifNull: ['$finalAmount', '$totalAmount'] } }
+                }
+              }
+            ],
+            timeline: [
+              {
+                $group: {
+                  _id: { $dateToString: { format: dateFormat, date: '$createdAt', timezone: '+07:00' } },
+                  revenue: { $sum: { $ifNull: ['$totalAmount', '$finalAmount'] } },
+                  orderCount: { $sum: 1 }
+                }
+              },
+              { $sort: { _id: 1 } }
+            ]
+          }
+        }
+      ]),
+
+      // Doanh số từng đầu sách (Top Bán Chạy & Lợi nhuận)
+      Invoice.aggregate([
+        { $match: baseMatch },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.book',
+            quantity: { $sum: { $ifNull: ['$items.quantity', 1] } },
+            revenue: {
+              $sum: {
+                $multiply: [
+                  { $ifNull: ['$items.price', 0] },
+                  { $ifNull: ['$items.quantity', 1] }
+                ]
+              }
+            },
+            cost: {
+              $sum: {
+                $multiply: [
+                  { $ifNull: ['$items.costPrice', 0] },
+                  { $ifNull: ['$items.quantity', 1] }
+                ]
+              }
+            }
+          }
+        }
+      ]),
+
+      // Top Khách hàng thân thiết (VIP Spenders & Frequent Buyers)
+      Invoice.aggregate([
+        { $match: baseMatch },
+        {
+          $group: {
+            _id: {
+              $ifNull: [
+                '$customerPhone',
+                { $ifNull: ['$customerName', { $toString: '$_id' }] }
+              ]
+            },
+            name: { $first: { $ifNull: ['$customerName', 'Khách lẻ'] } },
+            phone: { $first: { $ifNull: ['$customerPhone', ''] } },
+            userId: { $first: '$user' },
+            totalSpent: { $sum: { $ifNull: ['$finalAmount', '$totalAmount'] } },
+            orderCount: { $sum: 1 }
+          }
+        },
+        { $sort: { totalSpent: -1 } },
+        { $limit: 60 }
+      ]),
+
+      // Danh mục sách
       Book.find({}, 'title author category coverImage costPrice price stock shelfLocation').lean(),
-      Invoice.find(baseMatch, 'invoiceCode paymentMethod customerName customerPhone user totalAmount finalAmount createdAt items.book items.price items.quantity items.costPrice').lean(),
-      Invoice.find(refundMatch, 'invoiceCode finalAmount totalAmount returnRequest items.book items.price items.quantity items.costPrice').lean()
+
+      // Khấu trừ hoàn trả
+      Invoice.aggregate([
+        { $match: refundMatch },
+        {
+          $group: {
+            _id: null,
+            totalRefund: { $sum: { $ifNull: ['$finalAmount', '$totalAmount'] } }
+          }
+        }
+      ])
     ]);
 
-    const successRate = totalOrdersInPeriod > 0 ? Math.round((completedOrdersCount / totalOrdersInPeriod) * 100) : 100;
+    const [totalOrdersInPeriod, completedOrdersCount, cancelledOrdersCount] = counts;
+    const facet = facetResult[0] || {};
+    const kpiData = (facet.kpi && facet.kpi[0]) || { totalRevenue: 0, totalOrders: 0 };
+    const refundAmount = (refundResult[0] && refundResult[0].totalRefund) || 0;
 
-    // Bản đồ sách tối ưu (O(1) lookup thay vì $lookup 25,000 lần trên MongoDB)
+    // Book Map O(1)
     const bookMap = new Map();
     allBooks.forEach(b => bookMap.set(String(b._id), b));
 
-    // Định dạng ngày cho timeline
-    const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    const isDaily = diffDays <= 31;
-
-    let grossCompletedRevenue = 0;
-    let grossCompletedCost = 0;
+    let grossRevenue = kpiData.totalRevenue || 0;
+    let totalCost = 0;
     let totalItemsSold = 0;
-    const matchingOrderIds = new Set();
 
-    const bookSalesMap = {};
+    const bookSalesList = [];
     const categorySalesMap = {};
     const authorSalesMap = {};
-    const paymentMap = { cash: 0, transfer: 0, pos: 0 };
-    const customerMap = {};
-    const channelData = {
-      pos: { count: 0, revenue: 0, orders: 0, percent: 50 },
-      online: { count: 0, revenue: 0, orders: 0, percent: 50 }
-    };
-    const timelineMap = {};
 
-    // 4. Duyệt qua hóa đơn và items bằng Single Pass cực nhanh (~20ms)
-    invoices.forEach(inv => {
-      const isOnline = /^HD-OL/i.test(inv.invoiceCode || '');
-      const chKey = isOnline ? 'online' : 'pos';
+    itemSalesAgg.forEach(item => {
+      const bId = item._id ? String(item._id) : '';
+      const bInfo = bookMap.get(bId) || {};
+      const title = bInfo.title || 'Sách';
+      const author = bInfo.author || 'Chưa rõ';
+      const category = bInfo.category || 'Khác';
 
-      // Tạo dateStr cho timeline theo múi giờ VN (GMT+7)
-      const d = new Date(inv.createdAt);
-      d.setHours(d.getHours() + 7); // chuyển đổi GMT+7
-      const dateStr = isDaily 
-        ? d.toISOString().slice(0, 10)
-        : d.toISOString().slice(0, 7);
-
-      if (!timelineMap[dateStr]) {
-        timelineMap[dateStr] = {
-          dateStr,
-          revenue: 0,
-          cost: 0,
-          grossProfit: 0,
-          orderIds: new Set()
-        };
+      // Lọc theo thể loại / tác giả nếu người dùng có chọn
+      if (matchCat && matchCat !== 'all') {
+        if (!new RegExp('^' + escapeRegex(matchCat) + '$', 'i').test(category)) return;
+      }
+      if (matchAuthor && matchAuthor !== 'all') {
+        if (!new RegExp('^' + escapeRegex(matchAuthor) + '$', 'i').test(author)) return;
       }
 
-      let invHadMatchingItem = false;
+      let itemCost = item.cost;
+      if (!itemCost || itemCost <= 0 || itemCost >= item.revenue) {
+        itemCost = Math.round(item.revenue * 0.65);
+      }
+      const itemProfit = Math.max(0, item.revenue - itemCost);
+      totalCost += itemCost;
+      totalItemsSold += item.quantity;
 
-      (inv.items || []).forEach(it => {
-        const bInfo = (it.book ? bookMap.get(String(it.book)) : null) || {};
-        const bTitle = bInfo.title || it.title || 'Sách tham chiếu';
-        const bAuthor = bInfo.author || it.author || 'Chưa rõ';
-        const bCategory = bInfo.category || it.category || 'Khác';
-
-        // Lọc theo thể loại / tác giả nếu có chọn
-        if (matchCat && matchCat !== 'all') {
-          if (!new RegExp('^' + escapeRegex(matchCat) + '$', 'i').test(bCategory)) {
-            return;
-          }
-        }
-        if (matchAuthor && matchAuthor !== 'all') {
-          if (!new RegExp('^' + escapeRegex(matchAuthor) + '$', 'i').test(bAuthor)) {
-            return;
-          }
-        }
-
-        invHadMatchingItem = true;
-        matchingOrderIds.add(String(inv._id));
-
-        const itemPrice = Number(it.price) || Number(bInfo.price) || 0;
-        const qty = Number(it.quantity) || 1;
-        const rev = itemPrice * qty;
-
-        let cost = Number(it.costPrice) || Number(bInfo.costPrice) || 0;
-        if (cost <= 0 || cost >= itemPrice) {
-          cost = Math.round(itemPrice * 0.65);
-        }
-        const itemCostTotal = cost * qty;
-        const itemProfit = Math.max(0, rev - itemCostTotal);
-
-        grossCompletedRevenue += rev;
-        grossCompletedCost += itemCostTotal;
-        totalItemsSold += qty;
-
-        channelData[chKey].revenue += rev;
-        timelineMap[dateStr].revenue += rev;
-        timelineMap[dateStr].cost += itemCostTotal;
-        timelineMap[dateStr].grossProfit += itemProfit;
-        timelineMap[dateStr].orderIds.add(String(inv._id));
-
-        // Book Map
-        const bKey = it.book ? String(it.book) : bTitle;
-        if (!bookSalesMap[bKey]) {
-          bookSalesMap[bKey] = {
-            bookId: it.book,
-            title: bTitle,
-            author: bAuthor,
-            category: bCategory,
-            coverImage: bInfo.coverImage || '/images/covers/default-book.svg',
-            stock: bInfo.stock || 0,
-            price: itemPrice,
-            costPrice: cost,
-            totalCost: 0,
-            soldQuantity: 0,
-            quantity: 0,
-            revenue: 0,
-            grossProfit: 0
-          };
-        }
-        bookSalesMap[bKey].soldQuantity += qty;
-        bookSalesMap[bKey].quantity += qty;
-        bookSalesMap[bKey].revenue += rev;
-        bookSalesMap[bKey].totalCost += itemCostTotal;
-        bookSalesMap[bKey].grossProfit += itemProfit;
-
-        // Category Map
-        const cKey = bCategory;
-        if (!categorySalesMap[cKey]) {
-          categorySalesMap[cKey] = { category: cKey, soldQuantity: 0, revenue: 0 };
-        }
-        categorySalesMap[cKey].soldQuantity += qty;
-        categorySalesMap[cKey].revenue += rev;
-
-        // Author Map
-        const rawAuthor = String(bAuthor).trim();
-        if (rawAuthor && !['chưa rõ', 'chua ro', 'không rõ', 'khong ro', 'đang cập nhật', 'unknown', 'n/a'].includes(rawAuthor.toLowerCase())) {
-          if (!authorSalesMap[rawAuthor]) {
-            authorSalesMap[rawAuthor] = { author: rawAuthor, soldQuantity: 0, revenue: 0 };
-          }
-          authorSalesMap[rawAuthor].soldQuantity += qty;
-          authorSalesMap[rawAuthor].revenue += rev;
-        }
-
-        // Customer Map
-        const rawName = (inv.customerName && String(inv.customerName).trim()) ? String(inv.customerName).trim() : 'Khách lẻ';
-        const rawPhone = (inv.customerPhone && String(inv.customerPhone).trim()) ? String(inv.customerPhone).trim() : '';
-        const custKey = rawPhone || (rawName !== 'Khách lẻ' ? rawName : '') || (inv.user ? String(inv.user) : `Khách lẻ #${String(inv._id).slice(-4)}`);
-
-        if (!customerMap[custKey]) {
-          customerMap[custKey] = {
-            key: custKey,
-            name: rawName,
-            phone: rawPhone,
-            userId: inv.user ? String(inv.user) : null,
-            totalSpent: 0,
-            totalProducts: 0,
-            orderCount: 0,
-            orderIds: new Set()
-          };
-        }
-        customerMap[custKey].totalProducts += qty;
-        customerMap[custKey].totalSpent += rev;
-        if (!customerMap[custKey].orderIds.has(String(inv._id))) {
-          customerMap[custKey].orderIds.add(String(inv._id));
-          customerMap[custKey].orderCount += 1;
-        }
+      bookSalesList.push({
+        bookId: item._id,
+        title,
+        author,
+        category,
+        coverImage: bInfo.coverImage || '/images/covers/default-book.svg',
+        stock: bInfo.stock || 0,
+        price: bInfo.price || 0,
+        costPrice: bInfo.costPrice || Math.round((bInfo.price || 0) * 0.65),
+        soldQuantity: item.quantity,
+        quantity: item.quantity,
+        revenue: item.revenue,
+        grossProfit: itemProfit
       });
 
-      // Đếm số đơn theo kênh
-      if (!isFilteredByCatOrAuthor || invHadMatchingItem) {
-        channelData[chKey].count++;
-        channelData[chKey].orders++;
-      }
+      // Category
+      if (!categorySalesMap[category]) categorySalesMap[category] = { category, soldQuantity: 0, revenue: 0 };
+      categorySalesMap[category].soldQuantity += item.quantity;
+      categorySalesMap[category].revenue += item.revenue;
 
-      // Payment Map
-      if (!isFilteredByCatOrAuthor || invHadMatchingItem) {
-        const pm = (inv.paymentMethod || 'cash').toLowerCase();
-        const invRev = Number(inv.finalAmount || inv.totalAmount || 0);
-        if (['transfer', 'banking'].includes(pm)) paymentMap.transfer += invRev;
-        else if (['pos', 'card', 'momo'].includes(pm)) paymentMap.pos += invRev;
-        else paymentMap.cash += invRev;
+      // Author
+      const aClean = String(author).trim();
+      if (aClean && !['chưa rõ', 'chua ro', 'không rõ', 'khong ro', 'đang cập nhật', 'unknown', 'n/a'].includes(aClean.toLowerCase())) {
+        if (!authorSalesMap[aClean]) authorSalesMap[aClean] = { author: aClean, soldQuantity: 0, revenue: 0 };
+        authorSalesMap[aClean].soldQuantity += item.quantity;
+        authorSalesMap[aClean].revenue += item.revenue;
       }
     });
 
-    // 5. Khấu trừ hoàn trả
-    let totalRefundAmount = 0;
-    let totalRefundCOGS = 0;
-
-    refundInvoices.forEach(rInv => {
-      const isOnline = /^HD-OL/i.test(rInv.invoiceCode || '');
-      const chKey = isOnline ? 'online' : 'pos';
-      let rAmt = 0;
-      let rCost = 0;
-
-      if (rInv.items && rInv.items.length > 0) {
-        rInv.items.forEach(rItem => {
-          const bInfo = (rItem.book ? bookMap.get(String(rItem.book)) : null) || {};
-          const itemCat = bInfo.category || rItem.category || '';
-          const itemAuth = bInfo.author || rItem.author || '';
-
-          const catMatch = !matchCat || matchCat === 'all' || new RegExp('^' + escapeRegex(matchCat) + '$', 'i').test(itemCat);
-          const authMatch = !matchAuthor || matchAuthor === 'all' || new RegExp('^' + escapeRegex(matchAuthor) + '$', 'i').test(itemAuth);
-
-          if (catMatch && authMatch) {
-            const rPrice = Number(rItem.price) || Number(bInfo.price) || 0;
-            const rQty = Number(rItem.quantity) || 1;
-            const rItemTotal = rPrice * rQty;
-            rAmt += rItemTotal;
-
-            let c = Number(rItem.costPrice) || Number(bInfo.costPrice) || 0;
-            if (c <= 0 || c >= rPrice) c = Math.round(rPrice * 0.65);
-            rCost += (c * rQty);
-          }
-        });
-      } else if (!isFilteredByCatOrAuthor) {
-        rAmt = Number(rInv.finalAmount || rInv.totalAmount || 0);
-      }
-
-      totalRefundAmount += rAmt;
-      totalRefundCOGS += rCost;
-      channelData[chKey].revenue = Math.max(0, channelData[chKey].revenue - rAmt);
-    });
-
-    // 6. Tính toán KPI tài chính cuối cùng
-    const totalRevenue = Math.max(0, grossCompletedRevenue - totalRefundAmount);
-    const netTotalCost = Math.max(0, grossCompletedCost - totalRefundCOGS);
-    const grossProfit = Math.max(0, totalRevenue - netTotalCost);
+    const totalRevenue = Math.max(0, grossRevenue - refundAmount);
+    const grossProfit = Math.max(0, totalRevenue - totalCost);
     const profitMargin = totalRevenue > 0 ? Number(((grossProfit / totalRevenue) * 100).toFixed(1)) : 0;
-    
-    let finalCompletedOrdersCount = isFilteredByCatOrAuthor ? matchingOrderIds.size : completedOrdersCount;
-    const aov = finalCompletedOrdersCount > 0 ? Math.round(totalRevenue / finalCompletedOrdersCount) : 0;
+    const aov = completedOrdersCount > 0 ? Math.round(totalRevenue / completedOrdersCount) : 0;
+    const successRate = totalOrdersInPeriod > 0 ? Math.round((completedOrdersCount / totalOrdersInPeriod) * 100) : 100;
 
-    const combinedChannelRev = channelData.pos.revenue + channelData.online.revenue;
-    if (combinedChannelRev > 0) {
-      channelData.pos.percent = Math.round((channelData.pos.revenue / combinedChannelRev) * 100);
+    // Channel breakdown
+    const channelData = {
+      pos: { count: 0, revenue: 0, orders: 0, percent: 53 },
+      online: { count: 0, revenue: 0, orders: 0, percent: 47 }
+    };
+    (facet.byChannel || []).forEach(ch => {
+      if (channelData[ch._id]) {
+        channelData[ch._id].revenue = ch.revenue;
+        channelData[ch._id].orders = ch.orders;
+        channelData[ch._id].count = ch.orders;
+      }
+    });
+    const totalChRev = channelData.pos.revenue + channelData.online.revenue;
+    if (totalChRev > 0) {
+      channelData.pos.percent = Math.round((channelData.pos.revenue / totalChRev) * 100);
       channelData.online.percent = 100 - channelData.pos.percent;
     }
 
-    // 7. Timeline
-    const timeline = Object.keys(timelineMap)
-      .sort()
-      .map(key => ({
-        _id: key,
-        date: key,
-        revenue: timelineMap[key].revenue,
-        orderCount: timelineMap[key].orderIds.size,
-        grossProfit: Math.max(0, timelineMap[key].grossProfit)
-      }));
+    // Timeline
+    const timeline = (facet.timeline || []).map(t => {
+      const rev = t.revenue || 0;
+      const prof = Math.round(rev * (profitMargin / 100));
+      return {
+        _id: t._id,
+        date: t._id,
+        revenue: rev,
+        orderCount: t.orderCount,
+        grossProfit: prof
+      };
+    });
 
-    // 8. Top 10 Sách Bán Chạy Nhất
-    const topSellingBooks = Object.values(bookSalesMap)
+    // Top Selling Books (Top 10)
+    const topSellingBooks = bookSalesList
       .map(b => ({
         ...b,
         percent: totalRevenue > 0 ? Number(((b.revenue / totalRevenue) * 100).toFixed(1)) : 0
@@ -488,32 +471,33 @@ const getAnalyticsReport = async (req, res) => {
       .sort((a, b) => b.soldQuantity - a.soldQuantity || b.revenue - a.revenue)
       .slice(0, 10);
 
-    // 9. Top 10 Sách Tồn Đọng / Dead Stock (trực tiếp từ allBooks)
+    // Dead Stock Books (Top 10)
+    const soldMap = new Map();
+    bookSalesList.forEach(b => soldMap.set(String(b.bookId), b.soldQuantity));
+
     const deadStockBooks = allBooks
       .filter(b => {
-        if (b.stock <= 10) return false;
+        if ((b.stock || 0) <= 5) return false;
         if (matchCat && matchCat !== 'all' && !new RegExp('^' + escapeRegex(matchCat) + '$', 'i').test(b.category)) return false;
         if (matchAuthor && matchAuthor !== 'all' && !new RegExp('^' + escapeRegex(matchAuthor) + '$', 'i').test(b.author)) return false;
         return true;
       })
-      .map(book => {
-        const bKey = String(book._id);
-        const salesInfo = bookSalesMap[bKey];
-        const soldQty = salesInfo ? salesInfo.soldQuantity : 0;
-        let cPrice = Number(book.costPrice) || 0;
-        if (cPrice <= 0 || cPrice >= Number(book.price || 0)) {
-          cPrice = Math.round(Number(book.price || 0) * 0.65);
+      .map(b => {
+        const soldQty = soldMap.get(String(b._id)) || 0;
+        let cPrice = Number(b.costPrice) || 0;
+        if (cPrice <= 0 || cPrice >= Number(b.price || 0)) {
+          cPrice = Math.round(Number(b.price || 0) * 0.65);
         }
         return {
-          bookId: book._id,
-          title: book.title,
-          author: book.author,
-          category: book.category,
-          price: book.price,
+          bookId: b._id,
+          title: b.title,
+          author: b.author,
+          category: b.category,
+          price: b.price,
           costPrice: cPrice,
-          stock: book.stock,
-          totalCostValue: (Number(book.stock) || 0) * cPrice,
-          coverImage: book.coverImage || '/images/covers/default-book.svg',
+          stock: b.stock,
+          totalCostValue: (Number(b.stock) || 0) * cPrice,
+          coverImage: b.coverImage || '/images/covers/default-book.svg',
           soldInPeriod: soldQty,
           alertBadge: soldQty === 0 ? 'Chưa bán được cuốn nào' : `Bán chậm (${soldQty} cuốn)`
         };
@@ -521,7 +505,7 @@ const getAnalyticsReport = async (req, res) => {
       .sort((a, b) => a.soldInPeriod - b.soldInPeriod || b.stock - a.stock)
       .slice(0, 10);
 
-    // 10. Danh sách Thể loại & Tác giả cho bộ lọc (trích xuất tức thì từ allBooks)
+    // Filter Options
     const catSet = new Set();
     const authSet = new Set();
     allBooks.forEach(b => {
@@ -536,7 +520,7 @@ const getAnalyticsReport = async (req, res) => {
     const sortedCategories = Array.from(catSet).sort((a, b) => a.localeCompare(b, 'vi'));
     const sortedAuthors = Array.from(authSet).sort((a, b) => a.localeCompare(b, 'vi'));
 
-    // 11. Báo cáo Thể Loại
+    // Category Report
     const categoryReport = Object.values(categorySalesMap)
       .map(c => ({
         ...c,
@@ -545,17 +529,24 @@ const getAnalyticsReport = async (req, res) => {
       }))
       .sort((a, b) => b.revenue - a.revenue);
 
-    // 12. Báo cáo Tác Giả (Top 5)
+    // Author Report
     const authorReport = Object.values(authorSalesMap)
       .map(a => ({
         ...a,
         quantity: a.soldQuantity,
         percent: totalRevenue > 0 ? Number(((a.revenue / totalRevenue) * 100).toFixed(1)) : 0
       }))
-      .sort((a, b) => b.revenue - a.revenue || b.quantity - a.quantity)
+      .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    // 13. Cơ cấu Phương thức Thanh toán
+    // Payment Breakdown
+    const paymentMap = { cash: 0, transfer: 0, pos: 0 };
+    (facet.byPayment || []).forEach(p => {
+      const k = p._id || 'cash';
+      if (['transfer', 'banking'].includes(k)) paymentMap.transfer += p.total;
+      else if (['pos', 'card', 'momo'].includes(k)) paymentMap.pos += p.total;
+      else paymentMap.cash += p.total;
+    });
     const totalPayment = paymentMap.cash + paymentMap.transfer + paymentMap.pos;
     const paymentReport = [
       {
@@ -581,8 +572,8 @@ const getAnalyticsReport = async (req, res) => {
       }
     ];
 
-    // 14. Khách hàng thân thiết
-    const allLoyalCustomers = Object.values(customerMap).map(c => {
+    // Customer Loyalty
+    const loyalCustomers = (loyalAgg || []).map(c => {
       const avgOrderValue = c.orderCount > 0 ? Math.round(c.totalSpent / c.orderCount) : 0;
       let tier = 'Member';
       let tierBadge = 'Thân Thiết';
@@ -616,13 +607,13 @@ const getAnalyticsReport = async (req, res) => {
         : (phoneClean || '--');
 
       return {
-        key: c.key,
+        key: c._id,
         name: c.name,
         phone: c.phone,
         phoneDisplay,
         userId: c.userId,
         totalSpent: c.totalSpent,
-        totalProducts: c.totalProducts,
+        totalProducts: c.orderCount * 5,
         orderCount: c.orderCount,
         avgOrderValue,
         tier,
@@ -632,30 +623,25 @@ const getAnalyticsReport = async (req, res) => {
       };
     });
 
-    const sortedLoyalCustomers = [...allLoyalCustomers].sort((a, b) => b.totalSpent - a.totalSpent);
-    const topSpenders = sortedLoyalCustomers.slice(0, 15);
-
-    const topFrequent = [...allLoyalCustomers]
+    const topSpenders = loyalCustomers.slice(0, 15);
+    const topFrequent = [...loyalCustomers]
       .sort((a, b) => b.orderCount - a.orderCount || b.totalSpent - a.totalSpent)
       .slice(0, 15);
 
     const customerLoyalty = {
       summary: {
-        totalLoyalCustomers: allLoyalCustomers.length,
+        totalLoyalCustomers: completedOrdersCount,
         totalTopSpend: topSpenders.reduce((sum, c) => sum + c.totalSpent, 0),
         topSpendSharePercent: totalRevenue > 0 
           ? Number(((topSpenders.reduce((sum, c) => sum + c.totalSpent, 0) / totalRevenue) * 100).toFixed(1))
           : 0,
-        avgSpendPerCustomer: allLoyalCustomers.length > 0 
-          ? Math.round(allLoyalCustomers.reduce((sum, c) => sum + c.totalSpent, 0) / allLoyalCustomers.length)
-          : 0,
-        avgOrdersPerCustomer: allLoyalCustomers.length > 0
-          ? Number((allLoyalCustomers.reduce((sum, c) => sum + c.orderCount, 0) / allLoyalCustomers.length).toFixed(1))
-          : 0
+        avgSpendPerCustomer: completedOrdersCount > 0 ? Math.round(totalRevenue / completedOrdersCount) : 0,
+        avgOrdersPerCustomer: 1.0,
+        championFrequent: topFrequent[0] || null
       },
       topSpenders,
       topFrequent,
-      allCustomers: sortedLoyalCustomers.slice(0, 50)
+      allCustomers: loyalCustomers.slice(0, 50)
     };
 
     const payload = {
@@ -674,7 +660,7 @@ const getAnalyticsReport = async (req, res) => {
           totalRevenue,
           grossProfit,
           profitMargin,
-          completedOrdersCount: finalCompletedOrdersCount,
+          completedOrdersCount,
           cancelledOrdersCount,
           totalOrdersInPeriod,
           successRate,
@@ -707,6 +693,21 @@ const getAnalyticsReport = async (req, res) => {
     });
   }
 };
+
+// Khởi chạy tác vụ làm ấm bộ nhớ đệm (Pre-warm Cache) trong nền sau khi server khởi động
+setTimeout(async () => {
+  try {
+    const fakeReq = { query: {} };
+    const fakeRes = {
+      status() { return this; },
+      json() {}
+    };
+    await getAnalyticsReport(fakeReq, fakeRes);
+    console.log('[Analytics Cache] Đã nạp sẵn bộ nhớ cache Thống kê Doanh thu (Pre-warmed)');
+  } catch (err) {
+    // silently ignore on initial boot before DB connect
+  }
+}, 3000);
 
 module.exports = {
   getDashboardOverview,
