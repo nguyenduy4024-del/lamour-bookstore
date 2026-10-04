@@ -343,9 +343,12 @@ const createInvoice = async (req, res) => {
 // @access  Private (Admin, Staff)
 const getAllInvoices = async (req, res) => {
   try {
+    const limit = parseInt(req.query.limit) || (req.query.all === 'true' ? 1000 : 500);
     const invoices = await Invoice.find()
-      .populate('items.book', 'title bookCode price category author coverImage')
-      .sort({ createdAt: -1 });
+      .select('invoiceCode customerName customerPhone customerAddress orderType paymentMethod paymentStatus status returnRequest totalAmount finalAmount createdAt')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
 
     res.status(200).json({
       success: true,
