@@ -135,9 +135,8 @@ const getAnalyticsReport = async (req, res) => {
     if (startDate) {
       start = new Date(`${startDate}T00:00:00.000+07:00`);
     } else {
-      // Mặc định 30 ngày qua
-      start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      start.setHours(0, 0, 0, 0);
+      // Mặc định: Toàn bộ thời gian từ đầu năm đến nay (để khớp 100% với Tổng doanh thu thực tế)
+      start = new Date('2025-01-01T00:00:00.000Z');
     }
 
     if (endDate) {
@@ -146,7 +145,7 @@ const getAnalyticsReport = async (req, res) => {
       end = new Date();
     }
 
-    if (isNaN(start.getTime())) start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    if (isNaN(start.getTime())) start = new Date('2026-01-01T00:00:00.000+07:00');
     if (isNaN(end.getTime())) end = new Date();
 
     // 2. Bộ lọc cơ bản
@@ -182,7 +181,7 @@ const getAnalyticsReport = async (req, res) => {
       { $unwind: '$items' },
       {
         $lookup: {
-          from: 'books',
+          from: 'products',
           localField: 'items.book',
           foreignField: '_id',
           as: 'bookInfo'
@@ -516,7 +515,7 @@ const getAnalyticsReport = async (req, res) => {
       { $unwind: '$items' },
       {
         $lookup: {
-          from: 'books',
+          from: 'products',
           localField: 'items.book',
           foreignField: '_id',
           as: 'bookInfo'
