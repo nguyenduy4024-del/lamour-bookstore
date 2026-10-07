@@ -196,6 +196,7 @@ transactionSchema.virtual('statusDisplay').get(function () {
 // Model cho 2 collection chuẩn theo đề bài: receipts và payments
 const ReceiptModel = mongoose.models.Receipt || mongoose.model('Receipt', transactionSchema, 'receipts');
 const PaymentModel = mongoose.models.Payment || mongoose.model('Payment', transactionSchema, 'payments');
+const TransactionModel = mongoose.models.Transaction || mongoose.model('Transaction', transactionSchema, 'receipts');
 
 // Lớp hỗ trợ truy vấn chuỗi (Chainable Query) cho Transaction
 class UnifiedTransactionQuery {

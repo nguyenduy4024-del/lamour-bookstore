@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+require('./Transaction');
 
 const supplierReturnItemSchema = new mongoose.Schema({
   book: {
