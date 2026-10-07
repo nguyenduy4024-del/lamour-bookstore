@@ -4131,8 +4131,9 @@
       try {
         const res = await fetch('/api/inventory/hide-requests?status=pending&limit=1', { headers: getAuthHeaders() });
         if (!res.ok) return;
-        const data = await res.json();
-        const pendingCount = (data.counts && data.counts.pending != null) ? data.counts.pending : (data.total || 0);
+        const pendingCount = (data.counts && data.counts.pending != null) 
+          ? data.counts.pending 
+          : (data.pendingCount != null ? data.pendingCount : (data.total || 0));
 
         const tabBadge = document.getElementById('adminHideRequestsBadge');
         if (tabBadge) {
@@ -4204,27 +4205,31 @@
         const data = await res.json();
 
         window._cachedAdminHideRequests = data.data || [];
-        const counts = data.counts || { pending: 0, approved: 0, rejected: 0, total: 0 };
+        const counts = data.counts || {};
+        const valPending = counts.pending != null ? counts.pending : (data.pendingCount != null ? data.pendingCount : 0);
+        const valAppr = counts.approved != null ? counts.approved : (data.approvedCount != null ? data.approvedCount : 0);
+        const valRej = counts.rejected != null ? counts.rejected : (data.rejectedCount != null ? data.rejectedCount : 0);
+        const valTotal = counts.total != null ? counts.total : ((counts.all != null) ? counts.all : (data.total != null ? data.total : 0));
 
         // Cập nhật thống kê trên KPI cards
         const elPending = document.getElementById('adminCountHidePending');
-        if (elPending) elPending.textContent = counts.pending || 0;
+        if (elPending) elPending.textContent = valPending;
         const elAppr = document.getElementById('adminCountHideApproved');
-        if (elAppr) elAppr.textContent = counts.approved || 0;
+        if (elAppr) elAppr.textContent = valAppr;
         const elRej = document.getElementById('adminCountHideRejected');
-        if (elRej) elRej.textContent = counts.rejected || 0;
+        if (elRej) elRej.textContent = valRej;
         const elTot = document.getElementById('adminCountHideTotal');
-        if (elTot) elTot.textContent = counts.total || 0;
+        if (elTot) elTot.textContent = valTotal;
 
         // Cập nhật số lượng trên các nút tab
         const elTabPending = document.getElementById('adminTabCountPending');
-        if (elTabPending) elTabPending.textContent = counts.pending || 0;
+        if (elTabPending) elTabPending.textContent = valPending;
         const elTabAppr = document.getElementById('adminTabCountApproved');
-        if (elTabAppr) elTabAppr.textContent = counts.approved || 0;
+        if (elTabAppr) elTabAppr.textContent = valAppr;
         const elTabRej = document.getElementById('adminTabCountRejected');
-        if (elTabRej) elTabRej.textContent = counts.rejected || 0;
+        if (elTabRej) elTabRej.textContent = valRej;
         const elTabAll = document.getElementById('adminTabCountAll');
-        if (elTabAll) elTabAll.textContent = counts.total || 0;
+        if (elTabAll) elTabAll.textContent = valTotal;
 
         // Cập nhật badge
         updateAdminHideRequestsBadge();
@@ -4282,10 +4287,10 @@
           if (req.status === 'pending') {
             actionHtml = `
               <div style="display:flex; gap:6px; justify-content:flex-end;">
-                <button type="button" class="btn btn-sm btn-primary" onclick="openAdminApproveHideModal('${req._id}')" style="background:#059669; border-color:#059669; padding:5px 12px; font-weight:600;" title="Phê duyệt cho phép ẩn sách">
+                <button type="button" class="btn btn-sm btn-primary" onclick="openAdminApproveHideModal('${req._id}')" style="background:#059669; border-color:#059669; color:#ffffff; padding:5px 12px; font-weight:600;" title="Phê duyệt cho phép ẩn sách">
                   <i class="fas fa-check"></i> Duyệt
                 </button>
-                <button type="button" class="btn btn-sm btn-danger" onclick="openAdminRejectHideModal('${req._id}')" style="background:#DC2626; border-color:#DC2626; padding:5px 10px; font-weight:600;" title="Từ chối yêu cầu ẩn sách">
+                <button type="button" class="btn btn-sm btn-danger" onclick="openAdminRejectHideModal('${req._id}')" style="background:#DC2626; border-color:#DC2626; color:#ffffff; padding:5px 10px; font-weight:600;" title="Từ chối yêu cầu ẩn sách">
                   <i class="fas fa-times"></i> Từ chối
                 </button>
               </div>`;

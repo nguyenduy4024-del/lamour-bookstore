@@ -43,40 +43,57 @@ module.exports = `
         </div>
       </div>
 
-      <!-- SUB-NAVIGATION: BẢNG TỒN KHO VS BẢN ĐỒ KỆ SÁCH TRỰC QUAN -->
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px; border-bottom:1.5px solid var(--line); padding-bottom:12px;">
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          <button type="button" class="btn btn-primary" id="btnViewInvTable" onclick="switchInvViewMode('table')">
-            <i class="fas fa-list"></i> Danh sách Tồn kho
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvShelves" onclick="switchInvViewMode('shelves')">
-            <i class="fas fa-th-large"></i> Bản đồ Kệ sách Trực quan
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvLogs" onclick="switchInvViewMode('logs')">
-            <i class="fas fa-history"></i> Lịch sử Hoạt động & Luân chuyển Kệ
-            <span id="adminShelfLogsBadge" class="badge" style="display:none; margin-left:6px; background:var(--gold); color:var(--navy-900); font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvHideRequests" onclick="switchInvViewMode('hide-requests')">
-            <i class="fas fa-eye-slash"></i> Yêu cầu Ẩn Sách từ Kho
-            <span id="adminHideRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#EF4444; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvShelfRequests" onclick="switchInvViewMode('shelf-requests')">
-            <i class="fas fa-clipboard-check"></i> Yêu cầu Thêm Kệ từ Kho
-            <span id="adminShelfRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#EF4444; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvMaintenanceRequests" onclick="switchInvViewMode('shelf-maintenance')">
-            <i class="fas fa-wrench"></i> Yêu cầu Bảo Trì Kệ
-            <span id="adminMaintenanceRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#F59E0B; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvTransferRequests" onclick="switchInvViewMode('shelf-transfer')">
-            <i class="fas fa-truck-loading"></i> Yêu cầu Điều Chuyển Sách
-            <span id="adminTransferRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#8B5CF6; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
-          </button>
+      <!-- SUB-NAVIGATION: 7 CHỨC NĂNG QUẢN LÝ TỒN KHO & PHÊ DUYỆT ĐỀ XUẤT -->
+      <div class="inv-subnav-panel">
+        <!-- HÀNG 1: QUẢN TRỊ KHO & SƠ ĐỒ KỆ HÀNG -->
+        <div class="inv-subnav-row">
+          <div class="inv-subnav-section">
+            <span class="inv-section-badge">
+              <i class="fas fa-warehouse"></i> Kho & Vị Trí Kệ
+            </span>
+            <button type="button" class="btn btn-primary inv-nav-btn" id="btnViewInvTable" onclick="switchInvViewMode('table')" title="Xem danh sách tồn kho chi tiết">
+              <i class="fas fa-list-ul"></i> Danh sách Tồn kho
+            </button>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvShelves" onclick="switchInvViewMode('shelves')" title="Sơ đồ định vị và sức chứa kệ sách trực quan">
+              <i class="fas fa-th-large"></i> Bản đồ Kệ sách Trực quan
+            </button>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvLogs" onclick="switchInvViewMode('logs')" title="Nhật ký hoạt động và biến động kệ sách">
+              <i class="fas fa-history"></i> Lịch sử Hoạt động & Luân chuyển Kệ
+              <span id="adminShelfLogsBadge" class="badge" style="display:none;">0</span>
+            </button>
+          </div>
+          <div id="invShelfActionBtns" style="display:none; gap:8px; align-items:center;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="openAdminShelfModal()" style="font-weight:600;"><i class="fas fa-plus"></i> Thêm Kệ Mới</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openAdminShelfTransferModal()" style="font-weight:600;"><i class="fas fa-exchange-alt"></i> Điều chuyển sách</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="loadAdminShelvesGrid()" style="font-weight:600;" title="Làm mới sơ đồ kệ"><i class="fas fa-sync-alt"></i></button>
+          </div>
         </div>
-        <div id="invShelfActionBtns" style="display:none; gap:8px; align-items:center;">
-          <button type="button" class="btn btn-primary" onclick="openAdminShelfModal()"><i class="fas fa-plus"></i> Thêm Kệ Mới</button>
-          <button type="button" class="btn btn-secondary" onclick="openAdminShelfTransferModal()"><i class="fas fa-exchange-alt"></i> Điều chuyển sách</button>
-          <button type="button" class="btn btn-secondary" onclick="loadAdminShelvesGrid()"><i class="fas fa-sync-alt"></i> Làm mới</button>
+
+        <div class="inv-subnav-divider"></div>
+
+        <!-- HÀNG 2: HỘP THƯ PHÊ DUYỆT ĐỀ XUẤT TỪ KHO -->
+        <div class="inv-subnav-row">
+          <div class="inv-subnav-section">
+            <span class="inv-section-badge requests">
+              <i class="fas fa-inbox"></i> Duyệt Yêu Cầu từ Kho
+            </span>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvHideRequests" onclick="switchInvViewMode('hide-requests')" title="Duyệt yêu cầu ẩn sách khỏi Web/POS từ thủ kho">
+              <i class="fas fa-eye-slash"></i> Yêu cầu Ẩn Sách từ Kho
+              <span id="adminHideRequestsBadge" class="badge" style="display:none;">0</span>
+            </button>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvShelfRequests" onclick="switchInvViewMode('shelf-requests')" title="Duyệt đề xuất bổ sung thêm kệ sách mới">
+              <i class="fas fa-clipboard-check"></i> Yêu cầu Thêm Kệ từ Kho
+              <span id="adminShelfRequestsBadge" class="badge" style="display:none;">0</span>
+            </button>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvMaintenanceRequests" onclick="switchInvViewMode('shelf-maintenance')" title="Duyệt yêu cầu bảo trì hoặc sửa chữa kệ sách">
+              <i class="fas fa-wrench"></i> Yêu cầu Bảo Trì Kệ
+              <span id="adminMaintenanceRequestsBadge" class="badge" style="display:none;">0</span>
+            </button>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvTransferRequests" onclick="switchInvViewMode('shelf-transfer')" title="Duyệt đề xuất điều chuyển sách giữa các kệ">
+              <i class="fas fa-truck-loading"></i> Yêu cầu Điều Chuyển Sách
+              <span id="adminTransferRequestsBadge" class="badge" style="display:none;">0</span>
+            </button>
+          </div>
         </div>
       </div>
 

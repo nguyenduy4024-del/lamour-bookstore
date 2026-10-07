@@ -586,6 +586,137 @@
   }
   .order-tab.active .order-count{ background:rgba(255,255,255,0.25); color:#fff; }
 
+  /* ============ INVENTORY LOOKUP SUB-NAVIGATION ============ */
+  .inv-subnav-panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 18px;
+    margin-bottom: 22px;
+    box-shadow: 0 2px 10px rgba(10, 25, 48, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .inv-subnav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+  }
+  .inv-subnav-section {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .inv-section-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--navy-700);
+    background: var(--navy-100);
+    padding: 6.5px 11px;
+    border-radius: 8px;
+    white-space: nowrap;
+    border: 1px solid rgba(23, 52, 97, 0.08);
+  }
+  .inv-section-badge.requests {
+    color: #92400E;
+    background: #FEF3C7;
+    border-color: rgba(217, 119, 6, 0.2);
+  }
+  .inv-nav-btn {
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7.5px 14px;
+    border-radius: 8px;
+    border: 1.5px solid #E2E8F0;
+    background: #FFFFFF;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all .18s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .inv-nav-btn:hover {
+    border-color: var(--navy-500) !important;
+    background: #F8FAFC !important;
+    color: var(--navy-900) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(10, 25, 48, 0.06);
+  }
+  .inv-nav-btn.btn-primary {
+    background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%) !important;
+    color: #FFFFFF !important;
+    border-color: var(--navy-900) !important;
+    box-shadow: 0 4px 12px rgba(10, 25, 48, 0.22) !important;
+  }
+  .inv-nav-btn.btn-primary i {
+    color: var(--gold) !important;
+  }
+  .inv-nav-btn.btn-secondary {
+    background: #FFFFFF !important;
+    color: #334155 !important;
+    border-color: #E2E8F0 !important;
+  }
+  .inv-nav-btn.btn-secondary:hover {
+    border-color: var(--navy-500) !important;
+    background: #F8FAFC !important;
+    color: var(--navy-900) !important;
+  }
+  .inv-nav-btn .badge {
+    min-width: 19px;
+    height: 19px;
+    padding: 0 6px;
+    font-size: 10.5px;
+    font-weight: 800;
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 19px;
+    text-align: center;
+    border-radius: 999px;
+    margin-left: 6px;
+    vertical-align: middle;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  }
+  #adminHideRequestsBadge,
+  #adminShelfRequestsBadge {
+    background: #EF4444 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 0 1.5px rgba(239, 68, 68, 0.35);
+  }
+  #adminMaintenanceRequestsBadge {
+    background: #F59E0B !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 0 1.5px rgba(245, 158, 11, 0.35);
+  }
+  #adminTransferRequestsBadge {
+    background: #8B5CF6 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 0 1.5px rgba(139, 92, 246, 0.35);
+  }
+  #adminShelfLogsBadge {
+    background: var(--gold) !important;
+    color: var(--navy-900) !important;
+    box-shadow: 0 0 0 1.5px rgba(199, 161, 90, 0.35);
+  }
+  .inv-subnav-divider {
+    height: 1px;
+    background: #EBE6DC;
+    width: 100%;
+    margin: 2px 0;
+  }
+
   /* ============ MODAL SYSTEM ============ */
   .modal-overlay, .confirm-overlay{
     position:fixed; inset:0; z-index:9999;
@@ -2376,40 +2507,57 @@
         </div>
       </div>
 
-      <!-- SUB-NAVIGATION: BẢNG TỒN KHO VS BẢN ĐỒ KỆ SÁCH TRỰC QUAN -->
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px; border-bottom:1.5px solid var(--line); padding-bottom:12px;">
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          <button type="button" class="btn btn-primary" id="btnViewInvTable" onclick="switchInvViewMode('table')">
-            <i class="fas fa-list"></i> Danh sách Tồn kho
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvShelves" onclick="switchInvViewMode('shelves')">
-            <i class="fas fa-th-large"></i> Bản đồ Kệ sách Trực quan
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvLogs" onclick="switchInvViewMode('logs')">
-            <i class="fas fa-history"></i> Lịch sử Hoạt động & Luân chuyển Kệ
-            <span id="adminShelfLogsBadge" class="badge" style="display:none; margin-left:6px; background:var(--gold); color:var(--navy-900); font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvHideRequests" onclick="switchInvViewMode('hide-requests')">
-            <i class="fas fa-eye-slash"></i> Yêu cầu Ẩn Sách từ Kho
-            <span id="adminHideRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#EF4444; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvShelfRequests" onclick="switchInvViewMode('shelf-requests')">
-            <i class="fas fa-clipboard-check"></i> Yêu cầu Thêm Kệ từ Kho
-            <span id="adminShelfRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#EF4444; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvMaintenanceRequests" onclick="switchInvViewMode('shelf-maintenance')">
-            <i class="fas fa-wrench"></i> Yêu cầu Bảo Trì Kệ
-            <span id="adminMaintenanceRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#F59E0B; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnViewInvTransferRequests" onclick="switchInvViewMode('shelf-transfer')">
-            <i class="fas fa-truck-loading"></i> Yêu cầu Điều Chuyển Sách
-            <span id="adminTransferRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#8B5CF6; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
-          </button>
+      <!-- SUB-NAVIGATION: 7 CHỨC NĂNG QUẢN LÝ TỒN KHO & PHÊ DUYỆT ĐỀ XUẤT -->
+      <div class="inv-subnav-panel">
+        <!-- HÀNG 1: QUẢN TRỊ KHO & SƠ ĐỒ KỆ HÀNG -->
+        <div class="inv-subnav-row">
+          <div class="inv-subnav-section">
+            <span class="inv-section-badge">
+              <i class="fas fa-warehouse"></i> Kho & Vị Trí Kệ
+            </span>
+            <button type="button" class="btn btn-primary inv-nav-btn" id="btnViewInvTable" onclick="switchInvViewMode('table')" title="Xem danh sách tồn kho chi tiết">
+              <i class="fas fa-list-ul"></i> Danh sách Tồn kho
+            </button>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvShelves" onclick="switchInvViewMode('shelves')" title="Sơ đồ định vị và sức chứa kệ sách trực quan">
+              <i class="fas fa-th-large"></i> Bản đồ Kệ sách Trực quan
+            </button>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvLogs" onclick="switchInvViewMode('logs')" title="Nhật ký hoạt động và biến động kệ sách">
+              <i class="fas fa-history"></i> Lịch sử Hoạt động & Luân chuyển Kệ
+              <span id="adminShelfLogsBadge" class="badge" style="display:none;">0</span>
+            </button>
+          </div>
+          <div id="invShelfActionBtns" style="display:none; gap:8px; align-items:center;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="openAdminShelfModal()" style="font-weight:600;"><i class="fas fa-plus"></i> Thêm Kệ Mới</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openAdminShelfTransferModal()" style="font-weight:600;"><i class="fas fa-exchange-alt"></i> Điều chuyển sách</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="loadAdminShelvesGrid()" style="font-weight:600;" title="Làm mới sơ đồ kệ"><i class="fas fa-sync-alt"></i></button>
+          </div>
         </div>
-        <div id="invShelfActionBtns" style="display:none; gap:8px; align-items:center;">
-          <button type="button" class="btn btn-primary" onclick="openAdminShelfModal()"><i class="fas fa-plus"></i> Thêm Kệ Mới</button>
-          <button type="button" class="btn btn-secondary" onclick="openAdminShelfTransferModal()"><i class="fas fa-exchange-alt"></i> Điều chuyển sách</button>
-          <button type="button" class="btn btn-secondary" onclick="loadAdminShelvesGrid()"><i class="fas fa-sync-alt"></i> Làm mới</button>
+
+        <div class="inv-subnav-divider"></div>
+
+        <!-- HÀNG 2: HỘP THƯ PHÊ DUYỆT ĐỀ XUẤT TỪ KHO -->
+        <div class="inv-subnav-row">
+          <div class="inv-subnav-section">
+            <span class="inv-section-badge requests">
+              <i class="fas fa-inbox"></i> Duyệt Yêu Cầu từ Kho
+            </span>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvHideRequests" onclick="switchInvViewMode('hide-requests')" title="Duyệt yêu cầu ẩn sách khỏi Web/POS từ thủ kho">
+              <i class="fas fa-eye-slash"></i> Yêu cầu Ẩn Sách từ Kho
+              <span id="adminHideRequestsBadge" class="badge" style="display:none;">0</span>
+            </button>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvShelfRequests" onclick="switchInvViewMode('shelf-requests')" title="Duyệt đề xuất bổ sung thêm kệ sách mới">
+              <i class="fas fa-clipboard-check"></i> Yêu cầu Thêm Kệ từ Kho
+              <span id="adminShelfRequestsBadge" class="badge" style="display:none;">0</span>
+            </button>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvMaintenanceRequests" onclick="switchInvViewMode('shelf-maintenance')" title="Duyệt yêu cầu bảo trì hoặc sửa chữa kệ sách">
+              <i class="fas fa-wrench"></i> Yêu cầu Bảo Trì Kệ
+              <span id="adminMaintenanceRequestsBadge" class="badge" style="display:none;">0</span>
+            </button>
+            <button type="button" class="btn btn-secondary inv-nav-btn" id="btnViewInvTransferRequests" onclick="switchInvViewMode('shelf-transfer')" title="Duyệt đề xuất điều chuyển sách giữa các kệ">
+              <i class="fas fa-truck-loading"></i> Yêu cầu Điều Chuyển Sách
+              <span id="adminTransferRequestsBadge" class="badge" style="display:none;">0</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -10337,8 +10485,9 @@
       try {
         const res = await fetch('/api/inventory/hide-requests?status=pending&limit=1', { headers: getAuthHeaders() });
         if (!res.ok) return;
-        const data = await res.json();
-        const pendingCount = (data.counts && data.counts.pending != null) ? data.counts.pending : (data.total || 0);
+        const pendingCount = (data.counts && data.counts.pending != null) 
+          ? data.counts.pending 
+          : (data.pendingCount != null ? data.pendingCount : (data.total || 0));
 
         const tabBadge = document.getElementById('adminHideRequestsBadge');
         if (tabBadge) {
@@ -10410,27 +10559,31 @@
         const data = await res.json();
 
         window._cachedAdminHideRequests = data.data || [];
-        const counts = data.counts || { pending: 0, approved: 0, rejected: 0, total: 0 };
+        const counts = data.counts || {};
+        const valPending = counts.pending != null ? counts.pending : (data.pendingCount != null ? data.pendingCount : 0);
+        const valAppr = counts.approved != null ? counts.approved : (data.approvedCount != null ? data.approvedCount : 0);
+        const valRej = counts.rejected != null ? counts.rejected : (data.rejectedCount != null ? data.rejectedCount : 0);
+        const valTotal = counts.total != null ? counts.total : ((counts.all != null) ? counts.all : (data.total != null ? data.total : 0));
 
         // Cập nhật thống kê trên KPI cards
         const elPending = document.getElementById('adminCountHidePending');
-        if (elPending) elPending.textContent = counts.pending || 0;
+        if (elPending) elPending.textContent = valPending;
         const elAppr = document.getElementById('adminCountHideApproved');
-        if (elAppr) elAppr.textContent = counts.approved || 0;
+        if (elAppr) elAppr.textContent = valAppr;
         const elRej = document.getElementById('adminCountHideRejected');
-        if (elRej) elRej.textContent = counts.rejected || 0;
+        if (elRej) elRej.textContent = valRej;
         const elTot = document.getElementById('adminCountHideTotal');
-        if (elTot) elTot.textContent = counts.total || 0;
+        if (elTot) elTot.textContent = valTotal;
 
         // Cập nhật số lượng trên các nút tab
         const elTabPending = document.getElementById('adminTabCountPending');
-        if (elTabPending) elTabPending.textContent = counts.pending || 0;
+        if (elTabPending) elTabPending.textContent = valPending;
         const elTabAppr = document.getElementById('adminTabCountApproved');
-        if (elTabAppr) elTabAppr.textContent = counts.approved || 0;
+        if (elTabAppr) elTabAppr.textContent = valAppr;
         const elTabRej = document.getElementById('adminTabCountRejected');
-        if (elTabRej) elTabRej.textContent = counts.rejected || 0;
+        if (elTabRej) elTabRej.textContent = valRej;
         const elTabAll = document.getElementById('adminTabCountAll');
-        if (elTabAll) elTabAll.textContent = counts.total || 0;
+        if (elTabAll) elTabAll.textContent = valTotal;
 
         // Cập nhật badge
         updateAdminHideRequestsBadge();
@@ -10488,10 +10641,10 @@
           if (req.status === 'pending') {
             actionHtml = `
               <div style="display:flex; gap:6px; justify-content:flex-end;">
-                <button type="button" class="btn btn-sm btn-primary" onclick="openAdminApproveHideModal('${req._id}')" style="background:#059669; border-color:#059669; padding:5px 12px; font-weight:600;" title="Phê duyệt cho phép ẩn sách">
+                <button type="button" class="btn btn-sm btn-primary" onclick="openAdminApproveHideModal('${req._id}')" style="background:#059669; border-color:#059669; color:#ffffff; padding:5px 12px; font-weight:600;" title="Phê duyệt cho phép ẩn sách">
                   <i class="fas fa-check"></i> Duyệt
                 </button>
-                <button type="button" class="btn btn-sm btn-danger" onclick="openAdminRejectHideModal('${req._id}')" style="background:#DC2626; border-color:#DC2626; padding:5px 10px; font-weight:600;" title="Từ chối yêu cầu ẩn sách">
+                <button type="button" class="btn btn-sm btn-danger" onclick="openAdminRejectHideModal('${req._id}')" style="background:#DC2626; border-color:#DC2626; color:#ffffff; padding:5px 10px; font-weight:600;" title="Từ chối yêu cầu ẩn sách">
                   <i class="fas fa-times"></i> Từ chối
                 </button>
               </div>`;

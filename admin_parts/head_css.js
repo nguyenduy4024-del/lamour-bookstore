@@ -586,6 +586,137 @@ module.exports = `<!DOCTYPE html>
   }
   .order-tab.active .order-count{ background:rgba(255,255,255,0.25); color:#fff; }
 
+  /* ============ INVENTORY LOOKUP SUB-NAVIGATION ============ */
+  .inv-subnav-panel {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 18px;
+    margin-bottom: 22px;
+    box-shadow: 0 2px 10px rgba(10, 25, 48, 0.03);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .inv-subnav-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+  }
+  .inv-subnav-section {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .inv-section-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--navy-700);
+    background: var(--navy-100);
+    padding: 6.5px 11px;
+    border-radius: 8px;
+    white-space: nowrap;
+    border: 1px solid rgba(23, 52, 97, 0.08);
+  }
+  .inv-section-badge.requests {
+    color: #92400E;
+    background: #FEF3C7;
+    border-color: rgba(217, 119, 6, 0.2);
+  }
+  .inv-nav-btn {
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7.5px 14px;
+    border-radius: 8px;
+    border: 1.5px solid #E2E8F0;
+    background: #FFFFFF;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all .18s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  }
+  .inv-nav-btn:hover {
+    border-color: var(--navy-500) !important;
+    background: #F8FAFC !important;
+    color: var(--navy-900) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(10, 25, 48, 0.06);
+  }
+  .inv-nav-btn.btn-primary {
+    background: linear-gradient(135deg, var(--navy-900) 0%, var(--navy-800) 100%) !important;
+    color: #FFFFFF !important;
+    border-color: var(--navy-900) !important;
+    box-shadow: 0 4px 12px rgba(10, 25, 48, 0.22) !important;
+  }
+  .inv-nav-btn.btn-primary i {
+    color: var(--gold) !important;
+  }
+  .inv-nav-btn.btn-secondary {
+    background: #FFFFFF !important;
+    color: #334155 !important;
+    border-color: #E2E8F0 !important;
+  }
+  .inv-nav-btn.btn-secondary:hover {
+    border-color: var(--navy-500) !important;
+    background: #F8FAFC !important;
+    color: var(--navy-900) !important;
+  }
+  .inv-nav-btn .badge {
+    min-width: 19px;
+    height: 19px;
+    padding: 0 6px;
+    font-size: 10.5px;
+    font-weight: 800;
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 19px;
+    text-align: center;
+    border-radius: 999px;
+    margin-left: 6px;
+    vertical-align: middle;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+  }
+  #adminHideRequestsBadge,
+  #adminShelfRequestsBadge {
+    background: #EF4444 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 0 1.5px rgba(239, 68, 68, 0.35);
+  }
+  #adminMaintenanceRequestsBadge {
+    background: #F59E0B !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 0 1.5px rgba(245, 158, 11, 0.35);
+  }
+  #adminTransferRequestsBadge {
+    background: #8B5CF6 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 0 0 1.5px rgba(139, 92, 246, 0.35);
+  }
+  #adminShelfLogsBadge {
+    background: var(--gold) !important;
+    color: var(--navy-900) !important;
+    box-shadow: 0 0 0 1.5px rgba(199, 161, 90, 0.35);
+  }
+  .inv-subnav-divider {
+    height: 1px;
+    background: #EBE6DC;
+    width: 100%;
+    margin: 2px 0;
+  }
+
   /* ============ MODAL SYSTEM ============ */
   .modal-overlay, .confirm-overlay{
     position:fixed; inset:0; z-index:9999;

@@ -2468,15 +2468,15 @@ const createBookHideRequest = async (req, res) => {
 // @access  Private (Stock, Admin, Staff)
 const getAllBookHideRequests = async (req, res) => {
   try {
-    const { status, keyword, page = 1, limit = 50 } = req.query;
+    const { status, keyword, search, page = 1, limit = 50 } = req.query;
     const filter = {};
 
     if (status && status !== 'all') {
       filter.status = status;
     }
 
-    if (keyword && keyword.trim()) {
-      const q = keyword.trim();
+    const q = (keyword || search || '').trim();
+    if (q) {
       filter.$or = [
         { requestCode: { $regex: q, $options: 'i' } },
         { title: { $regex: q, $options: 'i' } },
@@ -2487,19 +2487,24 @@ const getAllBookHideRequests = async (req, res) => {
       ];
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
-    const [requests, total, pendingCount, approvedCount, rejectedCount] = await Promise.all([
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [requests, total, pendingCount, approvedCount, rejectedCount, cancelledCount, allCount] = await Promise.all([
       BookHideRequest.find(filter)
         .populate('requestedBy', 'name email role')
         .populate('reviewedBy', 'name email role')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(Number(limit))
+        .limit(limitNum)
         .lean(),
       BookHideRequest.countDocuments(filter),
       BookHideRequest.countDocuments({ status: 'pending' }),
       BookHideRequest.countDocuments({ status: 'approved' }),
-      BookHideRequest.countDocuments({ status: 'rejected' })
+      BookHideRequest.countDocuments({ status: 'rejected' }),
+      BookHideRequest.countDocuments({ status: 'cancelled' }),
+      BookHideRequest.countDocuments({})
     ]);
 
     res.status(200).json({
@@ -2508,8 +2513,17 @@ const getAllBookHideRequests = async (req, res) => {
       pendingCount,
       approvedCount,
       rejectedCount,
-      page: Number(page),
-      limit: Number(limit),
+      cancelledCount,
+      counts: {
+        pending: pendingCount,
+        approved: approvedCount,
+        rejected: rejectedCount,
+        cancelled: cancelledCount,
+        total: allCount,
+        all: allCount
+      },
+      page: pageNum,
+      limit: limitNum,
       count: requests.length,
       data: requests
     });
