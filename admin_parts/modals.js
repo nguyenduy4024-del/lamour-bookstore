@@ -2128,6 +2128,65 @@ module.exports = `
       </div>
     </div>
   </div>
+
+  <!-- MODAL: CHI TIẾT PHIẾU TRẢ HÀNG NCC (ADMIN) -->
+  <div class="modal-overlay" id="adminSupplierReturnDetailModal" style="z-index: 1300;">
+    <div class="modal-content" style="max-width: 820px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--line); padding-bottom: 12px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h3 class="modal-title" style="margin: 0; display:flex; align-items:center; gap:8px;">
+              <i class="fas fa-undo-alt" style="color:var(--color-primary, #C5A059);"></i> Chi Tiết Phiếu Trả Hàng NCC
+            </h3>
+            <span id="adminSupRetDetailBadge" class="badge">--</span>
+          </div>
+          <div id="adminSupRetDetailCode" style="font-size: 12.5px; color: var(--muted); margin-top: 4px; font-family: monospace; font-weight: 700;">#TH-NCC-000000</div>
+        </div>
+        <button type="button" class="modal-close" onclick="closeModal('adminSupplierReturnDetailModal')">&times;</button>
+      </div>
+
+      <div id="adminSupRetDetailBody" style="overflow-y: auto; padding: 18px 4px 10px 4px; flex: 1;">
+        <!-- Dynamic content filled by JS -->
+      </div>
+
+      <div class="modal-footer" style="border-top: 1px solid var(--line); padding-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <div id="adminSupRetDetailFooterActions" style="display: flex; gap: 8px;"></div>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('adminSupplierReturnDetailModal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TỪ CHỐI YÊU CẦU TRẢ HÀNG NCC (ADMIN) -->
+  <div class="modal-overlay" id="adminRejectSupplierReturnModal" style="z-index: 1300;">
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--line); padding-bottom: 12px;">
+        <h3 class="modal-title" style="color: #DC2626; display:flex; align-items:center; gap:8px; margin:0;">
+          <i class="fas fa-times-circle"></i> Từ Chối Yêu Cầu Trả Hàng NCC
+        </h3>
+        <button type="button" class="modal-close" onclick="closeModal('adminRejectSupplierReturnModal')">&times;</button>
+      </div>
+      <div style="padding: 16px 0;">
+        <input type="hidden" id="adminRejectSupRetId" value="" />
+        <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:8px; padding:12px 14px; margin-bottom:14px;">
+          <div style="font-size:13.5px; color:#991B1B;">
+            Từ chối phiếu yêu cầu: <strong id="adminRejectSupRetCode" style="font-family:monospace;">---</strong>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" style="font-weight: 700; color:#991B1B; font-size:13px; margin-bottom:6px;">
+            Lý do từ chối (* bắt buộc):
+          </label>
+          <textarea id="adminRejectSupRetReason" class="form-control" rows="3" placeholder="Nhập lý do không đồng ý trả hàng (Ví dụ: Không đủ điều kiện trả theo hợp đồng, thời hạn đổi trả đã hết...)" required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 14px 0 0 0; border-top: 1px solid var(--line); display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('adminRejectSupplierReturnModal')">Hủy bỏ</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmAdminRejectSupRet" onclick="submitAdminRejectSupplierReturn()">
+          <i class="fas fa-ban"></i> Xác Nhận Từ Chối
+        </button>
+      </div>
+    </div>
+  </div>
 `;
 
 

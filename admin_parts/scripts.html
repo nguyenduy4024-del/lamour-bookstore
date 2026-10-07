@@ -7645,65 +7645,245 @@
     }
 
     window.adminApproveSupplierReturn = async function(id, code) {
-      if (confirm(`Bạn có chắc chắn muốn PHÊ DUYỆT yêu cầu trả hàng NCC "${code}"?\nSau khi duyệt, yêu cầu sẽ được chuyển lại cho Kho để xuất gửi hàng thực tế cho NCC.`)) {
-        try {
-          const res = await fetch(`/api/inventory/supplier-returns/${id}/admin-approve`, {
-            method: 'PUT',
-            headers: getAuthHeaders({ 'Content-Type': 'application/json' })
-          });
-          const d = await res.json();
-          if (res.ok && d.success) {
-            showCustomToast(d.message || 'Đã phê duyệt yêu cầu thành công!', 'success');
-            loadAdminSupplierReturns();
-          } else {
-            showCustomToast(d.message || 'Không thể phê duyệt yêu cầu', 'error');
+      showConfirmModal(
+        'Phê duyệt yêu cầu trả hàng NCC',
+        `Bạn có chắc chắn muốn <strong>PHÊ DUYỆT</strong> yêu cầu trả hàng NCC <strong style="color:var(--navy-900); font-family:monospace;">"${code}"</strong>?<br><span style="font-size:12px; color:var(--muted); margin-top:6px; display:block;">Sau khi duyệt, yêu cầu sẽ được chuyển lại cho Kho để đóng gói & xuất gửi hàng thực tế cho NCC.</span>`,
+        async () => {
+          try {
+            const res = await fetch(`/api/inventory/supplier-returns/${id}/admin-approve`, {
+              method: 'PUT',
+              headers: getAuthHeaders({ 'Content-Type': 'application/json' })
+            });
+            const d = await res.json();
+            if (res.ok && d.success) {
+              showCustomToast(d.message || 'Đã phê duyệt yêu cầu trả hàng NCC thành công!', 'success');
+              closeModal('adminSupplierReturnDetailModal');
+              loadAdminSupplierReturns();
+            } else {
+              showCustomToast(d.message || 'Không thể phê duyệt yêu cầu', 'error');
+            }
+          } catch (err) {
+            showCustomToast('Lỗi kết nối máy chủ', 'error');
           }
-        } catch (err) {
-          showCustomToast('Lỗi kết nối máy chủ', 'error');
         }
-      }
+      );
     };
 
-    window.adminRejectSupplierReturn = async function(id, code) {
-      const reason = prompt(`Nhập lý do từ chối yêu cầu trả hàng NCC "${code}":`, 'Không đủ điều kiện trả hàng theo hợp đồng');
-      if (reason === null) return;
+    window.adminRejectSupplierReturn = function(id, code) {
+      const idEl = document.getElementById('adminRejectSupRetId');
+      const codeEl = document.getElementById('adminRejectSupRetCode');
+      const reasonEl = document.getElementById('adminRejectSupRetReason');
+      if (idEl) idEl.value = id;
+      if (codeEl) codeEl.textContent = code;
+      if (reasonEl) reasonEl.value = '';
+      openModal('adminRejectSupplierReturnModal');
+    };
+
+    window.submitAdminRejectSupplierReturn = async function() {
+      const id = document.getElementById('adminRejectSupRetId')?.value;
+      const reason = (document.getElementById('adminRejectSupRetReason')?.value || '').trim();
+
+      if (!id) {
+        showCustomToast('Thiếu mã phiếu cần từ chối', 'error');
+        return;
+      }
+      if (!reason) {
+        showCustomToast('Vui lòng nhập lý do từ chối yêu cầu trả hàng', 'warning');
+        document.getElementById('adminRejectSupRetReason')?.focus();
+        return;
+      }
+
+      const btn = document.getElementById('btnConfirmAdminRejectSupRet');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xử lý...';
+      }
+
       try {
         const res = await fetch(`/api/inventory/supplier-returns/${id}/admin-reject`, {
           method: 'PUT',
           headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ reason: reason.trim() })
+          body: JSON.stringify({ reason })
         });
         const d = await res.json();
         if (res.ok && d.success) {
-          showCustomToast(d.message || 'Đã từ chối yêu cầu trả hàng', 'info');
+          showCustomToast(d.message || 'Đã từ chối yêu cầu trả hàng NCC!', 'info');
+          closeModal('adminRejectSupplierReturnModal');
+          closeModal('adminSupplierReturnDetailModal');
           loadAdminSupplierReturns();
         } else {
           showCustomToast(d.message || 'Không thể từ chối yêu cầu', 'error');
         }
       } catch (err) {
         showCustomToast('Lỗi kết nối máy chủ', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-ban"></i> Xác Nhận Từ Chối';
+        }
       }
     };
 
     window.viewSupplierReturnDetailAdmin = function(id) {
       const r = (window._cachedAdminSupplierReturns || []).find(it => it._id === id);
-      if (!r) return;
-      let msg = `CHI TIẾT PHIẾU TRẢ HÀNG NCC #${r.returnCode}\n`;
-      msg += `--------------------------------------\n`;
-      msg += `Nhà cung cấp: ${r.supplierName || 'NCC'}\n`;
-      msg += `Kho xuất: ${r.warehouseName || 'Kho trung tâm'}\n`;
-      msg += `Trạng thái: ${r.status}\n`;
-      msg += `Tổng số lượng: ${r.totalQuantity} cuốn\n`;
-      msg += `Tổng tiền hoàn: ${Number(r.totalAmount || 0).toLocaleString('vi-VN')}₫\n`;
-      msg += `Lý do: ${r.reason || '--'}\n\n`;
-      msg += `DANH SÁCH SÁCH TRẢ:\n`;
-      (r.items || []).forEach((it, idx) => {
-        msg += `${idx + 1}. ${it.title} - SL: ${it.quantity} - Đơn giá: ${Number(it.price || 0).toLocaleString('vi-VN')}₫ (Thành tiền: ${Number(it.totalPrice || 0).toLocaleString('vi-VN')}₫)\n`;
-      });
-      if (r.refundTransactionCode) {
-        msg += `\nMã phiếu thu kế toán: ${r.refundTransactionCode}\n`;
+      if (!r) {
+        showCustomToast('Không tìm thấy thông tin phiếu trả hàng', 'error');
+        return;
       }
-      alert(msg);
+
+      const d = r.returnDate || r.createdAt;
+      const dateStr = d ? new Date(d).toLocaleString('vi-VN') : '--';
+      const supName = (r.supplier && r.supplier.name) || r.supplierName || 'Nhà cung cấp';
+      const supPhone = (r.supplier && r.supplier.phone) || r.supplierPhone || '--';
+      const supAddress = (r.supplier && r.supplier.address) || r.supplierAddress || '--';
+      const staff = r.staffName || (r.createdBy && r.createdBy.name) || 'Thủ kho';
+      const totalQty = r.totalQuantity || 0;
+      const totalAmt = Number(r.totalAmount || 0).toLocaleString('vi-VN') + '₫';
+
+      // Badge trạng thái
+      let badgeHtml = '';
+      const st = r.status;
+      if (st === 'pending_admin' || st === 'pending') {
+        badgeHtml = '<span class="badge" style="background:#FEF3C7; color:#92400E; border:1px solid #FCD34D; font-weight:700;"><span class="badge-dot" style="background:#F59E0B;"></span> B1: Chờ Admin duyệt</span>';
+      } else if (st === 'admin_approved') {
+        badgeHtml = '<span class="badge" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; font-weight:700;"><span class="badge-dot" style="background:#2563EB;"></span> B2: Admin đã duyệt - Chờ xuất hàng</span>';
+      } else if (st === 'pending_accountant') {
+        badgeHtml = '<span class="badge" style="background:#FAF5FF; color:#7E22CE; border:1px solid #E9D5FF; font-weight:700;"><span class="badge-dot" style="background:#A855F7;"></span> B3: Đã xuất hàng - Chờ Kế toán thu tiền</span>';
+      } else if (st === 'completed') {
+        badgeHtml = '<span class="badge" style="background:#DCFCE7; color:#15803D; border:1px solid #BBF7D0; font-weight:700;"><span class="badge-dot" style="background:#16A34A;"></span> B4: Đã hoàn tất</span>';
+      } else if (st === 'rejected') {
+        badgeHtml = `<span class="badge" style="background:#FEE2E2; color:#DC2626; border:1px solid #FECACA; font-weight:700;"><span class="badge-dot" style="background:#EF4444;"></span> Đã từ chối</span>`;
+      } else {
+        badgeHtml = `<span class="badge" style="background:#F1F5F9; color:#475569;">${st}</span>`;
+      }
+
+      const codeEl = document.getElementById('adminSupRetDetailCode');
+      if (codeEl) codeEl.textContent = '#' + r.returnCode;
+
+      const badgeEl = document.getElementById('adminSupRetDetailBadge');
+      if (badgeEl) badgeEl.innerHTML = badgeHtml;
+
+      const bodyEl = document.getElementById('adminSupRetDetailBody');
+      if (bodyEl) {
+        const items = r.items || [];
+        const itemsHtml = items.map((it, idx) => {
+          const itemTotal = Number(it.totalPrice || (it.quantity * it.price) || 0).toLocaleString('vi-VN') + '₫';
+          const itemPrice = Number(it.price || 0).toLocaleString('vi-VN') + '₫';
+          const cover = (it.book && it.book.coverImage) || '/images/placeholder-book.png';
+          return `
+            <tr style="border-bottom: 1px solid #F1F5F9;">
+              <td style="padding: 10px 12px; text-align: center; color: var(--muted); font-size: 12px;">${idx + 1}</td>
+              <td style="padding: 10px 12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <img src="${cover}" alt="cover" style="width:36px; height:48px; object-fit:cover; border-radius:4px; border:1px solid #E2E8F0;" onerror="this.src='/images/placeholder-book.png'" />
+                  <div>
+                    <div style="font-weight:600; color:var(--navy-900); font-size:13px; line-height:1.3;">${escapeHtml(it.title)}</div>
+                    <div style="font-size:11.5px; color:var(--muted); font-family:monospace;">Mã: ${escapeHtml(it.bookCode || '---')}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="padding: 10px 12px; font-size:12px; color:var(--muted); max-width:180px;">${escapeHtml(it.reason || 'Sách lỗi in ấn')}</td>
+              <td style="padding: 10px 12px; text-align:center; font-weight:700; color:var(--navy-900); font-size:13px;">${it.quantity}</td>
+              <td style="padding: 10px 12px; text-align:right; font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:#475569;">${itemPrice}</td>
+              <td style="padding: 10px 12px; text-align:right; font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--emerald); font-size:13px;">${itemTotal}</td>
+            </tr>
+          `;
+        }).join('');
+
+        bodyEl.innerHTML = `
+          <div style="display: grid; grid-template-columns: 1.1fr 1fr; gap: 14px; margin-bottom: 16px;">
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px;">
+              <div style="font-size:11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.5px; margin-bottom:8px;">
+                <i class="fas fa-building" style="color:var(--color-primary, #C5A059); margin-right:4px;"></i> Thông Tin Đối Tác Cung Ứng
+              </div>
+              <div style="font-size:14px; font-weight:700; color:var(--navy-900); margin-bottom:4px;">${escapeHtml(supName)}</div>
+              <div style="font-size:12.5px; color:var(--muted); margin-bottom:2px;"><i class="fas fa-phone-alt" style="width:14px; opacity:0.7;"></i> ${escapeHtml(supPhone)}</div>
+              <div style="font-size:12.5px; color:var(--muted);"><i class="fas fa-map-marker-alt" style="width:14px; opacity:0.7;"></i> ${escapeHtml(supAddress)}</div>
+            </div>
+
+            <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px;">
+              <div style="font-size:11px; text-transform:uppercase; color:var(--muted); font-weight:700; letter-spacing:0.5px; margin-bottom:8px;">
+                <i class="fas fa-warehouse" style="color:var(--color-primary, #C5A059); margin-right:4px;"></i> Thông Tin Kho & Tiến Trình
+              </div>
+              <div style="display:grid; grid-template-columns: 110px 1fr; gap:4px 8px; font-size:12.5px;">
+                <span style="color:var(--muted);">Kho xuất trả:</span>
+                <strong style="color:var(--navy-900);">${escapeHtml(r.warehouseName || 'Kho trung tâm')}</strong>
+                <span style="color:var(--muted);">Người lập phiếu:</span>
+                <span style="color:var(--navy-900); font-weight:600;">${escapeHtml(staff)}</span>
+                <span style="color:var(--muted);">Thời gian tạo:</span>
+                <span style="color:#475569;">${dateStr}</span>
+                <span style="color:var(--muted);">Lý do chung:</span>
+                <span style="color:#B45309; font-weight:600;">${escapeHtml(r.reason || '--')}</span>
+              </div>
+            </div>
+          </div>
+
+          ${r.adminRejectReason ? `
+            <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+              <i class="fas fa-exclamation-circle" style="color:#DC2626; font-size:16px;"></i>
+              <div style="font-size:13px; color:#991B1B;">
+                <strong>Lý do Admin từ chối:</strong> ${escapeHtml(r.adminRejectReason)}
+              </div>
+            </div>
+          ` : ''}
+
+          ${r.refundTransactionCode ? `
+            <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:10px 14px; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+              <i class="fas fa-receipt" style="color:#16A34A; font-size:16px;"></i>
+              <div style="font-size:13px; color:#166534;">
+                <strong>Phiếu thu kế toán liên kết:</strong> <span style="font-family:monospace; font-weight:700;">#${escapeHtml(r.refundTransactionCode)}</span>
+                <span style="margin-left:8px; font-size:12px; opacity:0.85;">(Thu tiền hoàn từ Nhà cung cấp)</span>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- BẢNG DANH SÁCH SÁCH TRẢ -->
+          <div style="border:1px solid var(--line); border-radius:8px; overflow:hidden;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+              <thead>
+                <tr style="background:#F1F5F9; color:#475569; font-size:12px; font-weight:700; text-transform:uppercase;">
+                  <th style="padding:10px 12px; width:40px; text-align:center;">STT</th>
+                  <th style="padding:10px 12px; text-align:left;">Sách hoàn trả</th>
+                  <th style="padding:10px 12px; text-align:left; width:180px;">Lý do lỗi</th>
+                  <th style="padding:10px 12px; text-align:center; width:70px;">SL</th>
+                  <th style="padding:10px 12px; text-align:right; width:110px;">Đơn giá</th>
+                  <th style="padding:10px 12px; text-align:right; width:120px;">Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsHtml}
+              </tbody>
+              <tfoot>
+                <tr style="background:#FAF7F1; font-weight:700; border-top:2px solid var(--line);">
+                  <td colspan="3" style="padding:12px; text-align:right; color:var(--navy-900);">TỔNG CỘNG:</td>
+                  <td style="padding:12px; text-align:center; font-size:14px; color:var(--navy-900);">${totalQty} cuốn</td>
+                  <td></td>
+                  <td style="padding:12px; text-align:right; font-size:15px; color:var(--emerald); font-family:'IBM Plex Mono', monospace;">${totalAmt}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        `;
+      }
+
+      // Nút hành động trong footer
+      const footerActions = document.getElementById('adminSupRetDetailFooterActions');
+      if (footerActions) {
+        if (st === 'pending_admin' || st === 'pending') {
+          footerActions.innerHTML = `
+            <button type="button" class="btn btn-primary" onclick="adminApproveSupplierReturn('${r._id}', '${r.returnCode}')" style="background:#059669; border-color:#059669; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+              <i class="fas fa-check"></i> Duyệt Yêu Cầu
+            </button>
+            <button type="button" class="btn btn-danger" onclick="adminRejectSupplierReturn('${r._id}', '${r.returnCode}')" style="font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+              <i class="fas fa-times"></i> Từ Chối
+            </button>
+          `;
+        } else {
+          footerActions.innerHTML = '';
+        }
+      }
+
+      openModal('adminSupplierReturnDetailModal');
     };
 
     window.switchSupplierViewMode = switchSupplierViewMode;
