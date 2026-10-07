@@ -15,12 +15,16 @@ const {
   getFinancialReport,
   getSupplierDebts,
   paySupplierDebt,
-  payCustomerDebt
+  payCustomerDebt,
+  getAccountingBadgeCounts
 } = require('../controllers/accountingController');
 
 // Áp dụng middleware bảo mật chỉ cho accountant và admin
 router.use(protect);
 router.use(authorizeRoles('accountant', 'admin'));
+
+// API siêu nhẹ đếm số phiếu chờ duyệt cho sidebar badges
+router.get('/badge-counts', getAccountingBadgeCounts);
 
 // Upload ảnh chứng từ đính kèm (hỗ trợ field name 'attachment' hoặc 'file')
 router.post('/upload-attachment', uploadPaymentProof.single('attachment'), (req, res) => {

@@ -13,6 +13,8 @@ const ShelfActivityLog = require('../models/ShelfActivityLog');
 const BookHideRequest = require('../models/BookHideRequest');
 const SupplierSuspendRequest = require('../models/SupplierSuspendRequest');
 const ShelfCreateRequest = require('../models/ShelfCreateRequest');
+const ShelfMaintenanceRequest = require('../models/ShelfMaintenanceRequest');
+const ShelfTransferRequest = require('../models/ShelfTransferRequest');
 const { logShelfActivity } = require('../utils/shelfActivityLogger');
 const {
   getOrCreateBackupShelf,
@@ -53,21 +55,47 @@ const getAllSuppliers = async (req, res) => {
 
     const suppliers = await Supplier.find(filter).sort({ createdAt: -1, _id: -1 }).lean();
 
-    // 1. Thống kê số đầu sách và tổng tồn kho theo NCC
-    const bookStats = await Book.aggregate([
-      { $match: { isDeleted: { $ne: true }, supplier: { $ne: null } } },
+    // 1. Thống kê số đầu sách và tổng tồn kho theo NCC (kết hợp cả sách gán trực tiếp và sách từng nhập hàng)
+    const directBooks = await Book.find({ isDeleted: { $ne: true }, supplier: { $ne: null } })
+      .select('_id supplier stock').lean();
+
+    const receiptBooksAgg = await ImportReceipt.aggregate([
+      { $match: { supplier: { $ne: null } } },
+      { $unwind: '$items' },
+      { $match: { 'items.book': { $ne: null } } },
       {
         $group: {
-          _id: '$supplier',
-          titlesCount: { $sum: 1 },
-          totalStock: { $sum: '$stock' }
+          _id: { supplier: '$supplier', book: '$items.book' }
         }
       }
     ]);
-    const bookStatsMap = {};
-    bookStats.forEach(item => {
-      if (item._id) bookStatsMap[item._id.toString()] = item;
+
+    const supBookIdsMap = new Map();
+    directBooks.forEach(b => {
+      const sId = String(b.supplier);
+      if (!supBookIdsMap.has(sId)) supBookIdsMap.set(sId, new Set());
+      supBookIdsMap.get(sId).add(String(b._id));
     });
+    receiptBooksAgg.forEach(item => {
+      const sId = String(item._id.supplier);
+      if (!supBookIdsMap.has(sId)) supBookIdsMap.set(sId, new Set());
+      supBookIdsMap.get(sId).add(String(item._id.book));
+    });
+
+    const allBooks = await Book.find({ isDeleted: { $ne: true } }).select('_id stock').lean();
+    const bookStockMap = new Map(allBooks.map(b => [String(b._id), b.stock || 0]));
+
+    const bookStatsMap = {};
+    for (const [sId, bIdSet] of supBookIdsMap.entries()) {
+      let totalStock = 0;
+      for (const bId of bIdSet) {
+        totalStock += (bookStockMap.get(bId) || 0);
+      }
+      bookStatsMap[sId] = {
+        titlesCount: bIdSet.size,
+        totalStock
+      };
+    }
 
     // 2. Thống kê tổng giá trị nhập hàng và số phiếu nhập theo NCC
     const receiptStats = await ImportReceipt.aggregate([
@@ -184,12 +212,28 @@ const getSupplierDetail = async (req, res) => {
     if (!supplier) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy nhà cung cấp' });
     }
-    const titlesCount = await Book.countDocuments({ supplier: supplier._id, isDeleted: { $ne: true } });
+
+    // Lấy tất cả sách liên kết trực tiếp HOẶC từng được nhập từ nhà cung cấp này
+    const importedBookIds = await ImportReceipt.distinct('items.book', {
+      supplier: supplier._id,
+      'items.book': { $ne: null }
+    });
+
+    const bookFilter = {
+      $or: [
+        { supplier: supplier._id },
+        { _id: { $in: importedBookIds } }
+      ],
+      isDeleted: { $ne: true }
+    };
+
+    const titlesCount = await Book.countDocuments(bookFilter);
     const stockAgg = await Book.aggregate([
-      { $match: { supplier: supplier._id, isDeleted: { $ne: true } } },
+      { $match: bookFilter },
       { $group: { _id: null, totalStock: { $sum: '$stock' } } }
     ]);
     const totalStock = stockAgg[0]?.totalStock || 0;
+
     const receiptAgg = await ImportReceipt.aggregate([
       { $match: { supplier: supplier._id } },
       { $group: { _id: null, totalAmount: { $sum: '$totalAmount' }, count: { $sum: 1 } } }
@@ -217,10 +261,24 @@ const getSupplierDetail = async (req, res) => {
 // @access  Private (Stock, Admin, Staff)
 const getSupplierBooks = async (req, res) => {
   try {
-    const books = await Book.find({ supplier: req.params.id, isDeleted: { $ne: true } })
+    const importedBookIds = await ImportReceipt.distinct('items.book', {
+      supplier: req.params.id,
+      'items.book': { $ne: null }
+    });
+
+    const bookFilter = {
+      $or: [
+        { supplier: req.params.id },
+        { _id: { $in: importedBookIds } }
+      ],
+      isDeleted: { $ne: true }
+    };
+
+    const books = await Book.find(bookFilter)
       .select('bookCode title author category price costPrice stock shelfLocation coverImage status')
       .sort({ title: 1 })
       .lean();
+
     res.status(200).json({
       success: true,
       count: books.length,
@@ -237,13 +295,30 @@ const getSupplierBooks = async (req, res) => {
 const getSupplierHistory = async (req, res) => {
   try {
     const receipts = await ImportReceipt.find({ supplier: req.params.id })
-      .select('receiptCode receiptDate invoiceNo totalAmount totalQuantity receiverStaff note createdAt')
+      .select('receiptCode receiptDate invoiceNo totalAmount totalQuantity receiverStaff note createdAt items createdUser createdBy')
+      .populate('createdBy', 'name')
+      .populate('createdUser', 'name')
       .sort({ receiptDate: -1, createdAt: -1 })
       .lean();
+
+    const formatted = receipts.map(r => {
+      const items = Array.isArray(r.items) ? r.items : [];
+      const totalQty = (typeof r.totalQuantity === 'number' && r.totalQuantity > 0)
+        ? r.totalQuantity
+        : items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+      const itemCount = items.length;
+      return {
+        ...r,
+        totalQuantity: totalQty,
+        itemCount,
+        creatorName: (r.createdUser && r.createdUser.name) || (r.createdBy && r.createdBy.name) || r.receiverStaff || 'Thủ kho'
+      };
+    });
+
     res.status(200).json({
       success: true,
-      count: receipts.length,
-      data: receipts
+      count: formatted.length,
+      data: formatted
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message || 'Lỗi lấy lịch sử nhập kho của NCC' });
@@ -292,6 +367,17 @@ const createSupplier = async (req, res) => {
       }
     }
 
+    const parsedCategories = Array.isArray(categories)
+      ? categories.map(s => String(s).trim()).filter(Boolean)
+      : (categories ? String(categories).split(',').map(s => s.trim()).filter(Boolean) : []);
+
+    if (!parsedCategories || parsedCategories.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng chọn hoặc nhập ít nhất một Danh mục / Thể loại phân phối cho nhà cung cấp'
+      });
+    }
+
     const existing = await Supplier.findOne({ code });
     if (existing) {
       return res.status(400).json({ success: false, message: `Mã nhà cung cấp "${code}" đã tồn tại` });
@@ -304,7 +390,7 @@ const createSupplier = async (req, res) => {
       phone: cleanPhone,
       email: email.trim(),
       address: (address || '').trim(),
-      categories: Array.isArray(categories) ? categories : (categories ? String(categories).split(',').map(s => s.trim()).filter(Boolean) : []),
+      categories: parsedCategories,
       bankAccount: bankAccount || {},
       status: status || 'active',
       isDeleted: false
@@ -363,7 +449,16 @@ const updateSupplier = async (req, res) => {
     }
     if (address !== undefined) updateData.address = address.trim();
     if (categories !== undefined) {
-      updateData.categories = Array.isArray(categories) ? categories : String(categories).split(',').map(s => s.trim()).filter(Boolean);
+      const parsedCategories = Array.isArray(categories)
+        ? categories.map(s => String(s).trim()).filter(Boolean)
+        : String(categories).split(',').map(s => s.trim()).filter(Boolean);
+      if (!parsedCategories || parsedCategories.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng chọn hoặc nhập ít nhất một Danh mục / Thể loại phân phối cho nhà cung cấp'
+        });
+      }
+      updateData.categories = parsedCategories;
     }
     if (bankAccount !== undefined) {
       if (bankAccount && typeof bankAccount === 'object') {
@@ -2225,6 +2320,9 @@ const getInventoryLookup = async (req, res) => {
           executionStatus: hr.executionStatus,
           reason: hr.reason,
           note: hr.note,
+          hideType: hr.hideType || 'partial',
+          quantity: hr.quantity || 1,
+          remainingStock: hr.remainingStock,
           requestedByName: hr.requestedByName,
           requestedByRole: hr.requestedByRole,
           requestedAt: hr.createdAt,
@@ -2274,7 +2372,7 @@ const getInventoryLookup = async (req, res) => {
 // @access  Private (Stock, Admin, Staff)
 const createBookHideRequest = async (req, res) => {
   try {
-    const { bookId, reason, note } = req.body;
+    const { bookId, reason, note, hideType = 'partial', quantity } = req.body;
 
     if (!bookId) {
       return res.status(400).json({ success: false, message: 'Vui lòng cung cấp mã ID cuốn sách cần ẩn' });
@@ -2304,6 +2402,14 @@ const createBookHideRequest = async (req, res) => {
       });
     }
 
+    const targetHideType = hideType === 'all' ? 'all' : 'partial';
+    let hideQty = Number(quantity) || (targetHideType === 'all' ? (book.stock || 1) : 1);
+    if (hideQty <= 0) hideQty = 1;
+    if (targetHideType === 'partial' && book.stock > 0 && hideQty > book.stock) {
+      hideQty = book.stock;
+    }
+    const remainingStock = Math.max(0, (book.stock || 0) - hideQty);
+
     // Tạo mã yêu cầu duy nhất
     const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -2318,6 +2424,9 @@ const createBookHideRequest = async (req, res) => {
       category: book.category || '',
       coverImage: book.coverImage || '',
       stock: book.stock || 0,
+      hideType: targetHideType,
+      quantity: hideQty,
+      remainingStock,
       price: book.price || 0,
       shelfLocation: book.shelfLocation || '',
       requestedBy: req.user._id,
@@ -2336,12 +2445,16 @@ const createBookHideRequest = async (req, res) => {
       targetId: String(hideReq._id),
       targetModel: 'BookHideRequest',
       targetLabel: `${hideReq.requestCode} - ${book.title}`,
-      description: `Thủ kho ${req.user.name} gửi yêu cầu ẩn sách "${book.title}" (${book.bookCode || ''}) tới Admin. Lý do: ${reason.trim()}`
+      description: `Thủ kho ${req.user.name} gửi yêu cầu ${targetHideType === 'partial' ? `ẩn ${hideQty} cuốn (lỗi/hỏng)` : 'ẩn toàn bộ'} sách "${book.title}" (${book.bookCode || ''}) tới Admin. Lý do: ${reason.trim()}`
     });
+
+    const successMsg = targetHideType === 'partial'
+      ? `Đã gửi yêu cầu ẩn ${hideQty} cuốn sách "${book.title}" tới Quản trị viên (Còn lại ${remainingStock} cuốn vẫn mở bán bình thường). Vui lòng chờ Admin phê duyệt!`
+      : `Đã gửi yêu cầu ẩn toàn bộ đầu sách "${book.title}" tới Quản trị viên. Vui lòng chờ Admin phê duyệt!`;
 
     res.status(201).json({
       success: true,
-      message: `Đã gửi yêu cầu ẩn sách "${book.title}" tới Quản trị viên thành công. Vui lòng chờ Admin phê duyệt!`,
+      message: successMsg,
       data: hideReq
     });
   } catch (error) {
@@ -2455,17 +2568,27 @@ const approveBookHideRequest = async (req, res) => {
     const willAutoHide = autoHide === true || autoHide === 'true';
     if (willAutoHide) {
       // Thực hiện ẩn sách ngay lập tức
-      const book = await Book.findByIdAndUpdate(
-        hideReq.book,
-        {
-          isDeleted: true,
-          status: 'hidden',
-          deletedAt: new Date()
-        },
-        { new: true }
-      );
-      if (book && book.shelf) {
-        await updateShelfStatus(book.shelf);
+      if (hideReq.hideType === 'partial') {
+        const qtyToHide = Number(hideReq.quantity) || 1;
+        const book = await Book.findById(hideReq.book);
+        if (book) {
+          book.stock = Math.max(0, (book.stock || 0) - qtyToHide);
+          book.damagedStock = (book.damagedStock || 0) + qtyToHide;
+          await book.save();
+        }
+      } else {
+        const book = await Book.findByIdAndUpdate(
+          hideReq.book,
+          {
+            isDeleted: true,
+            status: 'hidden',
+            deletedAt: new Date()
+          },
+          { new: true }
+        );
+        if (book && book.shelf) {
+          await updateShelfStatus(book.shelf);
+        }
       }
       hideReq.executionStatus = 'executed';
       hideReq.executedAt = new Date();
@@ -2617,18 +2740,27 @@ const executeBookHideRequest = async (req, res) => {
       });
     }
 
-    const book = await Book.findByIdAndUpdate(
-      hideReq.book,
-      {
-        isDeleted: true,
-        status: 'hidden',
-        deletedAt: new Date()
-      },
-      { new: true }
-    );
-
-    if (book && book.shelf) {
-      await updateShelfStatus(book.shelf);
+    if (hideReq.hideType === 'partial') {
+      const qtyToHide = Number(hideReq.quantity) || 1;
+      const book = await Book.findById(hideReq.book);
+      if (book) {
+        book.stock = Math.max(0, (book.stock || 0) - qtyToHide);
+        book.damagedStock = (book.damagedStock || 0) + qtyToHide;
+        await book.save();
+      }
+    } else {
+      const book = await Book.findByIdAndUpdate(
+        hideReq.book,
+        {
+          isDeleted: true,
+          status: 'hidden',
+          deletedAt: new Date()
+        },
+        { new: true }
+      );
+      if (book && book.shelf) {
+        await updateShelfStatus(book.shelf);
+      }
     }
 
     hideReq.executionStatus = 'executed';
@@ -3089,6 +3221,14 @@ const updateBookShelfLocation = async (req, res) => {
         return res.status(400).json({
           success: false,
           message: capacityCheck.message
+        });
+      }
+
+      // Nếu sách đã có kệ và chuyển sang kệ khác, nhân viên kho cần gửi yêu cầu điều chuyển
+      if (book.shelf && String(book.shelf) !== String(targetShelf._id) && req.user && req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Nhân viên kho không thể tự ý đổi kệ sách trực tiếp. Vui lòng gửi Yêu Cầu Điều Chuyển Sách để Quản trị viên (Admin) phê duyệt!'
         });
       }
     }
@@ -3687,15 +3827,25 @@ const getAllShelves = async (req, res) => {
       booksByShelf[sid].push(b);
     }
 
+    // Lấy danh sách yêu cầu bảo trì kệ đang chờ duyệt để thông báo trên sơ đồ
+    const pendingMaintList = await ShelfMaintenanceRequest.find({ status: 'pending' }).lean();
+    const pendingMaintMap = {};
+    for (const pm of pendingMaintList) {
+      if (pm.shelf) {
+        pendingMaintMap[pm.shelf.toString()] = pm;
+      }
+    }
+
     let shelvesWithStats = shelves.map(s => {
       const sid = s._id.toString();
       const books = booksByShelf[sid] || [];
       const currentStock = books.reduce((sum, b) => sum + (Number(b.stock) || 0), 0);
       const remainingSpace = Math.max(0, s.capacity - currentStock);
-      const occupancyPercent = s.capacity > 0 ? Math.min(100, Math.round((currentStock / s.capacity) * 100)) : 0;
+      const occupancyPercent = s.capacity > 0 ? Math.round((currentStock / s.capacity) * 100) : 0;
 
       let calculatedStatus = 'available';
       if (s.status === 'maintenance') calculatedStatus = 'maintenance';
+      else if (currentStock > s.capacity) calculatedStatus = 'overloaded';
       else if (remainingSpace <= 0) calculatedStatus = 'full';
       else if (remainingSpace <= s.capacity * 0.2) calculatedStatus = 'nearly_full';
 
@@ -3708,13 +3858,18 @@ const getAllShelves = async (req, res) => {
         occupancyRate: occupancyPercent,
         booksCount: books.length,
         status: calculatedStatus,
+        pendingMaintenance: pendingMaintMap[sid] || null,
         books
       };
     });
 
     // Lọc trạng thái dựa trên số liệu thực tế thời gian thực
     if (status && status !== 'all') {
-      shelvesWithStats = shelvesWithStats.filter(s => s.status === status);
+      if (status === 'full') {
+        shelvesWithStats = shelvesWithStats.filter(s => s.status === 'full' || s.status === 'overloaded');
+      } else {
+        shelvesWithStats = shelvesWithStats.filter(s => s.status === status);
+      }
     }
 
     res.status(200).json({
@@ -3905,6 +4060,14 @@ const toggleShelfMaintenance = async (req, res) => {
       });
     }
 
+    // Nhân viên kho không thể tự ý bảo trì kệ trực tiếp mà phải gửi yêu cầu cho Admin duyệt
+    if (toMaintenance && req.user && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Nhân viên kho không thể tự ý bảo trì kệ sách trực tiếp. Vui lòng gửi Yêu Cầu Bảo Trì Kệ Sách để Quản trị viên (Admin) phê duyệt!'
+      });
+    }
+
     const backupShelf = await getOrCreateBackupShelf();
 
     if (toMaintenance) {
@@ -4046,6 +4209,14 @@ const toggleShelfMaintenance = async (req, res) => {
 // @access  Private (Admin, Stock)
 const transferBooksBetweenShelves = async (req, res) => {
   try {
+    // Nhân viên kho phải gửi yêu cầu điều chuyển sách để Admin duyệt
+    if (req.user && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Nhân viên kho không thể tự ý điều chuyển sách trực tiếp. Vui lòng gửi Yêu Cầu Điều Chuyển Sách để Quản trị viên (Admin) phê duyệt!'
+      });
+    }
+
     const { bookIds, targetShelfId } = req.body;
     if (!Array.isArray(bookIds) || bookIds.length === 0 || !targetShelfId) {
       return res.status(400).json({
@@ -4654,6 +4825,394 @@ const cancelShelfCreateRequest = async (req, res) => {
   }
 };
 
+// ================= SHELF MAINTENANCE REQUEST CONTROLLERS =================
+
+// @desc    Nhân viên kho gửi yêu cầu bảo trì kệ sách tới Quản trị viên
+// @route   POST /api/inventory/shelf-maintenance-requests
+// @access  Private (Stock, Admin, Staff)
+const createShelfMaintenanceRequest = async (req, res) => {
+  try {
+    const { shelfId, reason, expectedDuration, note } = req.body;
+
+    if (!shelfId) {
+      return res.status(400).json({ success: false, message: 'Vui lòng chọn kệ sách cần bảo trì' });
+    }
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ success: false, message: 'Vui lòng chọn hoặc nhập lý do đề xuất bảo trì kệ' });
+    }
+
+    const shelf = await Shelf.findById(shelfId);
+    if (!shelf) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy kệ sách' });
+    }
+
+    if (shelf.shelfCode === 'KE-DP') {
+      return res.status(400).json({
+        success: false,
+        message: 'Kệ Dự Phòng là kệ trung tâm dự phòng của kho, không thể đưa vào bảo trì!'
+      });
+    }
+
+    if (shelf.status === 'maintenance') {
+      return res.status(400).json({
+        success: false,
+        message: `Kệ "${shelf.shelfName}" (${shelf.shelfCode}) hiện đang trong trạng thái bảo trì rồi!`
+      });
+    }
+
+    // Kiểm tra xem đã có yêu cầu bảo trì nào đang pending cho kệ này chưa
+    const existingPending = await ShelfMaintenanceRequest.findOne({
+      shelf: shelf._id,
+      status: 'pending'
+    });
+    if (existingPending) {
+      return res.status(400).json({
+        success: false,
+        message: `Đã có yêu cầu bảo trì (${existingPending.requestCode}) cho kệ "${shelf.shelfCode}" đang chờ Admin phê duyệt!`
+      });
+    }
+
+    // Đếm số sách và cuốn sách thực tế trên kệ hiện tại
+    const booksOnShelf = await Book.find({ shelf: shelf._id, isDeleted: { $ne: true } });
+    const currentUnits = booksOnShelf.reduce((sum, b) => sum + (Number(b.stock) || 0), 0);
+
+    const maintReq = new ShelfMaintenanceRequest({
+      shelf: shelf._id,
+      shelfCode: shelf.shelfCode,
+      shelfName: shelf.shelfName,
+      zone: shelf.zone,
+      capacity: shelf.capacity,
+      currentUnits,
+      booksCount: booksOnShelf.length,
+      reason: reason.trim(),
+      expectedDuration: (expectedDuration || '1 - 2 ngày').trim(),
+      note: (note || '').trim(),
+      requestedBy: req.user._id,
+      requestedByName: req.user.name || 'Thủ kho',
+      requestedByRole: req.user.role || 'stock',
+      status: 'pending'
+    });
+
+    await maintReq.save();
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SHELF_MAINTENANCE_REQUEST_SUBMIT',
+      severity: 'WARNING',
+      targetId: String(maintReq._id),
+      targetModel: 'ShelfMaintenanceRequest',
+      targetLabel: `${maintReq.requestCode} - ${maintReq.shelfCode}`,
+      description: `Nhân viên kho ${req.user.name} đã gửi yêu cầu bảo trì kệ sách "${maintReq.shelfName}" (${maintReq.shelfCode}) đang chứa ${currentUnits} cuốn. Lý do: ${maintReq.reason}`
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Đã gửi yêu cầu bảo trì kệ sách "${maintReq.shelfName}" (${maintReq.shelfCode}) tới Quản trị viên thành công. Vui lòng chờ Admin phê duyệt!`,
+      data: maintReq
+    });
+  } catch (error) {
+    console.error('Lỗi createShelfMaintenanceRequest:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi tạo yêu cầu bảo trì kệ' });
+  }
+};
+
+// @desc    Lấy danh sách tất cả yêu cầu bảo trì kệ sách
+// @route   GET /api/inventory/shelf-maintenance-requests
+// @access  Private (Stock, Admin, Staff)
+const getAllShelfMaintenanceRequests = async (req, res) => {
+  try {
+    const { status, zone, search, page = 1, limit = 20 } = req.query;
+    const filter = {};
+
+    if (status && status !== 'all' && ['pending', 'approved', 'rejected', 'cancelled'].includes(status)) {
+      filter.status = status;
+    }
+    if (zone && zone !== 'all') {
+      filter.zone = zone;
+    }
+    if (search && search.trim()) {
+      const q = search.trim();
+      const regex = new RegExp(q, 'i');
+      filter.$or = [
+        { requestCode: regex },
+        { shelfCode: regex },
+        { shelfName: regex },
+        { reason: regex },
+        { requestedByName: regex }
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [requests, total, countPending, countApproved, countRejected, countCancelled, countAll] = await Promise.all([
+      ShelfMaintenanceRequest.find(filter)
+        .populate('requestedBy', 'name email role')
+        .populate('reviewedBy', 'name email role')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      ShelfMaintenanceRequest.countDocuments(filter),
+      ShelfMaintenanceRequest.countDocuments({ status: 'pending' }),
+      ShelfMaintenanceRequest.countDocuments({ status: 'approved' }),
+      ShelfMaintenanceRequest.countDocuments({ status: 'rejected' }),
+      ShelfMaintenanceRequest.countDocuments({ status: 'cancelled' }),
+      ShelfMaintenanceRequest.countDocuments({})
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: requests,
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / Number(limit)) || 1,
+      counts: {
+        all: countAll,
+        pending: countPending,
+        approved: countApproved,
+        rejected: countRejected,
+        cancelled: countCancelled
+      }
+    });
+  } catch (error) {
+    console.error('Lỗi getAllShelfMaintenanceRequests:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi lấy danh sách yêu cầu bảo trì kệ' });
+  }
+};
+
+// @desc    Lấy chi tiết yêu cầu bảo trì kệ sách theo ID
+// @route   GET /api/inventory/shelf-maintenance-requests/:id
+// @access  Private (Stock, Admin, Staff)
+const getShelfMaintenanceRequestById = async (req, res) => {
+  try {
+    const request = await ShelfMaintenanceRequest.findById(req.params.id)
+      .populate('requestedBy', 'name email role')
+      .populate('reviewedBy', 'name email role')
+      .populate('shelf');
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy yêu cầu bảo trì kệ sách' });
+    }
+
+    res.status(200).json({ success: true, data: request });
+  } catch (error) {
+    console.error('Lỗi getShelfMaintenanceRequestById:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi lấy chi tiết yêu cầu bảo trì' });
+  }
+};
+
+// @desc    Admin phê duyệt yêu cầu bảo trì kệ sách -> Tự động chuyển sách sang Kệ Dự Phòng & đặt kệ vào chế độ bảo trì
+// @route   PUT /api/inventory/shelf-maintenance-requests/:id/approve
+// @access  Private (Admin)
+const approveShelfMaintenanceRequest = async (req, res) => {
+  try {
+    const { adminNote } = req.body;
+    const reqDoc = await ShelfMaintenanceRequest.findById(req.params.id);
+
+    if (!reqDoc) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy yêu cầu bảo trì kệ sách' });
+    }
+
+    if (reqDoc.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Yêu cầu này không ở trạng thái chờ duyệt (Hiện tại: ${reqDoc.status}).`
+      });
+    }
+
+    const shelf = await Shelf.findById(reqDoc.shelf);
+    if (!shelf) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy kệ sách cần bảo trì trong hệ thống!' });
+    }
+
+    if (shelf.shelfCode === 'KE-DP') {
+      return res.status(400).json({
+        success: false,
+        message: 'Kệ Dự Phòng là kệ trung tâm dự phòng của kho, không thể đưa vào chế độ bảo trì!'
+      });
+    }
+
+    const backupShelf = await getOrCreateBackupShelf();
+
+    // 1. Tìm toàn bộ sách đang có trên kệ này
+    const booksOnShelf = await Book.find({ shelf: shelf._id, isDeleted: { $ne: true } });
+    const totalUnits = booksOnShelf.reduce((sum, b) => sum + (Number(b.stock) || 0), 0);
+
+    // 2. Chuyển sách sang KE-DP
+    if (booksOnShelf.length > 0) {
+      await Book.updateMany(
+        { shelf: shelf._id },
+        {
+          $set: {
+            shelf: backupShelf._id,
+            shelfPosition: backupShelf.shelfName,
+            shelfLocation: backupShelf.shelfName
+          }
+        }
+      );
+      await updateShelfStatus(backupShelf._id);
+    }
+
+    // 3. Đặt trạng thái kệ thành maintenance
+    shelf.status = 'maintenance';
+    await shelf.save();
+    await updateShelfStatus(shelf._id);
+
+    // 4. Cập nhật yêu cầu bảo trì
+    const movedBookIds = booksOnShelf.map(b => b._id);
+    reqDoc.status = 'approved';
+    reqDoc.reviewedBy = req.user._id;
+    reqDoc.reviewedByName = req.user.name || 'Quản trị viên';
+    reqDoc.reviewedAt = new Date();
+    reqDoc.adminNote = (adminNote || '').trim();
+    reqDoc.executedAt = new Date();
+    reqDoc.movedToBackupUnits = totalUnits;
+    reqDoc.movedBookIds = movedBookIds;
+    await reqDoc.save();
+
+    // 5. Ghi nhật ký kệ sách
+    await logShelfActivity({
+      action: 'SHELF_MAINTENANCE_START',
+      description: `Quản trị viên phê duyệt yêu cầu bảo trì ${reqDoc.requestCode} của ${reqDoc.requestedByName}: Đưa kệ "${shelf.shelfName}" (${shelf.shelfCode}) vào BẢO TRÌ. Đã chuyển ${booksOnShelf.length} đầu sách (${totalUnits} cuốn) sang Kệ Dự Phòng (${backupShelf.shelfCode}).`,
+      fromShelf: { _id: shelf._id, shelfCode: shelf.shelfCode, shelfName: shelf.shelfName },
+      toShelf: { _id: backupShelf._id, shelfCode: backupShelf.shelfCode, shelfName: backupShelf.shelfName },
+      quantity: totalUnits,
+      performer: req.user,
+      details: {
+        requestCode: reqDoc.requestCode,
+        reason: reqDoc.reason,
+        expectedDuration: reqDoc.expectedDuration,
+        movedBooksCount: booksOnShelf.length,
+        movedUnits: totalUnits,
+        movedBookIds
+      }
+    });
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SHELF_MAINTENANCE_REQUEST_APPROVE',
+      severity: 'INFO',
+      targetId: String(reqDoc._id),
+      targetModel: 'ShelfMaintenanceRequest',
+      targetLabel: `${reqDoc.requestCode} - ${shelf.shelfCode}`,
+      description: `Quản trị viên ${req.user.name} đã phê duyệt yêu cầu bảo trì kệ sách ${shelf.shelfCode} (${shelf.shelfName}) của ${reqDoc.requestedByName}. Đã chuyển ${totalUnits} cuốn sang KE-DP.`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã phê duyệt yêu cầu bảo trì kệ "${shelf.shelfName}" (${shelf.shelfCode})! Đã chuyển ${booksOnShelf.length} đầu sách (${totalUnits} cuốn) sang Kệ Dự Phòng an toàn.`,
+      data: {
+        request: reqDoc,
+        shelf,
+        movedUnits: totalUnits,
+        movedBooksCount: booksOnShelf.length
+      }
+    });
+  } catch (error) {
+    console.error('Lỗi approveShelfMaintenanceRequest:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi phê duyệt yêu cầu bảo trì kệ' });
+  }
+};
+
+// @desc    Admin từ chối yêu cầu bảo trì kệ sách
+// @route   PUT /api/inventory/shelf-maintenance-requests/:id/reject
+// @access  Private (Admin)
+const rejectShelfMaintenanceRequest = async (req, res) => {
+  try {
+    const { reason, rejectReason, adminNote } = req.body;
+    const reasonText = (reason || rejectReason || adminNote || '').trim();
+
+    if (!reasonText) {
+      return res.status(400).json({ success: false, message: 'Vui lòng nhập lý do từ chối yêu cầu bảo trì kệ' });
+    }
+
+    const reqDoc = await ShelfMaintenanceRequest.findById(req.params.id);
+    if (!reqDoc) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy yêu cầu bảo trì kệ sách' });
+    }
+
+    if (reqDoc.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Yêu cầu này không ở trạng thái chờ duyệt (Hiện tại: ${reqDoc.status}).`
+      });
+    }
+
+    reqDoc.status = 'rejected';
+    reqDoc.reviewedBy = req.user._id;
+    reqDoc.reviewedByName = req.user.name || 'Quản trị viên';
+    reqDoc.reviewedAt = new Date();
+    reqDoc.adminNote = reasonText;
+    await reqDoc.save();
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SHELF_MAINTENANCE_REQUEST_REJECT',
+      severity: 'INFO',
+      targetId: String(reqDoc._id),
+      targetModel: 'ShelfMaintenanceRequest',
+      targetLabel: `${reqDoc.requestCode} - ${reqDoc.shelfCode}`,
+      description: `Quản trị viên ${req.user.name} từ chối yêu cầu bảo trì kệ sách "${reqDoc.shelfCode}" (${reqDoc.shelfName}) của ${reqDoc.requestedByName}. Lý do: ${reasonText}`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã từ chối yêu cầu bảo trì kệ sách "${reqDoc.shelfCode}".`,
+      data: reqDoc
+    });
+  } catch (error) {
+    console.error('Lỗi rejectShelfMaintenanceRequest:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi từ chối yêu cầu bảo trì kệ' });
+  }
+};
+
+// @desc    Nhân viên kho hủy yêu cầu bảo trì đang chờ duyệt
+// @route   PUT /api/inventory/shelf-maintenance-requests/:id/cancel
+// @access  Private (Stock, Admin)
+const cancelShelfMaintenanceRequest = async (req, res) => {
+  try {
+    const reqDoc = await ShelfMaintenanceRequest.findById(req.params.id);
+    if (!reqDoc) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy yêu cầu bảo trì kệ sách' });
+    }
+
+    if (reqDoc.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ có thể hủy các yêu cầu đang ở trạng thái chờ duyệt!'
+      });
+    }
+
+    if (req.user.role !== 'admin' && String(reqDoc.requestedBy) !== String(req.user._id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền hủy yêu cầu của người khác!'
+      });
+    }
+
+    reqDoc.status = 'cancelled';
+    await reqDoc.save();
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SHELF_MAINTENANCE_REQUEST_CANCEL',
+      severity: 'INFO',
+      targetId: String(reqDoc._id),
+      targetModel: 'ShelfMaintenanceRequest',
+      targetLabel: `${reqDoc.requestCode} - ${reqDoc.shelfCode}`,
+      description: `Người dùng ${req.user.name} đã hủy yêu cầu bảo trì kệ sách "${reqDoc.shelfCode}" (${reqDoc.requestCode})`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã hủy yêu cầu bảo trì kệ sách "${reqDoc.shelfCode}" thành công.`,
+      data: reqDoc
+    });
+  } catch (error) {
+    console.error('Lỗi cancelShelfMaintenanceRequest:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi hủy yêu cầu bảo trì kệ' });
+  }
+};
+
 module.exports = {
   getAllSuppliers,
   getSupplierDetail,
@@ -4718,6 +5277,447 @@ module.exports = {
   getShelfCreateRequestById,
   approveShelfCreateRequest,
   rejectShelfCreateRequest,
-  cancelShelfCreateRequest
+  cancelShelfCreateRequest,
+  createShelfMaintenanceRequest,
+  getAllShelfMaintenanceRequests,
+  getShelfMaintenanceRequestById,
+  approveShelfMaintenanceRequest,
+  rejectShelfMaintenanceRequest,
+  cancelShelfMaintenanceRequest
 };
 
+// ================= SHELF TRANSFER REQUEST CONTROLLERS =================
+
+// @desc    Nhân viên kho gửi yêu cầu điều chuyển sách tới Quản trị viên
+// @route   POST /api/inventory/shelf-transfer-requests
+// @access  Private (Stock, Admin, Staff)
+const createShelfTransferRequest = async (req, res) => {
+  try {
+    const { bookIds, targetShelfId, reason, note } = req.body;
+
+    if (!Array.isArray(bookIds) || bookIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Vui lòng chọn danh sách sách cần điều chuyển' });
+    }
+    if (!targetShelfId) {
+      return res.status(400).json({ success: false, message: 'Vui lòng chọn kệ đích tiếp nhận' });
+    }
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({ success: false, message: 'Vui lòng chọn hoặc nhập lý do điều chuyển sách' });
+    }
+
+    const targetShelf = await Shelf.findById(targetShelfId);
+    if (!targetShelf) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy kệ đích tiếp nhận' });
+    }
+
+    if (targetShelf.status === 'maintenance') {
+      return res.status(400).json({
+        success: false,
+        message: `Kệ đích "${targetShelf.shelfName}" (${targetShelf.shelfCode}) đang trong chế độ BẢO TRÌ! Không thể điều chuyển sách vào kệ này.`
+      });
+    }
+
+    const booksToMove = await Book.find({ _id: { $in: bookIds }, isDeleted: { $ne: true } });
+    if (booksToMove.length === 0) {
+      return res.status(400).json({ success: false, message: 'Không tìm thấy sách hợp lệ để chuyển' });
+    }
+
+    const totalStockToMove = booksToMove.reduce((sum, b) => sum + (Number(b.stock) || 0), 0);
+
+    // Tính số lượng sách chuyển từ các kệ KHÁC sang kệ đích (loại trừ sách vốn đã ở kệ đích)
+    const nonTargetBooksStock = booksToMove
+      .filter(b => !b.shelf || b.shelf.toString() !== targetShelf._id.toString())
+      .reduce((sum, b) => sum + (Number(b.stock) || 0), 0);
+
+    const targetOccupancy = await getShelfOccupancy(targetShelf._id);
+    const remainingTargetSpace = targetShelf.capacity - targetOccupancy;
+
+    if (nonTargetBooksStock > remainingTargetSpace) {
+      const safeRemaining = Math.max(0, remainingTargetSpace);
+      return res.status(400).json({
+        success: false,
+        message: `Kệ đích "${targetShelf.shelfName}" chỉ còn trống ${safeRemaining} cuốn. Không đủ chứa ${nonTargetBooksStock} cuốn điều chuyển đến!`
+      });
+    }
+
+    // Xây dựng danh sách items chi tiết
+    const items = [];
+    for (const b of booksToMove) {
+      let fromShelfDoc = null;
+      if (b.shelf) {
+        fromShelfDoc = await Shelf.findById(b.shelf);
+      } else if (b.shelfLocation || b.shelfPosition) {
+        fromShelfDoc = await resolveShelf(b.shelfLocation || b.shelfPosition);
+      }
+
+      items.push({
+        book: b._id,
+        bookCode: b.bookCode || b.isbn || 'SKU',
+        title: b.title,
+        author: b.author || '—',
+        price: b.price || 0,
+        quantity: b.stock || 0,
+        fromShelf: fromShelfDoc ? fromShelfDoc._id : null,
+        fromShelfCode: fromShelfDoc ? fromShelfDoc.shelfCode : (b.shelfLocation || b.shelfPosition || 'Chưa xếp kệ'),
+        fromShelfName: fromShelfDoc ? fromShelfDoc.shelfName : (b.shelfLocation || b.shelfPosition || 'Chưa xếp kệ')
+      });
+    }
+
+    const transferReq = new ShelfTransferRequest({
+      items,
+      targetShelf: targetShelf._id,
+      targetShelfCode: targetShelf.shelfCode,
+      targetShelfName: targetShelf.shelfName,
+      targetZone: targetShelf.zone,
+      targetCapacity: targetShelf.capacity,
+      totalBooksCount: booksToMove.length,
+      totalQuantity: totalStockToMove,
+      reason: reason.trim(),
+      note: (note || '').trim(),
+      requestedBy: req.user._id,
+      requestedByName: req.user.name || 'Thủ kho',
+      requestedByRole: req.user.role || 'stock',
+      status: 'pending'
+    });
+
+    await transferReq.save();
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SHELF_TRANSFER_REQUEST_SUBMIT',
+      severity: 'WARNING',
+      targetId: String(transferReq._id),
+      targetModel: 'ShelfTransferRequest',
+      targetLabel: `${transferReq.requestCode} -> ${targetShelf.shelfCode}`,
+      description: `Nhân viên kho ${req.user.name} đã gửi yêu cầu điều chuyển ${booksToMove.length} đầu sách (${totalStockToMove} cuốn) sang kệ ${targetShelf.shelfCode} (${targetShelf.shelfName}). Lý do: ${transferReq.reason}`
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Đã gửi yêu cầu điều chuyển ${booksToMove.length} đầu sách (${totalStockToMove} cuốn) sang kệ "${targetShelf.shelfName}" (${targetShelf.shelfCode}) tới Quản trị viên thành công. Vui lòng chờ Admin phê duyệt!`,
+      data: transferReq
+    });
+  } catch (error) {
+    console.error('Lỗi createShelfTransferRequest:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi tạo yêu cầu điều chuyển sách' });
+  }
+};
+
+// @desc    Lấy danh sách tất cả yêu cầu điều chuyển sách
+// @route   GET /api/inventory/shelf-transfer-requests
+// @access  Private (Stock, Admin, Staff)
+const getAllShelfTransferRequests = async (req, res) => {
+  try {
+    const { status, zone, search, page = 1, limit = 20 } = req.query;
+    const filter = {};
+
+    if (status && status !== 'all' && ['pending', 'approved', 'rejected', 'cancelled'].includes(status)) {
+      filter.status = status;
+    }
+    if (zone && zone !== 'all') {
+      filter.targetZone = zone;
+    }
+    if (search && search.trim()) {
+      const q = search.trim();
+      const regex = new RegExp(q, 'i');
+      filter.$or = [
+        { requestCode: regex },
+        { targetShelfCode: regex },
+        { targetShelfName: regex },
+        { reason: regex },
+        { requestedByName: regex },
+        { 'items.title': regex },
+        { 'items.bookCode': regex }
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const [requests, total, countPending, countApproved, countRejected, countCancelled, countAll] = await Promise.all([
+      ShelfTransferRequest.find(filter)
+        .populate('requestedBy', 'name email role')
+        .populate('reviewedBy', 'name email role')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit)),
+      ShelfTransferRequest.countDocuments(filter),
+      ShelfTransferRequest.countDocuments({ status: 'pending' }),
+      ShelfTransferRequest.countDocuments({ status: 'approved' }),
+      ShelfTransferRequest.countDocuments({ status: 'rejected' }),
+      ShelfTransferRequest.countDocuments({ status: 'cancelled' }),
+      ShelfTransferRequest.countDocuments({})
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: requests,
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / Number(limit)) || 1,
+      counts: {
+        all: countAll,
+        pending: countPending,
+        approved: countApproved,
+        rejected: countRejected,
+        cancelled: countCancelled
+      }
+    });
+  } catch (error) {
+    console.error('Lỗi getAllShelfTransferRequests:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi lấy danh sách yêu cầu điều chuyển sách' });
+  }
+};
+
+// @desc    Lấy chi tiết yêu cầu điều chuyển sách theo ID
+// @route   GET /api/inventory/shelf-transfer-requests/:id
+// @access  Private (Stock, Admin, Staff)
+const getShelfTransferRequestById = async (req, res) => {
+  try {
+    const request = await ShelfTransferRequest.findById(req.params.id)
+      .populate('requestedBy', 'name email role')
+      .populate('reviewedBy', 'name email role')
+      .populate('targetShelf');
+
+    if (!request) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy yêu cầu điều chuyển sách' });
+    }
+
+    res.status(200).json({ success: true, data: request });
+  } catch (error) {
+    console.error('Lỗi getShelfTransferRequestById:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi lấy chi tiết yêu cầu điều chuyển' });
+  }
+};
+
+// @desc    Admin phê duyệt yêu cầu điều chuyển sách -> Chính thức thực hiện chuyển sách sang kệ đích
+// @route   PUT /api/inventory/shelf-transfer-requests/:id/approve
+// @access  Private (Admin)
+const approveShelfTransferRequest = async (req, res) => {
+  try {
+    const { adminNote } = req.body;
+    const reqDoc = await ShelfTransferRequest.findById(req.params.id);
+
+    if (!reqDoc) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy yêu cầu điều chuyển sách' });
+    }
+
+    if (reqDoc.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Yêu cầu này không ở trạng thái chờ duyệt (Hiện tại: ${reqDoc.status}).`
+      });
+    }
+
+    const targetShelf = await Shelf.findById(reqDoc.targetShelf);
+    if (!targetShelf) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy kệ đích tiếp nhận trong hệ thống!' });
+    }
+
+    if (targetShelf.status === 'maintenance') {
+      return res.status(400).json({
+        success: false,
+        message: `Kệ đích "${targetShelf.shelfName}" (${targetShelf.shelfCode}) hiện đang BẢO TRÌ! Không thể điều chuyển sách vào kệ này.`
+      });
+    }
+
+    const bookIds = reqDoc.items.map(it => it.book);
+    const booksToMove = await Book.find({ _id: { $in: bookIds }, isDeleted: { $ne: true } });
+    if (booksToMove.length === 0) {
+      return res.status(400).json({ success: false, message: 'Không tìm thấy các đầu sách cần điều chuyển trong kho!' });
+    }
+
+    const nonTargetBooksStock = booksToMove
+      .filter(b => !b.shelf || b.shelf.toString() !== targetShelf._id.toString())
+      .reduce((sum, b) => sum + (Number(b.stock) || 0), 0);
+
+    const targetOccupancy = await getShelfOccupancy(targetShelf._id);
+    const remainingTargetSpace = targetShelf.capacity - targetOccupancy;
+
+    if (nonTargetBooksStock > remainingTargetSpace) {
+      const safeRemaining = Math.max(0, remainingTargetSpace);
+      return res.status(400).json({
+        success: false,
+        message: `Kệ đích "${targetShelf.shelfName}" chỉ còn trống ${safeRemaining} cuốn tại thời điểm duyệt. Không đủ chứa ${nonTargetBooksStock} cuốn điều chuyển!`
+      });
+    }
+
+    const sourceShelfIds = [...new Set(booksToMove.map(b => b.shelf ? b.shelf.toString() : null).filter(Boolean))];
+
+    // Cập nhật vị trí kệ mới cho các cuốn sách
+    await Book.updateMany(
+      { _id: { $in: bookIds } },
+      {
+        $set: {
+          shelf: targetShelf._id,
+          shelfPosition: targetShelf.shelfName,
+          shelfLocation: targetShelf.shelfName
+        }
+      }
+    );
+
+    // Cập nhật lại dung lượng kệ đích và các kệ nguồn
+    await updateShelfStatus(targetShelf._id);
+    await updateMultipleShelves(sourceShelfIds);
+
+    // Ghi nhật ký điều chuyển sách
+    const movedBooksDetails = reqDoc.items.map(it => ({
+      _id: it.book,
+      bookCode: it.bookCode,
+      title: it.title,
+      author: it.author,
+      price: it.price,
+      quantity: it.quantity,
+      fromShelfCode: it.fromShelfCode,
+      toShelfCode: targetShelf.shelfCode
+    }));
+
+    await logShelfActivity({
+      action: 'SHELF_TRANSFER',
+      description: `Quản trị viên phê duyệt yêu cầu ${reqDoc.requestCode} của ${reqDoc.requestedByName}: Điều chuyển ${reqDoc.totalBooksCount} đầu sách (${reqDoc.totalQuantity} cuốn) sang kệ ${targetShelf.shelfCode} (${targetShelf.shelfName}). Lý do: ${reqDoc.reason}`,
+      toShelf: { _id: targetShelf._id, shelfCode: targetShelf.shelfCode, shelfName: targetShelf.shelfName },
+      toShelfCode: targetShelf.shelfCode,
+      toShelfName: targetShelf.shelfName,
+      quantity: reqDoc.totalQuantity,
+      performer: req.user,
+      details: {
+        requestCode: reqDoc.requestCode,
+        reason: reqDoc.reason,
+        books: movedBooksDetails
+      }
+    });
+
+    reqDoc.status = 'approved';
+    reqDoc.reviewedBy = req.user._id;
+    reqDoc.reviewedByName = req.user.name || 'Quản trị viên';
+    reqDoc.reviewedAt = new Date();
+    reqDoc.adminNote = (adminNote || '').trim();
+    reqDoc.executedAt = new Date();
+    await reqDoc.save();
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SHELF_TRANSFER_REQUEST_APPROVE',
+      severity: 'INFO',
+      targetId: String(reqDoc._id),
+      targetModel: 'ShelfTransferRequest',
+      targetLabel: `${reqDoc.requestCode} -> ${targetShelf.shelfCode}`,
+      description: `Quản trị viên ${req.user.name} đã phê duyệt yêu cầu điều chuyển ${reqDoc.totalBooksCount} đầu sách (${reqDoc.totalQuantity} cuốn) sang kệ ${targetShelf.shelfCode} của ${reqDoc.requestedByName}`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã phê duyệt và thực hiện điều chuyển thành công ${reqDoc.totalBooksCount} đầu sách (${reqDoc.totalQuantity} cuốn) sang kệ "${targetShelf.shelfName}" (${targetShelf.shelfCode})!`,
+      data: reqDoc
+    });
+  } catch (error) {
+    console.error('Lỗi approveShelfTransferRequest:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi phê duyệt yêu cầu điều chuyển sách' });
+  }
+};
+
+// @desc    Admin từ chối yêu cầu điều chuyển sách
+// @route   PUT /api/inventory/shelf-transfer-requests/:id/reject
+// @access  Private (Admin)
+const rejectShelfTransferRequest = async (req, res) => {
+  try {
+    const { reason, rejectReason, adminNote } = req.body;
+    const reasonText = (reason || rejectReason || adminNote || '').trim();
+
+    if (!reasonText) {
+      return res.status(400).json({ success: false, message: 'Vui lòng nhập lý do từ chối yêu cầu điều chuyển sách' });
+    }
+
+    const reqDoc = await ShelfTransferRequest.findById(req.params.id);
+    if (!reqDoc) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy yêu cầu điều chuyển sách' });
+    }
+
+    if (reqDoc.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Yêu cầu này không ở trạng thái chờ duyệt (Hiện tại: ${reqDoc.status}).`
+      });
+    }
+
+    reqDoc.status = 'rejected';
+    reqDoc.reviewedBy = req.user._id;
+    reqDoc.reviewedByName = req.user.name || 'Quản trị viên';
+    reqDoc.reviewedAt = new Date();
+    reqDoc.adminNote = reasonText;
+    await reqDoc.save();
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SHELF_TRANSFER_REQUEST_REJECT',
+      severity: 'INFO',
+      targetId: String(reqDoc._id),
+      targetModel: 'ShelfTransferRequest',
+      targetLabel: `${reqDoc.requestCode} -> ${reqDoc.targetShelfCode}`,
+      description: `Quản trị viên ${req.user.name} từ chối yêu cầu điều chuyển sách ${reqDoc.requestCode} sang kệ ${reqDoc.targetShelfCode} của ${reqDoc.requestedByName}. Lý do: ${reasonText}`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã từ chối yêu cầu điều chuyển sách "${reqDoc.requestCode}".`,
+      data: reqDoc
+    });
+  } catch (error) {
+    console.error('Lỗi rejectShelfTransferRequest:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi từ chối yêu cầu điều chuyển sách' });
+  }
+};
+
+// @desc    Nhân viên kho hủy yêu cầu điều chuyển sách đang chờ duyệt
+// @route   PUT /api/inventory/shelf-transfer-requests/:id/cancel
+// @access  Private (Stock, Admin)
+const cancelShelfTransferRequest = async (req, res) => {
+  try {
+    const reqDoc = await ShelfTransferRequest.findById(req.params.id);
+    if (!reqDoc) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy yêu cầu điều chuyển sách' });
+    }
+
+    if (reqDoc.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: 'Chỉ có thể hủy các yêu cầu đang ở trạng thái chờ duyệt!'
+      });
+    }
+
+    if (req.user.role !== 'admin' && String(reqDoc.requestedBy) !== String(req.user._id)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền hủy yêu cầu của người khác!'
+      });
+    }
+
+    reqDoc.status = 'cancelled';
+    await reqDoc.save();
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SHELF_TRANSFER_REQUEST_CANCEL',
+      severity: 'INFO',
+      targetId: String(reqDoc._id),
+      targetModel: 'ShelfTransferRequest',
+      targetLabel: `${reqDoc.requestCode} -> ${reqDoc.targetShelfCode}`,
+      description: `Người dùng ${req.user.name} đã hủy yêu cầu điều chuyển sách "${reqDoc.requestCode}"`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã hủy yêu cầu điều chuyển sách "${reqDoc.requestCode}" thành công.`,
+      data: reqDoc
+    });
+  } catch (error) {
+    console.error('Lỗi cancelShelfTransferRequest:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi khi hủy yêu cầu điều chuyển sách' });
+  }
+};
+
+module.exports.createShelfTransferRequest = createShelfTransferRequest;
+module.exports.getAllShelfTransferRequests = getAllShelfTransferRequests;
+module.exports.getShelfTransferRequestById = getShelfTransferRequestById;
+module.exports.approveShelfTransferRequest = approveShelfTransferRequest;
+module.exports.rejectShelfTransferRequest = rejectShelfTransferRequest;
+module.exports.cancelShelfTransferRequest = cancelShelfTransferRequest;

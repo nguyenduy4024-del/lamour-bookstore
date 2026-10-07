@@ -938,6 +938,221 @@
   .pos-coupon-apply-btn:hover {
     background: var(--navy-900); color: #FFFFFF; border-color: var(--navy-900);
   }
+  .pos-coupon-browse-btn {
+    height: 32px; padding: 0 10px; font-size: 12px; font-weight: 700;
+    border: 1.5px solid #BFDBFE; border-radius: 7px; background: #EFF6FF;
+    color: #1D4ED8; cursor: pointer; white-space: nowrap !important; flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 5px; transition: all .18s ease;
+  }
+  .pos-coupon-browse-btn:hover {
+    background: #DBEAFE; border-color: #93C5FD; color: #1E40AF; transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(37,99,235,0.15);
+  }
+  .pos-coupon-list-pill {
+    padding: 3px 10px; font-size: 11.5px; font-weight: 700; border-radius: 999px;
+    background: #FEF3C7; color: #92400E; border: 1.5px solid #FDE68A;
+    display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+    transition: all .18s ease;
+  }
+  .pos-coupon-list-pill:hover {
+    background: #FDE68A; color: #78350F; transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(217,119,6,0.15);
+  }
+
+  /* POS COUPON PICKER MODAL & VOUCHER TICKETS */
+  .pos-coupon-modal-logo {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+    color: #FFFFFF; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35); flex-shrink: 0;
+  }
+  .pos-coupon-tab-btn {
+    border: 1px solid #E2E8F0; background: #F8FAFC; color: #475569;
+    border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .pos-coupon-tab-btn:hover {
+    background: #EDF2F7; border-color: #CBD5E1; color: #0F172A;
+  }
+  .pos-coupon-tab-btn.active {
+    background: #0A1930; color: #FFFFFF; border-color: #0A1930;
+    box-shadow: 0 2px 8px rgba(10,25,48,0.22);
+  }
+  .pos-coupon-tab-count {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 700; background: #E2E8F0; color: #475569;
+  }
+  .pos-coupon-tab-btn.active .pos-coupon-tab-count {
+    background: rgba(255,255,255,0.25); color: #FFFFFF;
+  }
+
+  /* TICKET CARD DESIGN */
+  .pos-ticket-card {
+    position: relative; display: flex; align-items: stretch;
+    background: #FFFFFF; border: 1.5px solid #E2E8F0; border-radius: 14px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 1px 4px rgba(15,23,42,0.04);
+  }
+  .pos-ticket-card:hover {
+    border-color: #93C5FD; box-shadow: 0 6px 18px rgba(37,99,235,0.09);
+    transform: translateY(-2px);
+  }
+  .pos-ticket-card.applied {
+    border-color: #10B981; background: #F0FDF4;
+    box-shadow: 0 4px 16px rgba(16,185,129,0.12);
+  }
+  .pos-ticket-card.applied:hover {
+    box-shadow: 0 6px 20px rgba(16,185,129,0.18);
+  }
+  .pos-ticket-card.disabled {
+    opacity: 0.8; background: #FAFAFC;
+  }
+
+  /* TICKET NOTCHES & STUB */
+  .pos-ticket-stub {
+    width: 125px; flex-shrink: 0; padding: 14px 8px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    border-right: 1.5px dashed #CBD5E1; position: relative; text-align: center;
+    border-top-left-radius: 12px; border-bottom-left-radius: 12px;
+  }
+  .pos-ticket-stub::before, .pos-ticket-stub::after {
+    content: ''; position: absolute; width: 14px; height: 14px;
+    background: #FFFFFF; border-radius: 50%; right: -8px; z-index: 2;
+  }
+  .pos-ticket-stub::before {
+    top: -8px; box-shadow: inset 0 -1.5px 0 0 #E2E8F0;
+  }
+  .pos-ticket-stub::after {
+    bottom: -8px; box-shadow: inset 0 1.5px 0 0 #E2E8F0;
+  }
+  .pos-ticket-card:hover .pos-ticket-stub::before {
+    box-shadow: inset 0 -1.5px 0 0 #93C5FD;
+  }
+  .pos-ticket-card:hover .pos-ticket-stub::after {
+    box-shadow: inset 0 1.5px 0 0 #93C5FD;
+  }
+  .pos-ticket-card.applied .pos-ticket-stub::before {
+    box-shadow: inset 0 -1.5px 0 0 #10B981;
+  }
+  .pos-ticket-card.applied .pos-ticket-stub::after {
+    box-shadow: inset 0 1.5px 0 0 #10B981;
+  }
+
+  .pos-ticket-stub.percent {
+    background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+    color: #312E81;
+  }
+  .pos-ticket-stub.percent .pos-ticket-val {
+    color: #312E81;
+  }
+  .pos-ticket-stub.fixed {
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    color: #78350F;
+  }
+  .pos-ticket-stub.fixed .pos-ticket-val {
+    color: #78350F;
+  }
+
+  .pos-ticket-stub-tag {
+    font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 2px 7px; border-radius: 10px; margin-bottom: 4px; display: inline-flex;
+    align-items: center; gap: 3px;
+  }
+  .pos-ticket-stub.percent .pos-ticket-stub-tag {
+    background: rgba(79, 70, 229, 0.15); color: #4338CA;
+  }
+  .pos-ticket-stub.fixed .pos-ticket-stub-tag {
+    background: rgba(217, 119, 6, 0.18); color: #92400E;
+  }
+
+  .pos-ticket-val {
+    font-family: 'Fraunces', serif; font-size: 22px; font-weight: 800; line-height: 1.1;
+  }
+  .pos-ticket-cap {
+    font-size: 10.5px; font-weight: 600; opacity: 0.85; margin-top: 3px; line-height: 1.2;
+  }
+
+  /* TICKET BODY */
+  .pos-ticket-body {
+    flex: 1; min-width: 0; padding: 12px 14px;
+    display: flex; flex-direction: column; justify-content: space-between; gap: 6px;
+  }
+  .pos-ticket-code-badge {
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700;
+    color: #0F172A; background: #F1F5F9; border: 1.5px dashed #CBD5E1;
+    padding: 2px 7px; border-radius: 6px; letter-spacing: 0.5px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+    transition: all .15s ease;
+  }
+  .pos-ticket-code-badge:hover {
+    background: #E2E8F0; border-color: #94A3B8; color: #0284C7;
+  }
+  .pos-ticket-title {
+    font-size: 13.5px; font-weight: 700; color: #0F172A; line-height: 1.3;
+  }
+  .pos-ticket-desc {
+    font-size: 12px; color: #64748B; line-height: 1.35; margin-top: 2px;
+  }
+  .pos-ticket-meta {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: #64748B;
+  }
+  .pos-ticket-meta-item {
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .pos-ticket-footer {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    gap: 8px; padding-top: 6px; border-top: 1px dashed #E2E8F0; margin-top: 2px;
+  }
+
+  /* BADGES & ACTION BUTTONS */
+  .pos-ticket-status-applied {
+    background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC;
+    font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 20px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .pos-ticket-status-eligible {
+    background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0;
+    font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 20px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .pos-ticket-status-missing {
+    background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A;
+    font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 20px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .btn-ticket-apply {
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+    color: #FFFFFF; border: none; font-weight: 700; font-size: 12px; height: 30px;
+    padding: 0 14px; border-radius: 7px; cursor: pointer; display: inline-flex;
+    align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(37,99,235,0.28);
+    transition: all .15s ease;
+  }
+  .btn-ticket-apply:hover {
+    transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.38);
+  }
+  .btn-ticket-preselect {
+    background: #F8FAFC; border: 1.5px solid #CBD5E1; color: #334155;
+    font-weight: 600; font-size: 12px; height: 30px; padding: 0 12px;
+    border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center;
+    gap: 4px; transition: all .15s ease;
+  }
+  .btn-ticket-preselect:hover {
+    background: #EEF2F6; border-color: #94A3B8; color: #0F172A;
+  }
+  .btn-ticket-remove {
+    background: #FEF2F2; border: 1.5px solid #FECACA; color: #DC2626;
+    font-weight: 600; font-size: 12px; height: 30px; padding: 0 12px;
+    border-radius: 7px; cursor: pointer; display: inline-flex; align-items: center;
+    gap: 4px; transition: all .15s ease;
+  }
+  .btn-ticket-remove:hover {
+    background: #FEE2E2; border-color: #F87171; color: #B91C1C;
+  }
+
+  @keyframes posSpin {
+    to { transform: rotate(360deg); }
+  }
 
   /* TOTAL HIGHLIGHT BANNER */
   .pos-total-banner {
@@ -2814,12 +3029,22 @@
               </div>
               <div class="summary-row" style="flex-direction:column; align-items:stretch; gap:5px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span>Giảm giá / Voucher:</span>
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <span>Giảm giá / Voucher:</span>
+                    <button type="button" class="pos-coupon-list-pill" onclick="openPosCouponPickerModal()" title="Xem tất cả mã giảm giá web đang có">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:inline-block; vertical-align:-2px;"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M13 5v2"/><path d="M13 11v2"/><path d="M13 17v2"/></svg>
+                      Mã đang có (<span id="posActiveCouponsCount">0</span>)
+                    </button>
+                  </div>
                   <span id="discountVal" class="mono" style="color:var(--danger); font-weight:700;">-0₫</span>
                 </div>
                 <!-- Ô NHẬP MÃ GIẢM GIÁ (COUPON) -->
                 <div class="pos-coupon-input-wrap">
                   <input type="text" id="posCouponInput" class="pos-coupon-input" placeholder="Nhập mã voucher (nếu có)..." onkeydown="if(event.key==='Enter'){event.preventDefault();applyPosCoupon();}" />
+                  <button type="button" class="pos-coupon-browse-btn" onclick="openPosCouponPickerModal()" title="Xem & chọn từ danh sách mã giảm giá web đang có">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="display:inline-block; vertical-align:-2px;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.5"/></svg>
+                    Chọn mã
+                  </button>
                   <button type="button" class="pos-coupon-apply-btn" onclick="applyPosCoupon()">Áp dụng</button>
                   <button type="button" id="posRemoveCouponBtn" class="btn btn-sm btn-danger" onclick="removePosCoupon()" style="display:none; height:30px; padding:0 8px; font-size:12px;" title="Hủy mã">✕</button>
                 </div>
@@ -4659,6 +4884,103 @@
   </div>
 </div>
 
+<!-- ============ MODAL XEM & CHỌN MÃ GIẢM GIÁ KHẢ DỤNG TẠI QUẦY (POS) ============ -->
+<div class="modal-overlay" id="posCouponPickerModal">
+  <div class="modal-box modal-lg" style="max-width:700px; max-height:88vh; display:flex; flex-direction:column; border-radius:16px; box-shadow:0 24px 60px rgba(15,23,42,0.25); border:1px solid var(--line); background:#FFFFFF; padding:22px 24px;">
+    
+    <!-- HEADER -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid var(--line);">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="pos-coupon-modal-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/>
+            <path d="M13 5v2"/><path d="M13 11v2"/><path d="M13 17v2"/>
+          </svg>
+        </div>
+        <div>
+          <h3 style="font-size:18px; font-weight:700; color:var(--navy-900); margin:0; display:flex; align-items:center; gap:8px;">
+            Mã Giảm Giá Đang Có Trên Website
+            <span style="font-size:11px; font-weight:700; background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; padding:2px 8px; border-radius:12px; letter-spacing:0.3px;">LIVE</span>
+          </h3>
+          <p style="font-size:12.5px; color:var(--muted); margin:3px 0 0 0;">
+            Danh sách voucher & khuyến mãi đang kích hoạt. Nhấp để áp dụng ngay vào đơn POS.
+          </p>
+        </div>
+      </div>
+      <button type="button" class="btn-action" onclick="closePosCouponPickerModal()" style="font-size:15px; width:32px; height:32px; border-radius:50%; background:#F1F5F9; border:none; display:flex; align-items:center; justify-content:center; color:#64748B; cursor:pointer;" title="Đóng modal">✕</button>
+    </div>
+
+    <!-- CURRENT CART CONTEXT BANNER -->
+    <div id="posCouponPickerCartContext" style="background:linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); border:1px solid #E2E8F0; border-radius:10px; padding:10px 14px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; font-size:12.5px; flex-wrap:wrap; gap:8px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div style="width:28px; height:28px; border-radius:7px; background:#EEF2FF; color:#4F46E5; display:flex; align-items:center; justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        </div>
+        <div>
+          <span style="color:var(--muted); font-size:12px;">Tạm tính đơn hiện tại:</span>
+          <strong id="posCouponPickerSubtotalText" class="mono" style="color:var(--navy-900); font-size:14.5px; margin-left:5px;">0₫</strong>
+        </div>
+      </div>
+      <div id="posCouponPickerAppliedHint" style="font-size:12px;">
+        <span style="color:var(--muted); background:#E2E8F0; padding:4px 10px; border-radius:14px; font-weight:600; font-size:11.5px; display:inline-flex; align-items:center; gap:5px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+          Chưa áp dụng voucher nào
+        </span>
+      </div>
+    </div>
+
+    <!-- TABS & SEARCH ROW -->
+    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button type="button" id="posCouponTab_all" class="pos-coupon-tab-btn active" onclick="setPosCouponFilterTab('all')">
+            Tất cả <span class="pos-coupon-tab-count" id="posCouponTabBadge_all">0</span>
+          </button>
+          <button type="button" id="posCouponTab_eligible" class="pos-coupon-tab-btn" onclick="setPosCouponFilterTab('eligible')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Đủ điều kiện <span class="pos-coupon-tab-count" id="posCouponTabBadge_eligible">0</span>
+          </button>
+          <button type="button" id="posCouponTab_percent" class="pos-coupon-tab-btn" onclick="setPosCouponFilterTab('percent')">
+            Giảm % <span class="pos-coupon-tab-count" id="posCouponTabBadge_percent">0</span>
+          </button>
+          <button type="button" id="posCouponTab_fixed" class="pos-coupon-tab-btn" onclick="setPosCouponFilterTab('fixed')">
+            Giảm tiền (₫) <span class="pos-coupon-tab-count" id="posCouponTabBadge_fixed">0</span>
+          </button>
+        </div>
+        <button type="button" class="btn-action" onclick="fetchActiveCouponsForPos(true)" style="height:30px; padding:0 10px; font-size:12px; font-weight:600; border-radius:20px; background:#F8FAFC; border:1px solid #E2E8F0; color:#475569; display:inline-flex; align-items:center; gap:5px; cursor:pointer;" title="Tải lại danh sách voucher">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Làm mới
+        </button>
+      </div>
+
+      <div style="position:relative; width:100%;">
+        <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94A3B8; display:flex; align-items:center; pointer-events:none;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input type="text" id="posCouponPickerSearch" placeholder="Tìm theo mã code hoặc tên voucher (ví dụ: CHAOMUNG, 50K...)" oninput="filterPosCouponPickerList()" style="width:100%; height:36px; padding:0 12px 0 36px; border:1.5px solid #E2E8F0; border-radius:9px; font-size:12.5px; outline:none; background:#F8FAFC; color:#0F172A; transition:all .15s ease;" onfocus="this.style.borderColor='#4F46E5'; this.style.background='#fff';" onblur="this.style.borderColor='#E2E8F0'; this.style.background='#F8FAFC';" />
+      </div>
+    </div>
+
+    <!-- COUPONS LIST CONTAINER -->
+    <div id="posCouponPickerListContainer" style="flex:1; overflow-y:auto; max-height:430px; display:flex; flex-direction:column; gap:10px; padding-right:4px;">
+      <div style="text-align:center; padding:36px 20px; color:var(--muted);">
+        <div style="display:inline-block; width:28px; height:28px; border:2.5px solid #E2E8F0; border-top-color:#4F46E5; border-radius:50%; animation:posSpin 0.8s linear infinite;"></div>
+        <div style="margin-top:10px; font-weight:600; font-size:13px; color:var(--navy-900);">Đang tải danh sách mã giảm giá...</div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:12px; color:var(--muted);">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Bấm <strong>Áp dụng ngay</strong> để gán mã vào hóa đơn POS và tự động tính chiết khấu.</span>
+      </div>
+      <button type="button" class="confirm-btn" onclick="closePosCouponPickerModal()" style="height:32px; padding:0 16px; font-size:12.5px; border-radius:7px;">Đóng</button>
+    </div>
+
+  </div>
+</div>
+
 <!-- ============ MODAL ĐĂNG KÝ TÀI KHOẢN KHÁCH HÀNG MỚI TẠI QUẦY ============ -->
 <div class="modal-overlay" id="posAddCustomerModal">
   <div class="modal-box" style="max-width:500px; border-radius:12px; box-shadow:0 20px 45px rgba(0,0,0,0.18); border:1px solid var(--line); background:#FFFFFF; padding:22px 24px;">
@@ -5171,6 +5493,7 @@
       });
 
       renderCustomers();
+      fetchActiveCouponsForPos();
     } catch (error) {
       console.error('Lỗi fetchData:', error);
     }
@@ -5560,6 +5883,9 @@
     if (typeof schedulePushOrdersToPhone === 'function') {
       schedulePushOrdersToPhone();
     }
+    if (document.getElementById('posCouponPickerModal')?.classList.contains('active')) {
+      renderPosCouponPickerList();
+    }
   }
 
   // ============ DISCOUNT & CUSTOMER ============
@@ -5625,6 +5951,314 @@
     ord.discountPct = pct;
     syncCartUI();
     showCustomToast('info', 'Giảm giá', `Đã áp dụng mức chiết khấu ${pct}%.`);
+  }
+
+  // ============ POS COUPON BROWSER & PICKER (QUẦY THU NGÂN) ============
+  let _posActiveCoupons = [];
+  let _posCouponFilterTab = 'all';
+
+  async function fetchActiveCouponsForPos(notify = false) {
+    try {
+      const res = await fetch('/api/coupons/active');
+      const json = await res.json();
+      if (res.ok && json.success) {
+        _posActiveCoupons = json.data || [];
+        updatePosActiveCouponsCountBadge();
+        if (document.getElementById('posCouponPickerModal')?.classList.contains('active')) {
+          renderPosCouponPickerList();
+        }
+        if (notify) {
+          showCustomToast('success', 'Làm mới', `Đã cập nhật ${_posActiveCoupons.length} mã giảm giá đang mở.`);
+        }
+      }
+    } catch (e) {
+      console.warn('Lỗi fetchActiveCouponsForPos:', e);
+      if (notify) {
+        showCustomToast('error', 'Lỗi', 'Không thể tải danh sách mã giảm giá');
+      }
+    }
+  }
+
+  function updatePosActiveCouponsCountBadge() {
+    const count = _posActiveCoupons.length;
+    const badgeEl = document.getElementById('posActiveCouponsCount');
+    if (badgeEl) badgeEl.textContent = count;
+  }
+
+  function openPosCouponPickerModal() {
+    const modal = document.getElementById('posCouponPickerModal');
+    if (!modal) return;
+    modal.classList.add('active');
+    
+    // Clear search
+    const searchInput = document.getElementById('posCouponPickerSearch');
+    if (searchInput) searchInput.value = '';
+    _posCouponFilterTab = 'all';
+    updatePosCouponFilterTabButtons();
+
+    // Render list with current order context
+    renderPosCouponPickerList();
+
+    // If we haven't loaded coupons yet or list is empty, fetch fresh
+    if (_posActiveCoupons.length === 0) {
+      fetchActiveCouponsForPos();
+    }
+  }
+
+  function closePosCouponPickerModal() {
+    const modal = document.getElementById('posCouponPickerModal');
+    if (modal) modal.classList.remove('active');
+  }
+
+  function setPosCouponFilterTab(tab) {
+    _posCouponFilterTab = tab || 'all';
+    updatePosCouponFilterTabButtons();
+    renderPosCouponPickerList();
+  }
+
+  function updatePosCouponFilterTabButtons() {
+    const tabs = ['all', 'eligible', 'percent', 'fixed'];
+    tabs.forEach(t => {
+      const btn = document.getElementById(`posCouponTab_${t}`);
+      if (btn) {
+        if (t === _posCouponFilterTab) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      }
+    });
+  }
+
+  function filterPosCouponPickerList() {
+    renderPosCouponPickerList();
+  }
+
+  function renderPosCouponPickerList() {
+    const container = document.getElementById('posCouponPickerListContainer');
+    if (!container) return;
+
+    const ord = getCurrentOrder();
+    const entries = ord ? Object.entries(ord.cart || {}) : [];
+    const subtotal = entries.reduce((sum, [id, it]) => sum + (it.book?.price || 0) * it.qty, 0);
+    const appliedCode = ord ? (ord.couponCode || '').toUpperCase() : '';
+
+    // Update cart context display
+    const subtotalEl = document.getElementById('posCouponPickerSubtotalText');
+    if (subtotalEl) subtotalEl.textContent = fmt(subtotal);
+
+    const appliedHintEl = document.getElementById('posCouponPickerAppliedHint');
+    if (appliedHintEl) {
+      if (appliedCode) {
+        appliedHintEl.innerHTML = `
+          <span class="pos-ticket-status-applied" style="font-size:12px; padding:4px 10px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Đang áp dụng: <strong class="mono" style="color:#065F46; margin:0 3px;">${appliedCode}</strong> (-${fmt(ord.couponDiscount || 0)})
+          </span>
+        `;
+      } else {
+        appliedHintEl.innerHTML = `
+          <span style="color:var(--muted); background:#E2E8F0; padding:4px 10px; border-radius:14px; font-weight:600; font-size:11.5px; display:inline-flex; align-items:center; gap:5px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+            Chưa áp dụng voucher nào
+          </span>
+        `;
+      }
+    }
+
+    // Update tab badges
+    const totalAll = _posActiveCoupons.length;
+    const totalEligible = _posActiveCoupons.filter(c => subtotal >= (c.minOrderValue || 0)).length;
+    const totalPercent = _posActiveCoupons.filter(c => c.discountType === 'percent').length;
+    const totalFixed = _posActiveCoupons.filter(c => c.discountType === 'fixed').length;
+
+    const bAll = document.getElementById('posCouponTabBadge_all');
+    if (bAll) bAll.textContent = totalAll;
+    const bElig = document.getElementById('posCouponTabBadge_eligible');
+    if (bElig) bElig.textContent = totalEligible;
+    const bPct = document.getElementById('posCouponTabBadge_percent');
+    if (bPct) bPct.textContent = totalPercent;
+    const bFix = document.getElementById('posCouponTabBadge_fixed');
+    if (bFix) bFix.textContent = totalFixed;
+
+    // Filter coupons
+    const searchVal = (document.getElementById('posCouponPickerSearch')?.value || '').trim().toLowerCase();
+
+    let list = [..._posActiveCoupons];
+
+    // Filter by tab
+    if (_posCouponFilterTab === 'eligible') {
+      list = list.filter(c => subtotal >= (c.minOrderValue || 0));
+    } else if (_posCouponFilterTab === 'percent') {
+      list = list.filter(c => c.discountType === 'percent');
+    } else if (_posCouponFilterTab === 'fixed') {
+      list = list.filter(c => c.discountType === 'fixed');
+    }
+
+    // Filter by search
+    if (searchVal) {
+      list = list.filter(c => 
+        (c.code || '').toLowerCase().includes(searchVal) ||
+        (c.name || '').toLowerCase().includes(searchVal) ||
+        (c.description || '').toLowerCase().includes(searchVal)
+      );
+    }
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:38px 20px; color:var(--muted); background:#F8FAFC; border-radius:12px; border:1.5px dashed #CBD5E1;">
+          <div style="width:48px; height:48px; border-radius:50%; background:#EEF2FF; color:#4F46E5; display:inline-flex; align-items:center; justify-content:center; margin-bottom:10px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
+          </div>
+          <div style="font-weight:700; font-size:14px; color:var(--navy-900);">Không tìm thấy mã giảm giá phù hợp</div>
+          <div style="font-size:12.5px; margin-top:4px; color:#64748B;">Thử tìm kiếm với từ khóa khác hoặc chuyển bộ lọc "Tất cả".</div>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('posCouponPickerSearch').value=''; setPosCouponFilterTab('all');" style="margin-top:12px; font-size:12px; padding:5px 14px; border-radius:20px; cursor:pointer;">
+            Xem tất cả voucher
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = list.map(c => {
+      const isApplied = (c.code || '').toUpperCase() === appliedCode;
+      const minVal = c.minOrderValue || 0;
+      const isEligible = subtotal >= minVal;
+      const missingAmt = minVal - subtotal;
+      const remainingUses = Math.max(0, (c.usageLimit || 0) - (c.usedCount || 0));
+      const endStr = c.endDate ? new Date(c.endDate).toLocaleDateString('vi-VN') : 'Không thời hạn';
+
+      // Estimate discount
+      let estDiscount = 0;
+      if (c.discountType === 'percent') {
+        estDiscount = Math.round((subtotal * (c.discountValue || 0)) / 100);
+        if (c.maxDiscountAmount > 0 && estDiscount > c.maxDiscountAmount) {
+          estDiscount = c.maxDiscountAmount;
+        }
+      } else {
+        estDiscount = c.discountValue || 0;
+      }
+      if (estDiscount > subtotal) estDiscount = subtotal;
+
+      const isPercent = c.discountType === 'percent';
+      const stubClass = isPercent ? 'percent' : 'fixed';
+      const discountLabel = isPercent 
+        ? `-${c.discountValue}%` 
+        : `-${fmt(c.discountValue)}`;
+      const maxDiscountText = (isPercent && c.maxDiscountAmount > 0)
+        ? `Tối đa ${fmt(c.maxDiscountAmount)}`
+        : (isPercent ? 'Toàn bộ đơn' : 'Giảm trực tiếp');
+
+      let eligibilityBadge = '';
+      let actionBtn = '';
+
+      if (isApplied) {
+        eligibilityBadge = `
+          <span class="pos-ticket-status-applied">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Đang áp dụng cho đơn
+          </span>
+        `;
+        actionBtn = `
+          <button type="button" class="btn-ticket-remove" onclick="removePosCoupon(); renderPosCouponPickerList();" title="Gỡ voucher này khỏi đơn hàng">
+            ✕ Gỡ mã
+          </button>
+        `;
+      } else if (isEligible) {
+        eligibilityBadge = `
+          <span class="pos-ticket-status-eligible">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Đủ điều kiện ${subtotal > 0 && estDiscount > 0 ? '• Tiết kiệm ' + fmt(estDiscount) : ''}
+          </span>
+        `;
+        actionBtn = `
+          <button type="button" class="btn-ticket-apply" onclick="selectPosCouponFromPicker('${c.code}')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Áp dụng ngay
+          </button>
+        `;
+      } else {
+        eligibilityBadge = `
+          <span class="pos-ticket-status-missing">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Cần mua thêm ${fmt(missingAmt)}
+          </span>
+        `;
+        actionBtn = `
+          <button type="button" class="btn-ticket-preselect" onclick="selectPosCouponFromPicker('${c.code}')" title="Chọn trước mã này để tự động tính khi đủ giá trị đơn">
+            Chọn trước
+          </button>
+        `;
+      }
+
+      return `
+        <div class="pos-ticket-card ${isApplied ? 'applied' : (!isEligible && subtotal > 0 ? 'disabled' : '')}">
+          <!-- LEFT STUB -->
+          <div class="pos-ticket-stub ${stubClass}">
+            <div class="pos-ticket-stub-tag">
+              ${isPercent ? 'GIẢM %' : 'GIẢM TIỀN'}
+            </div>
+            <div class="pos-ticket-val" style="${!isPercent ? 'font-size:18px; font-family:\'IBM Plex Mono\', monospace;' : ''}">
+              ${discountLabel}
+            </div>
+            <div class="pos-ticket-cap">${maxDiscountText}</div>
+          </div>
+
+          <!-- RIGHT BODY -->
+          <div class="pos-ticket-body">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:3px;">
+                <span class="pos-ticket-code-badge" onclick="navigator.clipboard && navigator.clipboard.writeText('${c.code}'); showCustomToast('success', 'Đã sao chép', 'Mã ${c.code} đã được sao chép vào bộ nhớ đệm');" title="Nhấp để sao chép mã">
+                  ${c.code}
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </span>
+                <span class="pos-ticket-title">${c.name}</span>
+              </div>
+              ${c.description ? `<div class="pos-ticket-desc">${c.description}</div>` : ''}
+            </div>
+
+            <div class="pos-ticket-meta">
+              <span class="pos-ticket-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                Đơn tối thiểu: <strong style="color:var(--navy-900);">${minVal > 0 ? fmt(minVal) : '0₫'}</strong>
+              </span>
+              <span class="pos-ticket-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Hạn: <strong style="color:var(--navy-900);">${endStr}</strong>
+              </span>
+              <span class="pos-ticket-meta-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
+                Còn lại: <strong style="color:var(--navy-900);">${remainingUses} lượt</strong>
+              </span>
+            </div>
+
+            <div class="pos-ticket-footer">
+              <div>${eligibilityBadge}</div>
+              <div>${actionBtn}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function selectPosCouponFromPicker(code) {
+    if (!code) return;
+    const input = document.getElementById('posCouponInput');
+    if (input) {
+      input.value = code;
+    }
+    closePosCouponPickerModal();
+
+    const ord = getCurrentOrder();
+    const entries = ord ? Object.entries(ord.cart || {}) : [];
+    const subtotal = entries.reduce((sum, [id, it]) => sum + (it.book?.price || 0) * it.qty, 0);
+
+    if (subtotal > 0) {
+      applyPosCoupon();
+    } else {
+      showCustomToast('info', 'Đã chọn mã voucher', `Đã chọn mã ${code}. Hãy thêm sách vào giỏ rồi bấm Áp dụng.`);
+    }
   }
 
   // ============ POS CUSTOMER MANAGEMENT (SEARCH, SELECT, CREATE) ============

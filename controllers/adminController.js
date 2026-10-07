@@ -644,6 +644,73 @@ const getAnalyticsReport = async (req, res) => {
       allCustomers: loyalCustomers.slice(0, 50)
     };
 
+    // 6. Phân tích Tồn Kho Toàn Diện (Inventory & Stock Analytics)
+    let totalStockQty = 0;
+    let totalStockCost = 0;
+    let totalStockRetail = 0;
+    const catStockMap = {};
+
+    allBooks.forEach(b => {
+      const s = Number(b.stock) || 0;
+      const p = Number(b.price) || 0;
+      let cp = Number(b.costPrice) || 0;
+      if (cp <= 0 || cp >= p) cp = Math.round(p * 0.65);
+      const cat = (b.category || 'Khác').trim();
+
+      totalStockQty += s;
+      totalStockCost += (s * cp);
+      totalStockRetail += (s * p);
+
+      if (!catStockMap[cat]) {
+        catStockMap[cat] = { category: cat, stock: 0, costValue: 0, retailValue: 0, bookCount: 0 };
+      }
+      catStockMap[cat].stock += s;
+      catStockMap[cat].costValue += (s * cp);
+      catStockMap[cat].retailValue += (s * p);
+      catStockMap[cat].bookCount += 1;
+    });
+
+    const categoryStockList = Object.values(catStockMap)
+      .map(c => ({
+        ...c,
+        stockPercent: totalStockQty > 0 ? Number(((c.stock / totalStockQty) * 100).toFixed(1)) : 0,
+        costPercent: totalStockCost > 0 ? Number(((c.costValue / totalStockCost) * 100).toFixed(1)) : 0
+      }))
+      .sort((a, b) => b.stock - a.stock);
+
+    const topStockBooks = [...allBooks]
+      .map(b => {
+        const s = Number(b.stock) || 0;
+        const p = Number(b.price) || 0;
+        let cp = Number(b.costPrice) || 0;
+        if (cp <= 0 || cp >= p) cp = Math.round(p * 0.65);
+        return {
+          bookId: b._id,
+          title: b.title,
+          author: b.author || 'Chưa rõ',
+          category: b.category || 'Khác',
+          stock: s,
+          price: p,
+          costPrice: cp,
+          costValue: s * cp,
+          coverImage: b.coverImage || '/images/covers/default-book.svg'
+        };
+      })
+      .sort((a, b) => b.stock - a.stock)
+      .slice(0, 10);
+
+    const stockReport = {
+      summary: {
+        totalStockQty,
+        totalStockCost,
+        totalStockRetail,
+        totalBookTitles: allBooks.length,
+        averageStockPerTitle: allBooks.length > 0 ? Math.round(totalStockQty / allBooks.length) : 0
+      },
+      byCategory: categoryStockList,
+      topStockBooks
+    };
+
     const payload = {
       success: true,
       data: {
@@ -671,6 +738,7 @@ const getAnalyticsReport = async (req, res) => {
         timeline,
         topSellingBooks,
         deadStockBooks,
+        stockReport,
         categoryReport,
         authorReport,
         paymentReport,

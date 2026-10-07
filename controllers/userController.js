@@ -1488,6 +1488,9 @@ const getCustomers = async (req, res) => {
       };
     });
 
+    // Ưu tiên hiển thị khách hàng có chi tiêu cao nhất (Top Spenders) lên đầu
+    result.sort((a, b) => (b.totalSpent || 0) - (a.totalSpent || 0));
+
     res.status(200).json({
       success: true,
       count: result.length,

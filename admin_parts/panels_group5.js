@@ -37,9 +37,9 @@ module.exports = `
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon icon-amber"><i class="fas fa-balance-scale"></i></div>
+          <div class="stat-icon icon-amber"><i class="fas fa-boxes"></i></div>
           <div class="stat-info">
-            <h4 class="stat-label">Tồn quỹ hiện tại</h4>
+            <h4 class="stat-label" id="cashBalanceLabel">Giá trị tồn kho (Giá vốn)</h4>
             <div class="stat-value" id="cashBalance" style="color: var(--color-amber);">0 ₫</div>
           </div>
         </div>

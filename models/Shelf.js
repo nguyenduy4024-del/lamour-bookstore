@@ -31,9 +31,9 @@ const shelfSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['available', 'nearly_full', 'full', 'maintenance'],
+    enum: ['available', 'nearly_full', 'full', 'overloaded', 'maintenance'],
     default: 'available'
-  }, // available: Còn chỗ (>20%), nearly_full: Sắp đầy (80-99%), full: Đã đầy (100%), maintenance: Đang bảo trì
+  }, // available: Còn chỗ (>20%), nearly_full: Sắp đầy (80-99%), full: Đã đầy (100%), overloaded: Quá tải (>100%), maintenance: Đang bảo trì
   createdAt: {
     type: Date,
     default: Date.now

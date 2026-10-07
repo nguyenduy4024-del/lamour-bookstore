@@ -4,6 +4,7 @@ const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 const {
   validateCoupon,
+  getActiveCoupons,
   getCoupons,
   getCouponById,
   createCoupon,
@@ -15,7 +16,10 @@ const {
 // 1. Kiểm tra tính hợp lệ & xem trước giảm giá (Public / User / Staff POS)
 router.post('/validate', validateCoupon);
 
-// 2. Quản trị mã giảm giá (Admin, Staff, Kế toán)
+// 2. Lấy danh sách mã giảm giá đang hoạt động cho quầy thu ngân (Staff POS) & website
+router.get('/active', getActiveCoupons);
+
+// 3. Quản trị mã giảm giá (Admin, Staff, Kế toán)
 router
   .route('/')
   .get(protect, authorizeRoles('admin', 'staff', 'accountant'), getCoupons)

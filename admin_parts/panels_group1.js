@@ -370,6 +370,111 @@ module.exports = `
         </div>
       </div>
 
+      <!-- KHU VỰC BIỂU ĐỒ PHÂN TÍCH TỒN KHO SÁCH (INVENTORY & STOCK ANALYTICS BI) -->
+      <div class="section-card" style="padding:22px; margin-bottom:24px;">
+        <!-- Card Header with Title and Mode Switcher -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px; border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:18px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <span style="display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg, #DBEAFE, #BFDBFE); color:#1D4ED8; font-size:15px; box-shadow:0 2px 4px rgba(29,78,216,0.15);">
+                <i class="fa-solid fa-boxes-stacked"></i>
+              </span>
+              <h3 style="font-size:17px; margin:0; color:var(--navy-900);">Biểu Đồ Phân Tích Sách Tồn Kho & Giá Trị Lưu Kho</h3>
+            </div>
+            <p style="font-size:12.5px; color:var(--muted); margin:0;">
+              Thống kê số lượng sách lưu kho, cơ cấu phân bổ theo thể loại và các đầu sách chiếm tỷ trọng vốn lưu động lớn nhất.
+            </p>
+          </div>
+
+          <!-- Controls: Mode Switcher -->
+          <div class="analytics-pills-group" style="margin:0; background:var(--cream); padding:3px; border-radius:8px; border:1px solid var(--line); display:flex; gap:3px;">
+            <button type="button" class="analytics-pill-btn active" id="btnStockModeCategory" onclick="setStockAnalyticsMode('category')">
+              <i class="fa-solid fa-layer-group"></i> Theo Thể Loại
+            </button>
+            <button type="button" class="analytics-pill-btn" id="btnStockModeTopBooks" onclick="setStockAnalyticsMode('topbooks')">
+              <i class="fa-solid fa-book-bookmark"></i> Top Sách Tồn Lớn
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Quick KPI Badges for Stock -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:20px;">
+          <div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:12px 14px; border-left:4px solid #2563EB;">
+            <div style="font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase;">Tổng Sách Tồn Kho</div>
+            <div id="stkTotalQty" style="font-size:19px; font-weight:800; color:#1E40AF; margin-top:2px;">0 cuốn</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;" id="stkTotalTitles">108 đầu sách sẵn sàng</div>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:12px 14px; border-left:4px solid #D97706;">
+            <div style="font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase;">Tổng Vốn Lưu Đọng</div>
+            <div id="stkTotalCost" style="font-size:19px; font-weight:800; color:#B45309; margin-top:2px;">0₫</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">Giá vốn thực tế lưu kho</div>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:12px 14px; border-left:4px solid #059669;">
+            <div style="font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase;">Giá Trị Bán Niêm Yết</div>
+            <div id="stkTotalRetail" style="font-size:19px; font-weight:800; color:#047857; margin-top:2px;">0₫</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">Doanh thu ước tính xuất kho</div>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:12px 14px; border-left:4px solid #7C3AED;">
+            <div style="font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase;">Bình Quân / Đầu Sách</div>
+            <div id="stkAvgPerTitle" style="font-size:19px; font-weight:800; color:#6D28D9; margin-top:2px;">0 cuốn</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">Độ phủ tồn kho dồi dào</div>
+          </div>
+        </div>
+
+        <!-- Grid: Cột trái Bar Chart + Cột phải Phân Bổ Tỷ Trọng Vốn (1.6fr 1fr) -->
+        <div style="display:grid; grid-template-columns: 1.6fr 1fr; gap:20px;">
+          <!-- CỘT TRÁI: BIỂU ĐỒ CỘT TỒN KHO -->
+          <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:10px; padding:18px; display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                <strong id="stkChartTitle" style="font-size:13.5px; color:var(--navy-900);">
+                  Cơ Cấu Số Lượng Sách Tồn Kho Theo Thể Loại (Đơn vị: Cuốn)
+                </strong>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted);">
+                    <span style="width:10px; height:10px; background:#2563EB; border-radius:2px; display:inline-block;"></span> Số lượng tồn
+                  </span>
+                  <span style="display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted);">
+                    <span style="width:10px; height:10px; background:#D97706; border-radius:2px; display:inline-block;"></span> Giá trị vốn
+                  </span>
+                </div>
+              </div>
+
+              <!-- Container Biểu Đồ Cột -->
+              <div id="stockAnalyticsChartBars" style="display:flex; align-items:flex-end; gap:10px; height:270px; padding:16px 8px 8px; border-bottom:1px solid var(--line); overflow-x:auto; background:linear-gradient(180deg, rgba(240,249,255,0.4) 0%, rgba(255,255,255,1) 100%); border-radius:8px;">
+                <div style="width:100%; text-align:center; color:var(--muted); padding-top:100px; font-size:12.5px;">Đang tải biểu đồ tồn kho...</div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:11.5px; color:var(--muted);">
+              <span>📊 Rê chuột vào từng cột để xem chi tiết Số lượng & Giá trị vốn tồn kho</span>
+              <span id="stkChartSummaryText"></span>
+            </div>
+          </div>
+
+          <!-- CỘT PHẢI: TỶ TRỌNG VỐN TỒN KHO & ĐIỀU HÀNH -->
+          <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:10px; padding:18px; display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div style="padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:14px;">
+                <strong style="font-size:13.5px; color:var(--navy-900); display:block;">
+                  Tỷ Trọng Vốn Lưu Kho Theo Thể Loại
+                </strong>
+                <span style="font-size:11.5px; color:var(--muted);">Xếp hạng giá trị vốn bị chiếm dụng trong kho</span>
+              </div>
+
+              <!-- List thể loại với progress bar -->
+              <div id="stkCategoryShareList" style="display:flex; flex-direction:column; gap:9px; max-height:240px; overflow-y:auto; padding-right:4px;">
+                <div style="color:var(--muted); font-size:12px;">Đang tổng hợp cơ cấu vốn tồn...</div>
+              </div>
+            </div>
+
+            <div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-top:14px; font-size:11.5px; color:var(--muted); line-height:1.45;">
+              💡 <em>Khuyến nghị: Nhóm sách Tâm lý & Kinh tế chiếm hơn 39% vốn lưu kho. Cần đẩy mạnh bán chéo (cross-selling) và flash sale để tối ưu vòng quay hàng tồn (Inventory Turnover).</em>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- KHU VỰC ĐỐI SOÁT SẢN PHẨM: 2 TABS (BÁN CHẠY vs DEAD STOCK) -->
       <div class="section-card" style="margin-bottom:24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; gap:10px;">

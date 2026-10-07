@@ -64,8 +64,42 @@ const {
   getShelfCreateRequestById,
   approveShelfCreateRequest,
   rejectShelfCreateRequest,
-  cancelShelfCreateRequest
+  cancelShelfCreateRequest,
+  createShelfMaintenanceRequest,
+  getAllShelfMaintenanceRequests,
+  getShelfMaintenanceRequestById,
+  approveShelfMaintenanceRequest,
+  rejectShelfMaintenanceRequest,
+  cancelShelfMaintenanceRequest,
+  createShelfTransferRequest,
+  getAllShelfTransferRequests,
+  getShelfTransferRequestById,
+  approveShelfTransferRequest,
+  rejectShelfTransferRequest,
+  cancelShelfTransferRequest
 } = require('../controllers/inventoryController');
+
+// Routes Yêu cầu Điều chuyển Sách từ Kho & Phê duyệt của Quản trị viên
+router
+  .route('/shelf-transfer-requests')
+  .get(protect, authorizeRoles('stock', 'admin', 'staff'), getAllShelfTransferRequests)
+  .post(protect, authorizeRoles('stock', 'admin', 'staff'), createShelfTransferRequest);
+
+router.get('/shelf-transfer-requests/:id', protect, authorizeRoles('stock', 'admin', 'staff'), getShelfTransferRequestById);
+router.put('/shelf-transfer-requests/:id/approve', protect, authorizeRoles('admin'), approveShelfTransferRequest);
+router.put('/shelf-transfer-requests/:id/reject', protect, authorizeRoles('admin'), rejectShelfTransferRequest);
+router.put('/shelf-transfer-requests/:id/cancel', protect, authorizeRoles('stock', 'admin'), cancelShelfTransferRequest);
+
+// Routes Yêu cầu Bảo trì Kệ Sách từ Kho & Phê duyệt của Quản trị viên
+router
+  .route('/shelf-maintenance-requests')
+  .get(protect, authorizeRoles('stock', 'admin', 'staff'), getAllShelfMaintenanceRequests)
+  .post(protect, authorizeRoles('stock', 'admin', 'staff'), createShelfMaintenanceRequest);
+
+router.get('/shelf-maintenance-requests/:id', protect, authorizeRoles('stock', 'admin', 'staff'), getShelfMaintenanceRequestById);
+router.put('/shelf-maintenance-requests/:id/approve', protect, authorizeRoles('admin'), approveShelfMaintenanceRequest);
+router.put('/shelf-maintenance-requests/:id/reject', protect, authorizeRoles('admin'), rejectShelfMaintenanceRequest);
+router.put('/shelf-maintenance-requests/:id/cancel', protect, authorizeRoles('stock', 'admin'), cancelShelfMaintenanceRequest);
 
 // Routes Yêu cầu Thêm Kệ Sách từ Kho & Phê duyệt của Quản trị viên
 router

@@ -1839,6 +1839,8 @@
           <button type="button" class="btn" onclick="openStockShelfTransferModal()"><i class="fa-solid fa-right-left"></i> Điều chuyển sách</button>
           <button type="button" class="btn btn-amber" onclick="openStockShelfModal()"><i class="fa-solid fa-paper-plane"></i> Gửi Yêu Cầu Thêm Kệ</button>
           <button type="button" class="btn" onclick="openStockShelfRequestsModal()" style="display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-clipboard-list"></i> DS Yêu Cầu Thêm Kệ <span id="stockPendingShelfRequestsBadge" style="display:none; background:#EF4444; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span></button>
+          <button type="button" class="btn" onclick="openStockShelfMaintenanceRequestsModal()" style="display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-wrench"></i> DS Yêu Cầu Bảo Trì <span id="stockPendingShelfMaintenanceBadge" style="display:none; background:#F59E0B; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span></button>
+          <button type="button" class="btn" onclick="openStockShelfTransferRequestsModal()" style="display:inline-flex; align-items:center; gap:6px;"><i class="fa-solid fa-truck-ramp-box"></i> DS Yêu Cầu Điều Chuyển <span id="stockPendingShelfTransferBadge" style="display:none; background:#8B5CF6; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span></button>
           <button type="button" class="btn" onclick="openStockShelfLogsModal()"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử hoạt động</button>
           <button type="button" class="btn" onclick="fetchStockShelves(true)">🔄 Làm mới</button>
         </div>
@@ -1953,7 +1955,7 @@
       <div class="form-group" style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px; margin-top:2px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <label style="font-weight:600; color:var(--navy-900); margin-bottom:0; font-size:13px;">
-            📚 Danh mục / Thể loại phân phối
+            📚 Danh mục / Thể loại phân phối <span style="color:#ef4444;">*</span>
           </label>
           <button type="button" class="btn btn-sm" onclick="toggleQuickAddCategoryBox()" style="background:#FEF3C7; color:#92400E; border:1px solid #FDE68A; font-size:11.5px; padding:3px 10px; border-radius:6px; font-weight:600; cursor:pointer;">
             ➕ Tạo thể loại mới
@@ -1979,9 +1981,15 @@
 
         <!-- Danh sách thẻ tag thể loại đã chọn -->
         <div style="margin-top:10px;">
-          <div style="font-size:11.5px; color:var(--muted); margin-bottom:5px;">Các thể loại đã chọn cho nhà cung cấp:</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <span style="font-size:11.5px; color:var(--muted);">Các thể loại đã chọn cho nhà cung cấp:</span>
+            <span style="font-size:11px; color:#ef4444; font-weight:500;">(Bắt buộc tối thiểu 1 thể loại)</span>
+          </div>
           <div id="suppSelectedCategoriesList" style="display:flex; flex-wrap:wrap; gap:6px; min-height:34px; padding:6px 8px; background:#FFFFFF; border:1px dashed #CBD5E1; border-radius:6px; align-items:center;">
             <!-- Render tags bằng JS -->
+          </div>
+          <div id="suppCategoryError" style="display:none; color:#ef4444; font-size:12px; margin-top:6px; font-weight:600;">
+            <i class="fas fa-exclamation-circle"></i> Vui lòng chọn hoặc tạo ít nhất một danh mục / thể loại phân phối!
           </div>
         </div>
       </div>
@@ -2147,7 +2155,7 @@
               <tr>
                 <th>Mã phiếu</th>
                 <th>Ngày nhập</th>
-                <th>Số mặt hàng</th>
+                <th style="text-align:center;">Số lượng sách</th>
                 <th style="text-align:right;">Tổng tiền</th>
                 <th>Người tạo</th>
                 <th>Ghi chú</th>
@@ -2436,6 +2444,207 @@
   </div>
 </div>
 
+<!-- MODAL TẠO YÊU CẦU BẢO TRÌ KỆ SÁCH (STOCK) -->
+<div class="modal-overlay" id="createShelfMaintenanceModal" style="display:none;">
+  <div class="modal-box" style="max-width:560px; padding:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:18px;">
+      <div>
+        <h3 style="color:var(--navy-900); margin:0; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-wrench" style="color:var(--amber-600);"></i>
+          Gửi Yêu Cầu Bảo Trì Kệ Sách
+        </h3>
+        <p style="font-size:12.5px; color:var(--muted); margin:4px 0 0 0;">Yêu cầu sẽ được chuyển tới Quản trị viên (Admin) phê duyệt</p>
+      </div>
+      <button type="button" class="btn" style="padding:4px 10px;" onclick="closeCreateShelfMaintenanceModal()">✕</button>
+    </div>
+
+    <form id="createShelfMaintenanceForm" onsubmit="submitShelfMaintenanceRequest(event)">
+      <input type="hidden" id="shelfMaintFormShelfId" />
+
+      <!-- Thông tin kệ được chọn -->
+      <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:14px; margin-bottom:18px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="font-weight:700; color:var(--navy-900); font-size:14px;" id="shelfMaintDisplayShelfName">Kệ Sách</div>
+          <span class="mono" style="padding:3px 8px; border-radius:6px; font-weight:700; font-size:12px; background:#FEF3C7; color:#B45309; border:1px solid #FDE68A;" id="shelfMaintDisplayShelfCode">KE-XX</span>
+        </div>
+        <div style="font-size:12.5px; color:#92400E; display:flex; flex-direction:column; gap:4px;">
+          <div><i class="fa-solid fa-location-dot" style="width:16px;"></i> Khu vực: <strong id="shelfMaintDisplayZone">Khu A</strong></div>
+          <div><i class="fa-solid fa-book" style="width:16px;"></i> Sách hiện có: <strong id="shelfMaintDisplayUnits">0 cuốn</strong> (<span id="shelfMaintDisplayBooks">0 đầu sách</span>)</div>
+          <div style="margin-top:6px; padding-top:6px; border-top:1px dashed #FDE68A; font-size:12px; color:#B45309;">
+            <i class="fa-solid fa-circle-info"></i> <em>Khi Admin phê duyệt, toàn bộ số sách trên sẽ tự động chuyển sang <strong>Kệ Dự Phòng Lưu Trữ (KE-DP)</strong>.</em>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lý do bảo trì -->
+      <div class="form-group" style="margin-bottom:14px;">
+        <label style="display:block; font-weight:600; font-size:13px; margin-bottom:6px; color:var(--navy-900);">
+          Lý do bảo trì kệ <span style="color:var(--danger);">*</span>
+        </label>
+        <select id="shelfMaintFormReasonPreset" class="form-control" style="width:100%; margin-bottom:8px;" onchange="onShelfMaintReasonPresetChange()">
+          <option value="Kệ bị cong vênh, xập xệ hoặc hư hỏng kết cấu chịu lực">Kệ bị cong vênh, xập xệ hoặc hư hỏng kết cấu chịu lực</option>
+          <option value="Sơn sửa, nâng cấp, gia cố thanh đỡ và làm mới kệ">Sơn sửa, nâng cấp, gia cố thanh đỡ và làm mới kệ</option>
+          <option value="Kiểm kê kỹ thuật, vệ sinh định kỳ & khử khuẩn kệ">Kiểm kê kỹ thuật, vệ sinh định kỳ & khử khuẩn kệ</option>
+          <option value="Tái cấu trúc và thay đổi sơ đồ bố trí khu vực kho">Tái cấu trúc và thay đổi sơ đồ bố trí khu vực kho</option>
+          <option value="other">-- Nhập lý do khác --</option>
+        </select>
+        <textarea id="shelfMaintFormReason" class="form-control" rows="2" placeholder="Chi tiết lý do bảo trì kệ sách..." required style="width:100%; box-sizing:border-box;"></textarea>
+      </div>
+
+      <!-- Thời gian dự kiến hoàn thành -->
+      <div class="form-group" style="margin-bottom:14px;">
+        <label style="display:block; font-weight:600; font-size:13px; margin-bottom:6px; color:var(--navy-900);">
+          Thời gian bảo trì dự kiến
+        </label>
+        <select id="shelfMaintFormDuration" class="form-control" style="width:100%;">
+          <option value="Trong ngày (vài giờ)">Trong ngày (vài giờ)</option>
+          <option value="1 - 2 ngày" selected>1 - 2 ngày</option>
+          <option value="3 - 5 ngày">3 - 5 ngày</option>
+          <option value="1 tuần">1 tuần</option>
+          <option value="2 tuần">2 tuần</option>
+        </select>
+      </div>
+
+      <!-- Ghi chú thêm -->
+      <div class="form-group" style="margin-bottom:18px;">
+        <label style="display:block; font-weight:600; font-size:13px; margin-bottom:6px; color:var(--navy-900);">Ghi chú thêm cho Quản trị viên</label>
+        <input type="text" id="shelfMaintFormNote" class="form-control" placeholder="Ghi chú vị trí, mức độ khẩn cấp, v.v..." style="width:100%; box-sizing:border-box;" />
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px; border-top:1px solid var(--line); padding-top:14px;">
+        <button type="button" class="btn" onclick="closeCreateShelfMaintenanceModal()">Hủy</button>
+        <button type="submit" class="btn btn-amber" id="shelfMaintSubmitBtn">
+          <i class="fa-solid fa-paper-plane"></i> Gửi Yêu Cầu Cho Admin
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL THEO DÕI YÊU CẦU BẢO TRÌ KỆ SÁCH (STOCK) -->
+<div class="modal-overlay" id="stockShelfMaintenanceRequestsModal" style="display:none;">
+  <div class="modal-box modal-lg" style="max-width:980px; max-height:90vh; display:flex; flex-direction:column; padding:22px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:16px;">
+      <div>
+        <h3 style="color:var(--navy-900); margin:0; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-wrench" style="color:var(--amber-600);"></i>
+          Danh Sách Yêu Cầu Bảo Trì Kệ Sách
+        </h3>
+        <p style="font-size:12.5px; color:var(--muted); margin:4px 0 0 0;">Theo dõi tình trạng phê duyệt các yêu cầu bảo trì kệ sách đã gửi tới Quản trị viên (Admin)</p>
+      </div>
+      <button type="button" class="btn" style="padding:4px 10px;" onclick="closeStockShelfMaintenanceRequestsModal()">✕</button>
+    </div>
+
+    <!-- Filter Bar -->
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-sm btn-amber stock-maint-filter-btn" id="stockMaintTabPending" onclick="filterStockShelfMaintenanceTab('pending')">
+          <i class="fa-solid fa-hourglass-half"></i> Chờ duyệt (<span id="stockMaintCountPending">0</span>)
+        </button>
+        <button type="button" class="btn btn-sm stock-maint-filter-btn" id="stockMaintTabApproved" onclick="filterStockShelfMaintenanceTab('approved')">
+          <i class="fa-solid fa-check"></i> Đã duyệt (<span id="stockMaintCountApproved">0</span>)
+        </button>
+        <button type="button" class="btn btn-sm stock-maint-filter-btn" id="stockMaintTabRejected" onclick="filterStockShelfMaintenanceTab('rejected')">
+          <i class="fa-solid fa-ban"></i> Đã từ chối (<span id="stockMaintCountRejected">0</span>)
+        </button>
+        <button type="button" class="btn btn-sm stock-maint-filter-btn" id="stockMaintTabAll" onclick="filterStockShelfMaintenanceTab('all')">
+          Tất cả (<span id="stockMaintCountAll">0</span>)
+        </button>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input type="text" id="stockMaintSearchInput" placeholder="Tìm mã YC, mã kệ, tên kệ..." onkeyup="if(event.key==='Enter') loadStockShelfMaintenanceRequests()" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--line); border-radius:6px; width:220px;" />
+        <button type="button" class="btn btn-sm" onclick="loadStockShelfMaintenanceRequests()" title="Làm mới"><i class="fa-solid fa-rotate"></i></button>
+      </div>
+    </div>
+
+    <!-- Table Container -->
+    <div style="overflow-y:auto; flex:1; max-height:480px; border:1px solid var(--line); border-radius:8px;">
+      <table class="data-table" style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead style="position:sticky; top:0; background:#F8FAFC; z-index:2; border-bottom:1.5px solid var(--line);">
+          <tr>
+            <th style="padding:10px 12px; text-align:left;">Mã Yêu Cầu</th>
+            <th style="padding:10px 12px; text-align:left;">Kệ Sách</th>
+            <th style="padding:10px 12px; text-align:left;">Lượng Sách</th>
+            <th style="padding:10px 12px; text-align:left;">Lý Do & Dự Kiến</th>
+            <th style="padding:10px 12px; text-align:center;">Trạng Thái</th>
+            <th style="padding:10px 12px; text-align:left;">Phản Hồi Admin</th>
+            <th style="padding:10px 12px; text-align:center;">Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody id="stockShelfMaintenanceTableBody">
+          <tr><td colspan="7" style="text-align:center; padding:30px; color:var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải danh sách yêu cầu...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px; border-top:1px solid var(--line); padding-top:12px;">
+      <button type="button" class="btn" onclick="closeStockShelfMaintenanceRequestsModal()">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DANH SÁCH YÊU CẦU ĐIỀU CHUYỂN SÁCH (STOCK) -->
+<div class="modal-overlay" id="stockShelfTransferRequestsModal" style="display:none;">
+  <div class="modal-box modal-lg" style="max-width:1050px; max-height:90vh; display:flex; flex-direction:column; padding:22px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); padding-bottom:12px; margin-bottom:16px;">
+      <div>
+        <h3 style="color:var(--navy-900); margin:0; display:flex; align-items:center; gap:8px;">
+          <i class="fa-solid fa-truck-ramp-box" style="color:#8B5CF6;"></i>
+          Danh Sách Yêu Cầu Điều Chuyển Sách
+        </h3>
+        <p style="font-size:12.5px; color:var(--muted); margin:4px 0 0 0;">Theo dõi tình trạng phê duyệt các yêu cầu điều chuyển sách giữa các kệ đã gửi tới Quản trị viên (Admin)</p>
+      </div>
+      <button type="button" class="btn" style="padding:4px 10px;" onclick="closeStockShelfTransferRequestsModal()">✕</button>
+    </div>
+
+    <!-- Filter Bar -->
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-sm btn-amber stock-transfer-filter-btn" id="stockTransferTabPending" onclick="filterStockShelfTransferTab('pending')">
+          <i class="fa-solid fa-hourglass-half"></i> Chờ duyệt (<span id="stockTransferCountPending">0</span>)
+        </button>
+        <button type="button" class="btn btn-sm stock-transfer-filter-btn" id="stockTransferTabApproved" onclick="filterStockShelfTransferTab('approved')">
+          <i class="fa-solid fa-check"></i> Đã duyệt (<span id="stockTransferCountApproved">0</span>)
+        </button>
+        <button type="button" class="btn btn-sm stock-transfer-filter-btn" id="stockTransferTabRejected" onclick="filterStockShelfTransferTab('rejected')">
+          <i class="fa-solid fa-ban"></i> Đã từ chối (<span id="stockTransferCountRejected">0</span>)
+        </button>
+        <button type="button" class="btn btn-sm stock-transfer-filter-btn" id="stockTransferTabAll" onclick="filterStockShelfTransferTab('all')">
+          Tất cả (<span id="stockTransferCountAll">0</span>)
+        </button>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input type="text" id="stockTransferSearchInput" placeholder="Tìm mã YC, tên sách, mã kệ..." onkeyup="if(event.key==='Enter') loadStockShelfTransferRequests()" style="padding:6px 12px; font-size:12.5px; border:1px solid var(--line); border-radius:6px; width:220px;" />
+        <button type="button" class="btn btn-sm" onclick="loadStockShelfTransferRequests()" title="Làm mới"><i class="fa-solid fa-rotate"></i></button>
+      </div>
+    </div>
+
+    <!-- Table Container -->
+    <div style="overflow-y:auto; flex:1; max-height:480px; border:1px solid var(--line); border-radius:8px;">
+      <table class="data-table" style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead style="position:sticky; top:0; background:#F8FAFC; z-index:2; border-bottom:1.5px solid var(--line);">
+          <tr>
+            <th style="padding:10px 12px; text-align:left;">Mã Yêu Cầu</th>
+            <th style="padding:10px 12px; text-align:left;">Sách Điều Chuyển</th>
+            <th style="padding:10px 12px; text-align:left;">Kệ Nguồn ➜ Kệ Đích</th>
+            <th style="padding:10px 12px; text-align:left;">Lý Do</th>
+            <th style="padding:10px 12px; text-align:center;">Trạng Thái</th>
+            <th style="padding:10px 12px; text-align:left;">Phản Hồi Admin</th>
+            <th style="padding:10px 12px; text-align:center;">Thao Tác</th>
+          </tr>
+        </thead>
+        <tbody id="stockShelfTransferTableBody">
+          <tr><td colspan="7" style="text-align:center; padding:30px; color:var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải danh sách yêu cầu...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px; border-top:1px solid var(--line); padding-top:12px;">
+      <button type="button" class="btn" onclick="closeStockShelfTransferRequestsModal()">Đóng</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL XEM CHI TIẾT SÁCH TRÊN KỆ (STOCK) -->
 <div class="modal-overlay" id="stockShelfDetailModal">
   <div class="modal-box modal-lg" style="max-width:860px; max-height:90vh; display:flex; flex-direction:column; padding:22px;">
@@ -2540,9 +2749,21 @@
 <div class="modal-overlay" id="stockShelfTransferModal">
   <div class="modal-box" style="max-width:580px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--line);">
-      <h3 style="color:var(--navy-900); margin:0;"><i class="fa-solid fa-right-left" style="color:var(--amber-dark);"></i> Điều Chuyển Sách Giữa Các Kệ</h3>
+      <h3 style="color:var(--navy-900); margin:0; display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-truck-ramp-box" style="color:#8B5CF6;"></i>
+        Gửi Yêu Cầu Điều Chuyển Sách Giữa Các Kệ
+      </h3>
       <button type="button" class="btn" style="padding:4px 10px;" onclick="closeStockShelfTransferModal()">✕</button>
     </div>
+
+    <!-- Thông báo quy trình phê duyệt -->
+    <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:6px; padding:10px 12px; margin-bottom:12px; font-size:12.5px; color:#5B21B6; display:flex; gap:8px; align-items:flex-start;">
+      <i class="fa-solid fa-circle-info" style="margin-top:2px; font-size:14px;"></i>
+      <div>
+        <strong>Quy trình phê duyệt kho:</strong> Yêu cầu điều chuyển sách giữa các kệ sẽ được gửi tới <strong>Quản trị viên (Admin)</strong>. Sau khi Admin phê duyệt, vị trí sách sẽ được tự động cập nhật sang kệ mới.
+      </div>
+    </div>
+
     <form id="stockShelfTransferForm" onsubmit="saveStockShelfTransfer(event)" style="display:flex; flex-direction:column; gap:14px;">
       <div class="form-group">
         <label style="font-weight:600; font-size:12.5px;">Chọn Đầu Sách Cần Chuyển (*)</label>
@@ -2560,9 +2781,26 @@
         <div id="stockTransferTargetShelfInfo" style="font-size:12px; margin-top:4px;"></div>
       </div>
 
+      <div class="form-group">
+        <label style="font-weight:600; font-size:12.5px;">Lý Do Điều Chuyển (*)</label>
+        <select id="stockTransferReasonPreset" style="padding:9px; border:1px solid var(--line); border-radius:6px; width:100%; font-size:13px; margin-bottom:6px;" onchange="onStockTransferReasonPresetChange()">
+          <option value="Kệ nguồn quá tải / Cân bằng dung lượng kho">Kệ nguồn quá tải / Cân bằng dung lượng kho</option>
+          <option value="Gom nhóm sách theo thể loại / khu vực phù hợp">Gom nhóm sách theo thể loại / khu vực phù hợp</option>
+          <option value="Tối ưu lối đi và khu vực trưng bày bán chạy">Tối ưu lối đi và khu vực trưng bày bán chạy</option>
+          <option value="Chuẩn bị kệ nguồn cho đợt kiểm kê / bảo dưỡng">Chuẩn bị kệ nguồn cho đợt kiểm kê / bảo dưỡng</option>
+          <option value="other">-- Lý do khác (tự nhập) --</option>
+        </select>
+        <textarea id="stockTransferReason" required class="form-control" rows="2" placeholder="Chi tiết lý do điều chuyển sách..." style="padding:8px 10px; font-size:13px; width:100%; border:1px solid var(--line); border-radius:6px; resize:vertical;"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label style="font-weight:600; font-size:12.5px;">Ghi Chú Gửi Admin (Tùy chọn)</label>
+        <input type="text" id="stockTransferNote" placeholder="Ví dụ: Ưu tiên duyệt sớm trong ca sáng..." style="padding:9px; border:1px solid var(--line); border-radius:6px; width:100%; font-size:13px;" />
+      </div>
+
       <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:10px; border-top:1px solid var(--line); padding-top:12px;">
         <button type="button" class="btn" onclick="closeStockShelfTransferModal()">Hủy bỏ</button>
-        <button type="submit" class="btn btn-amber" id="stockTransferSubmitBtn" style="font-weight:700;"><i class="fa-solid fa-right-left"></i> Xác Nhận Điều Chuyển</button>
+        <button type="submit" class="btn btn-amber" id="stockTransferSubmitBtn" style="font-weight:700;"><i class="fa-solid fa-paper-plane"></i> Gửi Yêu Cầu Cho Admin</button>
       </div>
     </form>
   </div>
@@ -2638,6 +2876,54 @@
 
     <form id="requestHideBookForm" onsubmit="submitRequestHideBook(event)" style="display:flex; flex-direction:column; gap:14px;">
       <input type="hidden" id="reqHideBookId">
+
+      <!-- LỰA CHỌN PHẠM VI ẨN SÁCH: CHỈ ẨN MỘT SỐ ÍT SÁCH (HƯ HỎNG/CÁCH LY) VS ẨN TOÀN BỘ ĐẦU SÁCH -->
+      <div class="form-group" style="margin-bottom:2px;">
+        <label style="font-size:12.5px; font-weight:700; color:var(--navy-900); display:block; margin-bottom:6px;">
+          Phạm vi ẩn sách (*)
+        </label>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <label id="optPartialHideLabel" style="border:1.5px solid #2563EB; background:#EFF6FF; border-radius:8px; padding:10px 12px; cursor:pointer; display:flex; align-items:flex-start; gap:8px; transition:all 0.2s;">
+            <input type="radio" name="reqHideType" value="partial" id="reqHideTypePartial" checked onchange="onReqHideTypeChange('partial')" style="margin-top:3px;">
+            <div>
+              <div style="font-weight:700; font-size:13px; color:#1E40AF;">Chỉ ẩn một số ít cuốn (Khuyên dùng)</div>
+              <div style="font-size:11.5px; color:#2563EB; margin-top:2px; line-height:1.4;">Cách ly số lượng sách bị lỗi/hỏng bìa. Các cuốn còn lại vẫn mở bán bình thường trên Web & POS.</div>
+            </div>
+          </label>
+          <label id="optAllHideLabel" style="border:1.5px solid var(--line); background:#fff; border-radius:8px; padding:10px 12px; cursor:pointer; display:flex; align-items:flex-start; gap:8px; transition:all 0.2s;">
+            <input type="radio" name="reqHideType" value="all" id="reqHideTypeAll" onchange="onReqHideTypeChange('all')" style="margin-top:3px;">
+            <div>
+              <div style="font-weight:700; font-size:13px; color:var(--navy-900);">Ẩn toàn bộ đầu sách</div>
+              <div style="font-size:11.5px; color:var(--muted); margin-top:2px; line-height:1.4;">Ngừng kinh doanh toàn bộ đầu sách này (NXB thu hồi, tạm ngừng phát hành...).</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Ô NHẬP SỐ LƯỢNG KHI CHỌN ẨN MỘT SỐ ÍT SÁCH -->
+      <div class="form-group" id="reqHideQuantityContainer" style="background:#F8FAFC; border:1px solid #CBD5E1; border-radius:8px; padding:12px 14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <label style="font-size:12.5px; font-weight:700; color:var(--navy-900); margin:0;">
+            Số lượng sách cần ẩn / cách ly (*)
+          </label>
+          <span style="font-size:11.5px; color:var(--muted);" id="reqHideAvailableStockText">Tồn kho hiện tại: 0 cuốn</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div style="display:inline-flex; align-items:center; border:1.5px solid #2563EB; border-radius:6px; background:#fff; overflow:hidden;">
+            <input type="number" id="reqHideQuantity" min="1" max="99999" value="5" style="width:90px; padding:7px 10px; border:none; font-weight:700; font-size:14px; color:#1E40AF; outline:none; text-align:center;" oninput="updateHideQtyPreview()">
+            <span style="background:var(--navy-100); padding:7px 10px; font-size:12px; font-weight:600; color:var(--navy-800); border-left:1px solid var(--line);">cuốn</span>
+          </div>
+          <div style="display:flex; gap:5px; flex-wrap:wrap;">
+            <button type="button" class="btn" style="padding:4px 9px; font-size:11.5px;" onclick="setQuickHideQuantity(1)">1 cuốn</button>
+            <button type="button" class="btn" style="padding:4px 9px; font-size:11.5px;" onclick="setQuickHideQuantity(3)">3 cuốn</button>
+            <button type="button" class="btn" style="padding:4px 9px; font-size:11.5px;" onclick="setQuickHideQuantity(5)">5 cuốn</button>
+            <button type="button" class="btn" style="padding:4px 9px; font-size:11.5px;" onclick="setQuickHideQuantity(10)">10 cuốn</button>
+          </div>
+        </div>
+        <div id="reqHideRemainingStockNotice" style="margin-top:8px; font-size:11.5px; color:#059669; font-weight:600;">
+          ✓ Sẽ gửi yêu cầu ẩn 5 cuốn bị lỗi. Còn lại ... cuốn vẫn tiếp tục mở bán bình thường trên Web & POS.
+        </div>
+      </div>
 
       <div class="form-group">
         <label style="font-size:12.5px; font-weight:700; color:var(--navy-900); display:block; margin-bottom:5px;">
@@ -3314,6 +3600,8 @@
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return headers;
   }
+  const getHeaders = getAuthHeaders;
+  window.getHeaders = getAuthHeaders;
 
   async function fetchProfile() {
     try {
@@ -3479,12 +3767,15 @@
           <span class="badge-dot" style="background:#64748B;"></span>Đã ẩn
         </button>`;
       } else if (isPendingHide) {
-        statusBadge = `<button type="button" class="badge" style="background:#FEF3C7; color:#B45309; border:1px solid #FCD34D; cursor:pointer; padding:6px 11px; font-weight:600; display:inline-flex; align-items:center; gap:6px; font-family:inherit; white-space:nowrap; transition:all 0.15s ease;" onclick="openHideRequestDetailModal('${hr._id}')" title="Nhấp xem chi tiết: Đang chờ Admin duyệt ẩn">
-          <span class="badge-dot" style="background:#F59E0B;"></span>Chờ duyệt ẩn
+        const isPartial = hr && hr.hideType === 'partial';
+        const hideText = isPartial ? `Chờ duyệt (${hr.quantity || 1} cuốn)` : 'Chờ duyệt ẩn';
+        statusBadge = `<button type="button" class="badge" style="background:#FEF3C7; color:#B45309; border:1px solid #FCD34D; cursor:pointer; padding:6px 11px; font-weight:600; display:inline-flex; align-items:center; gap:6px; font-family:inherit; white-space:nowrap; transition:all 0.15s ease;" onclick="openHideRequestDetailModal('${hr._id}')" title="Nhấp xem chi tiết: Đang chờ Admin duyệt ẩn ${isPartial ? (hr.quantity || 1) + ' cuốn lỗi' : 'toàn bộ'}">
+          <span class="badge-dot" style="background:#F59E0B;"></span>${hideText}
         </button>`;
       } else if (isApprovedHide) {
-        statusBadge = `<button type="button" class="badge" style="background:#DCFCE7; color:#15803D; border:1px solid #BBF7D0; cursor:pointer; padding:6px 11px; font-weight:600; display:inline-flex; align-items:center; gap:6px; font-family:inherit; white-space:nowrap; transition:all 0.15s ease;" onclick="executeHideBook('${hr._id}', '${safeTitle}')" title="Admin đã duyệt! Nhấp để hoàn tất ẩn sách">
-          <span class="badge-dot" style="background:#16A34A;"></span>Admin đã duyệt
+        const isPartial = hr && hr.hideType === 'partial';
+        statusBadge = `<button type="button" class="badge" style="background:#DCFCE7; color:#15803D; border:1px solid #BBF7D0; cursor:pointer; padding:6px 11px; font-weight:600; display:inline-flex; align-items:center; gap:6px; font-family:inherit; white-space:nowrap; transition:all 0.15s ease;" onclick="executeHideBook('${hr._id}', '${safeTitle}')" title="Admin đã duyệt! Nhấp để hoàn tất ẩn">
+          <span class="badge-dot" style="background:#16A34A;"></span>${isPartial ? 'Đã duyệt (' + (hr.quantity || 1) + ' cuốn)' : 'Admin đã duyệt'}
         </button>`;
       } else {
         statusBadge = `<div style="display:inline-flex; align-items:center; gap:8px; white-space:nowrap;">
@@ -3499,15 +3790,17 @@
       if (isHidden) {
         actionBtn = `<button type="button" style="color:#15803D; background:#DCFCE7; border:1px solid #BBF7D0; font-weight:600; white-space:nowrap; padding:5px 11px; border-radius:6px;" onclick="toggleBookStatus('${b._id}', '${safeTitle}', true)" title="Nhấp để hiện lại sách">👁️ Hiện</button>`;
       } else if (isPendingHide) {
+        const isPartial = hr && hr.hideType === 'partial';
         actionBtn = `<button type="button" class="btn" style="white-space:nowrap; padding:5px 11px; background:#FFFBEB; color:#D97706; border:1.5px solid #FDE68A; font-weight:700; font-size:12px; display:inline-flex; align-items:center; gap:5px;" onclick="openHideRequestDetailModal('${hr._id}')" title="Yêu cầu đang chờ Admin duyệt. Nhấp để xem tiến độ">
-          ⏳ Chờ duyệt
+          ⏳ Chờ duyệt${isPartial ? ' (' + (hr.quantity || 1) + 'c)' : ''}
         </button>`;
       } else if (isApprovedHide) {
-        actionBtn = `<button type="button" class="btn" style="white-space:nowrap; padding:5px 12px; background:#16A34A; color:#FFFFFF; border:1px solid #15803D; font-weight:700; font-size:12px; display:inline-flex; align-items:center; gap:5px; box-shadow:0 1px 3px rgba(22,163,74,0.3); border-radius:6px; cursor:pointer;" onclick="executeHideBook('${hr._id}', '${safeTitle}')" title="Admin đã duyệt! Nhấn để ẩn sách ngay">
-          ✅ Ẩn sách ngay
+        const isPartial = hr && hr.hideType === 'partial';
+        actionBtn = `<button type="button" class="btn" style="white-space:nowrap; padding:5px 12px; background:#16A34A; color:#FFFFFF; border:1px solid #15803D; font-weight:700; font-size:12px; display:inline-flex; align-items:center; gap:5px; box-shadow:0 1px 3px rgba(22,163,74,0.3); border-radius:6px; cursor:pointer;" onclick="executeHideBook('${hr._id}', '${safeTitle}')" title="Admin đã duyệt! Nhấn để ẩn ngay">
+          ✅ ${isPartial ? 'Ẩn ' + (hr.quantity || 1) + ' cuốn' : 'Ẩn sách ngay'}
         </button>`;
       } else {
-        actionBtn = `<button type="button" class="btn" style="white-space:nowrap; padding:5px 11px; background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; font-weight:600; font-size:12px; display:inline-flex; align-items:center; gap:5px;" onclick="openRequestHideModal('${b._id}')" title="Gửi yêu cầu ẩn sách tới Quản trị viên duyệt">
+        actionBtn = `<button type="button" class="btn" style="white-space:nowrap; padding:5px 11px; background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; font-weight:600; font-size:12px; display:inline-flex; align-items:center; gap:5px;" onclick="openRequestHideModal('${b._id}')" title="Ẩn một số ít sách bị lỗi hoặc toàn bộ đầu sách">
           🛡️ Yêu cầu ẩn
         </button>`;
       }
@@ -3757,17 +4050,90 @@
     }
   }
 
+  let currentHideModalBook = null;
+
+  function onReqHideTypeChange(type) {
+    const isPartial = type === 'partial';
+    const optPartial = document.getElementById('reqHideTypePartial');
+    const optAll = document.getElementById('reqHideTypeAll');
+    const lblPartial = document.getElementById('optPartialHideLabel');
+    const lblAll = document.getElementById('optAllHideLabel');
+    const qtyContainer = document.getElementById('reqHideQuantityContainer');
+
+    if (optPartial) optPartial.checked = isPartial;
+    if (optAll) optAll.checked = !isPartial;
+
+    if (lblPartial) {
+      lblPartial.style.borderColor = isPartial ? '#2563EB' : 'var(--line)';
+      lblPartial.style.background = isPartial ? '#EFF6FF' : '#fff';
+    }
+    if (lblAll) {
+      lblAll.style.borderColor = !isPartial ? '#2563EB' : 'var(--line)';
+      lblAll.style.background = !isPartial ? '#EFF6FF' : '#fff';
+    }
+
+    if (qtyContainer) {
+      qtyContainer.style.display = isPartial ? 'block' : 'none';
+    }
+
+    updateHideQtyPreview();
+  }
+
+  function setQuickHideQuantity(qty) {
+    const input = document.getElementById('reqHideQuantity');
+    if (!input) return;
+    const maxStock = currentHideModalBook ? (Number(currentHideModalBook.stock) || 1) : 99999;
+    input.value = Math.min(qty, Math.max(1, maxStock));
+    updateHideQtyPreview();
+  }
+
+  function updateHideQtyPreview() {
+    const optPartial = document.getElementById('reqHideTypePartial');
+    const isPartial = optPartial ? optPartial.checked : true;
+    const input = document.getElementById('reqHideQuantity');
+    const notice = document.getElementById('reqHideRemainingStockNotice');
+    if (!notice) return;
+
+    if (!isPartial) {
+      notice.innerHTML = `⚠️ <strong style="color:#DC2626;">Toàn bộ đầu sách sẽ ngừng kinh doanh</strong> sau khi được Admin phê duyệt.`;
+      return;
+    }
+
+    const maxStock = currentHideModalBook ? (Number(currentHideModalBook.stock) || 0) : 0;
+    let qty = Number(input?.value) || 1;
+    if (qty < 1) qty = 1;
+    if (maxStock > 0 && qty > maxStock) {
+      qty = maxStock;
+      if (input) input.value = qty;
+    }
+
+    const remaining = Math.max(0, maxStock - qty);
+    notice.innerHTML = `✓ Sẽ gửi yêu cầu ẩn <strong>${qty.toLocaleString('vi-VN')} cuốn</strong> bị lỗi/hỏng. Còn lại <strong style="color:#1D4ED8;">${remaining.toLocaleString('vi-VN')} cuốn</strong> vẫn tiếp tục mở bán bình thường trên Web & POS.`;
+  }
+
   function openRequestHideModal(bookId) {
     const b = (booksData || []).find(x => x._id === bookId);
     if (!b) return;
 
+    currentHideModalBook = b;
     document.getElementById('reqHideBookId').value = b._id;
     document.getElementById('reqHideBookTitle').textContent = b.title || 'Chưa có tên sách';
     document.getElementById('reqHideBookCode').textContent = b.bookCode || 'SKU';
     document.getElementById('reqHideBookAuthor').textContent = b.author || 'Nhiều tác giả';
-    document.getElementById('reqHideBookStock').textContent = `${b.stock || 0} cuốn`;
+    document.getElementById('reqHideBookStock').textContent = `${(b.stock || 0).toLocaleString('vi-VN')} cuốn`;
     document.getElementById('reqHideBookShelf').textContent = b.shelfLocation || 'Chưa xếp kệ';
     document.getElementById('reqHideBookCover').src = b.coverImage || '/images/covers/default-book.svg';
+
+    const stockText = document.getElementById('reqHideAvailableStockText');
+    if (stockText) stockText.textContent = `Tồn kho hiện tại: ${(b.stock || 0).toLocaleString('vi-VN')} cuốn`;
+
+    const qtyInput = document.getElementById('reqHideQuantity');
+    if (qtyInput) {
+      qtyInput.max = b.stock || 99999;
+      qtyInput.value = Math.min(5, Math.max(1, b.stock || 1));
+    }
+
+    onReqHideTypeChange('partial');
 
     const sel = document.getElementById('reqHideReasonSelect');
     if (sel) sel.value = '';
@@ -3787,6 +4153,8 @@
   async function submitRequestHideBook(e) {
     e.preventDefault();
     const bookId = document.getElementById('reqHideBookId').value;
+    const hideType = document.getElementById('reqHideTypeAll')?.checked ? 'all' : 'partial';
+    const quantity = Number(document.getElementById('reqHideQuantity')?.value) || 1;
     const reason = (document.getElementById('reqHideReasonText')?.value || '').trim();
     const note = (document.getElementById('reqHideNote')?.value || '').trim();
 
@@ -3809,7 +4177,7 @@
       const res = await fetch('/api/inventory/hide-requests', {
         method: 'POST',
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ bookId, reason, note })
+        body: JSON.stringify({ bookId, reason, note, hideType, quantity })
       });
       const data = await res.json();
 
@@ -3890,6 +4258,16 @@
         </div>
 
         <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px; display:flex; flex-direction:column; gap:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span><strong style="color:var(--navy-900);">Phạm vi yêu cầu:</strong></span>
+            <span>${r.hideType === 'all'
+              ? '<span class="badge" style="background:#FEE2E2; color:#DC2626; font-weight:700;">Ẩn toàn bộ đầu sách</span>'
+              : `<span class="badge" style="background:#EFF6FF; color:#1E40AF; font-weight:700;">Chỉ ẩn ${r.quantity || 1} cuốn lỗi / hỏng</span>`}</span>
+          </div>
+          ${r.hideType !== 'all' ? `
+          <div style="font-size:12px; color:#059669; background:#F0FDF4; border:1px solid #BBF7D0; padding:6px 10px; border-radius:6px;">
+            ✓ Các cuốn còn lại (${(r.remainingStock !== undefined ? r.remainingStock : Math.max(0, (r.stock || 0) - (r.quantity || 1))).toLocaleString('vi-VN')} cuốn) vẫn tiếp tục mở bán bình thường trên Web & POS.
+          </div>` : ''}
           <div>
             <strong style="color:var(--navy-900);">Người gửi yêu cầu:</strong> ${r.requestedByName || 'Thủ kho'} (${reqDate})
           </div>
@@ -4291,6 +4669,8 @@
     }
     renderStockShelvesGrid();
     updateStockPendingShelfRequestsBadge();
+    updateStockPendingShelfMaintenanceBadge();
+    updateStockPendingShelfTransferBadge();
   }
 
   function updateStockShelfStats() {
@@ -4302,7 +4682,7 @@
     (stockShelvesCache || []).forEach(s => {
       totalCap += (s.capacity || 0);
       totalUnits += (s.currentUnits || 0);
-      if (s.status === 'full' || (s.currentUnits >= s.capacity && s.capacity > 0)) {
+      if (s.status === 'full' || s.status === 'overloaded' || (s.currentUnits >= s.capacity && s.capacity > 0)) {
         fullShelves++;
       }
     });
@@ -4314,7 +4694,10 @@
     const tC = document.getElementById('stockKpiTotalCapacity');
     if (tC) tC.textContent = totalCap.toLocaleString('vi-VN') + ' cuốn';
     const oR = document.getElementById('stockKpiOccupancyRate');
-    if (oR) oR.textContent = rate + '%';
+    if (oR) {
+      oR.textContent = rate + '%';
+      oR.style.color = rate > 100 ? '#DC2626' : '';
+    }
     const fS = document.getElementById('stockKpiFullShelves');
     if (fS) fS.textContent = fullShelves;
   }
@@ -4331,6 +4714,8 @@
   function renderStockShelvesGrid() {
     const container = document.getElementById('stockShelvesGridContainer');
     if (!container) return;
+
+    updateStockShelfStats();
 
     const totalShelves = (stockShelvesCache || []).length;
     const allCountEl = document.getElementById('stockZoneAllCount');
@@ -4349,21 +4734,30 @@
     container.innerHTML = shelves.map(s => {
       const cap = s.capacity || 100;
       const cur = s.currentUnits || 0;
-      const pct = Math.min(100, Math.round((cur / cap) * 100));
+      const realPct = cap > 0 ? Math.round((cur / cap) * 100) : 0;
+      const barWidth = Math.min(100, realPct);
+      const isOverloaded = realPct > 100;
       const avail = Math.max(0, cap - cur);
 
       const isMaintenance = s.status === 'maintenance';
       const isBackupShelf = s.shelfCode === 'KE-DP';
+      const hasPendingMaint = !!s.pendingMaintenance;
 
       let statusBadge = '';
       let progressBg = '#10B981';
       if (isMaintenance) {
         statusBadge = '<span class="badge" style="background:#FEE2E2; color:#B91C1C; font-size:11px; font-weight:700;"><i class="fa-solid fa-wrench"></i> Đang bảo trì</span>';
         progressBg = '#94A3B8';
-      } else if (pct >= 95 || s.status === 'full') {
+      } else if (hasPendingMaint) {
+        statusBadge = '<span class="badge" style="background:#FEF3C7; color:#B45309; font-size:11px; font-weight:700; border:1px solid #FDE68A;"><i class="fa-solid fa-hourglass-half"></i> Chờ duyệt bảo trì</span>';
+        progressBg = '#F59E0B';
+      } else if (isOverloaded) {
+        statusBadge = `<span class="badge" style="background:#FEF2F2; color:#DC2626; font-size:11px; font-weight:700; border:1px solid #FECACA;"><i class="fa-solid fa-triangle-exclamation"></i> Quá tải ${realPct}%</span>`;
+        progressBg = '#DC2626';
+      } else if (realPct >= 95 || s.status === 'full') {
         statusBadge = '<span class="badge" style="background:#FEE2E2; color:#B91C1C; font-size:11px;"><i class="fa-solid fa-lock"></i> Đầy kệ</span>';
         progressBg = '#EF4444';
-      } else if (pct >= 80 || s.status === 'nearly_full') {
+      } else if (realPct >= 80 || s.status === 'nearly_full') {
         statusBadge = '<span class="badge" style="background:#FEF3C7; color:#B45309; font-size:11px;"><i class="fa-solid fa-triangle-exclamation"></i> Gần đầy</span>';
         progressBg = '#F59E0B';
       } else {
@@ -4389,6 +4783,20 @@
             <i class="fa-solid fa-triangle-exclamation"></i> Kệ đang bảo trì — Không thể cấp thêm sách
           </div>
         `;
+      } else if (hasPendingMaint) {
+        cardStyle = 'background:#FFFDF7; border:1.5px solid #FDE68A; border-radius:12px; padding:18px; box-shadow:var(--shadow-card); display:flex; flex-direction:column; justify-content:space-between; position:relative;';
+        bannerHtml = `
+          <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:6px; padding:6px 10px; font-size:11.5px; color:#B45309; margin-bottom:10px; font-weight:600; display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-clock"></i> Đã gửi yêu cầu bảo trì (${s.pendingMaintenance.requestCode}) — Đang chờ Admin duyệt
+          </div>
+        `;
+      } else if (isOverloaded) {
+        cardStyle = 'background:#FFFDFD; border:1.5px solid #FCA5A5; border-radius:12px; padding:18px; box-shadow:0 2px 8px rgba(220,38,38,0.08); display:flex; flex-direction:column; justify-content:space-between; position:relative;';
+        bannerHtml = `
+          <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:6px; padding:6px 10px; font-size:11.5px; color:#DC2626; margin-bottom:10px; font-weight:600; display:flex; align-items:center; gap:6px;">
+            <i class="fa-solid fa-triangle-exclamation"></i> Kệ vượt sức chứa (${cur}/${cap} cuốn — Quá tải ${realPct}%)
+          </div>
+        `;
       }
 
       let actionBtn2 = '';
@@ -4404,9 +4812,15 @@
             <i class="fa-solid fa-circle-check"></i> Mở lại kệ
           </button>
         `;
+      } else if (hasPendingMaint) {
+        actionBtn2 = `
+          <button type="button" class="btn btn-sm" style="flex:1; justify-content:center; gap:6px; font-size:12px; font-weight:600; background:#FFFBEB; color:#B45309; border:1px solid #FDE68A;" onclick="openStockShelfMaintenanceRequestsModal('${s.shelfCode}')" title="Yêu cầu bảo trì đang chờ Admin duyệt. Nhấn để xem chi tiết.">
+            <i class="fa-solid fa-hourglass-half"></i> Chờ duyệt
+          </button>
+        `;
       } else {
         actionBtn2 = `
-          <button type="button" class="btn btn-sm" style="flex:1; justify-content:center; gap:6px; font-size:12px; font-weight:600; background:#FEF3C7; color:#B45309; border:1px solid #FDE68A;" onclick="toggleShelfMaintenanceAction('${s._id}', true, '${s.shelfCode}', '${s.shelfName}', ${cur})" title="Bảo trì kệ (chuyển toàn bộ sách sang Kệ Dự Phòng)">
+          <button type="button" class="btn btn-sm" style="flex:1; justify-content:center; gap:6px; font-size:12px; font-weight:600; background:#FEF3C7; color:#B45309; border:1px solid #FDE68A;" onclick="openCreateShelfMaintenanceModal('${s._id}')" title="Gửi yêu cầu bảo trì kệ sách tới Quản trị viên">
             <i class="fa-solid fa-wrench"></i> Bảo trì kệ
           </button>
         `;
@@ -4436,10 +4850,12 @@
             <div style="margin-bottom:12px;">
               <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px; font-weight:600;">
                 <span style="color:var(--navy-900);">Đã chứa: <strong>${cur}</strong> / ${cap} cuốn</span>
-                <span style="color:${progressBg}; font-weight:700;">${isMaintenance ? 'BẢO TRÌ' : pct + '%'}</span>
+                <span style="color:${isOverloaded ? '#DC2626' : progressBg}; font-weight:700;">
+                  ${isMaintenance ? 'BẢO TRÌ' : (isOverloaded ? `${realPct}% (Vượt ${cur - cap})` : `${realPct}%`)}
+                </span>
               </div>
               <div style="height:8px; width:100%; background:#F1F5F9; border-radius:999px; overflow:hidden;">
-                <div style="height:100%; width:${pct}%; background:${progressBg}; border-radius:999px; transition:width 0.3s ease;"></div>
+                <div style="height:100%; width:${barWidth}%; background:${isOverloaded ? '#DC2626' : progressBg}; border-radius:999px; transition:width 0.3s ease;"></div>
               </div>
             </div>
           </div>
@@ -4793,28 +5209,8 @@
     }
 
     if (toMaintenance) {
-      const msg = `Bạn có chắc chắn muốn đưa <strong>${name} (${code})</strong> vào chế độ <strong>BẢO TRÌ</strong>?<br><br>` +
-        `• <strong>Toàn bộ ${cur || 0} cuốn sách</strong> hiện có trên kệ sẽ được <strong>tự động chuyển sang Kệ Dự Phòng Lưu Trữ (KE-DP)</strong> an toàn.<br>` +
-        `• Kệ này sẽ <strong>tạm ngưng tiếp nhận sách mới</strong> cho đến khi hoàn tất bảo trì.`;
-      const confirmed = await showCustomConfirm(msg);
-      if (!confirmed) return;
-
-      try {
-        const res = await fetch(`/api/inventory/shelves/${id}/maintenance`, {
-          method: 'PUT',
-          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-          body: JSON.stringify({ toMaintenance: true })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Lỗi khi chuyển sang chế độ bảo trì');
-
-        showCustomToast('success', 'Bảo trì thành công', data.message);
-        await ensureStockShelvesLoaded(true);
-        renderStockShelvesGrid();
-        loadInventoryLookup();
-      } catch (err) {
-        showCustomToast('error', 'Lỗi', err.message);
-      }
+      openCreateShelfMaintenanceModal(id);
+      return;
     } else {
       const msg = `Bạn có chắc chắn muốn hoàn tất bảo trì và <strong>mở lại hoạt động</strong> cho kệ <strong>${name} (${code})</strong>?<br><br>Kệ sẽ sẵn sàng tiếp nhận sách trở lại.`;
       const confirmed = await showCustomConfirm(msg);
@@ -4836,6 +5232,501 @@
       } catch (err) {
         showCustomToast('error', 'Lỗi', err.message);
       }
+    }
+  }
+
+  // --- QUẢN LÝ YÊU CẦU BẢO TRÌ KỆ SÁCH (STOCK) ---
+  let _stockMaintCurrentTab = 'pending';
+  let _cachedStockMaintRequests = [];
+
+  async function updateStockPendingShelfMaintenanceBadge() {
+    try {
+      const res = await fetch('/api/inventory/shelf-maintenance-requests?status=pending&limit=1', { headers: getAuthHeaders() });
+      if (!res.ok) return;
+      const data = await res.json();
+      const count = (data.counts && data.counts.pending != null) ? data.counts.pending : 0;
+      const badge = document.getElementById('stockPendingShelfMaintenanceBadge');
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : count;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    } catch (e) {
+      // silent fail
+    }
+  }
+
+  function onShelfMaintReasonPresetChange() {
+    const preset = document.getElementById('shelfMaintFormReasonPreset');
+    const reasonInput = document.getElementById('shelfMaintFormReason');
+    if (!preset || !reasonInput) return;
+    if (preset.value === 'other') {
+      reasonInput.value = '';
+      reasonInput.focus();
+    } else {
+      reasonInput.value = preset.value;
+    }
+  }
+
+  function openCreateShelfMaintenanceModal(shelfId) {
+    const shelf = (stockShelvesCache || []).find(s => String(s._id) === String(shelfId));
+    if (!shelf) {
+      showCustomToast('error', 'Lỗi', 'Không tìm thấy thông tin kệ sách');
+      return;
+    }
+
+    if (shelf.shelfCode === 'KE-DP') {
+      showCustomToast('warning', 'Cảnh báo', 'Kệ Dự Phòng Lưu Trữ là kệ trung tâm dự phòng của kho, không thể đưa vào bảo trì!');
+      return;
+    }
+
+    if (shelf.status === 'maintenance') {
+      showCustomToast('info', 'Thông báo', 'Kệ sách này hiện đang trong chế độ bảo trì.');
+      return;
+    }
+
+    if (shelf.pendingMaintenance) {
+      showCustomToast('info', 'Chờ duyệt', `Kệ sách này đã có yêu cầu bảo trì (${shelf.pendingMaintenance.requestCode}) đang chờ Admin duyệt.`);
+      openStockShelfMaintenanceRequestsModal(shelf.shelfCode);
+      return;
+    }
+
+    const modal = document.getElementById('createShelfMaintenanceModal');
+    const idInput = document.getElementById('shelfMaintFormShelfId');
+    const nameEl = document.getElementById('shelfMaintDisplayShelfName');
+    const codeEl = document.getElementById('shelfMaintDisplayShelfCode');
+    const zoneEl = document.getElementById('shelfMaintDisplayZone');
+    const unitsEl = document.getElementById('shelfMaintDisplayUnits');
+    const booksEl = document.getElementById('shelfMaintDisplayBooks');
+    const reasonPreset = document.getElementById('shelfMaintFormReasonPreset');
+    const reasonInput = document.getElementById('shelfMaintFormReason');
+    const durationInput = document.getElementById('shelfMaintFormDuration');
+    const noteInput = document.getElementById('shelfMaintFormNote');
+
+    if (idInput) idInput.value = shelf._id;
+    if (nameEl) nameEl.textContent = shelf.shelfName;
+    if (codeEl) codeEl.textContent = shelf.shelfCode;
+    if (zoneEl) zoneEl.textContent = shelf.zone;
+    if (unitsEl) unitsEl.textContent = (shelf.currentUnits || 0) + ' cuốn';
+    if (booksEl) booksEl.textContent = (shelf.booksCount || (shelf.books ? shelf.books.length : 0)) + ' đầu sách';
+
+    if (reasonPreset) reasonPreset.value = 'Kệ bị cong vênh, xập xệ hoặc hư hỏng kết cấu chịu lực';
+    if (reasonInput) reasonInput.value = 'Kệ bị cong vênh, xập xệ hoặc hư hỏng kết cấu chịu lực';
+    if (durationInput) durationInput.value = '1 - 2 ngày';
+    if (noteInput) noteInput.value = '';
+
+    if (modal) {
+      modal.classList.add('active');
+      modal.style.display = 'flex';
+    }
+  }
+
+  function closeCreateShelfMaintenanceModal() {
+    const modal = document.getElementById('createShelfMaintenanceModal');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
+  }
+
+  async function submitShelfMaintenanceRequest(e) {
+    e.preventDefault();
+    const shelfId = document.getElementById('shelfMaintFormShelfId').value;
+    const reason = (document.getElementById('shelfMaintFormReason').value || '').trim();
+    const expectedDuration = document.getElementById('shelfMaintFormDuration').value;
+    const note = (document.getElementById('shelfMaintFormNote').value || '').trim();
+    const btn = document.getElementById('shelfMaintSubmitBtn');
+
+    if (!shelfId) {
+      showCustomToast('error', 'Lỗi', 'Chưa chọn kệ sách cần bảo trì');
+      return;
+    }
+    if (!reason) {
+      showCustomToast('error', 'Lỗi', 'Vui lòng nhập lý do bảo trì kệ sách');
+      return;
+    }
+
+    if (btn) btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/inventory/shelf-maintenance-requests', {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ shelfId, reason, expectedDuration, note })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Không thể gửi yêu cầu bảo trì');
+
+      showCustomToast('success', 'Đã gửi yêu cầu', data.message || 'Yêu cầu bảo trì kệ sách đã được gửi tới Admin và đang chờ phê duyệt!');
+      closeCreateShelfMaintenanceModal();
+      await fetchStockShelves(true);
+      updateStockPendingShelfMaintenanceBadge();
+    } catch (err) {
+      showCustomToast('error', 'Lỗi', err.message);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  function openStockShelfMaintenanceRequestsModal(searchKeyword = '') {
+    const modal = document.getElementById('stockShelfMaintenanceRequestsModal');
+    if (modal) {
+      modal.classList.add('active');
+      modal.style.display = 'flex';
+      const searchInput = document.getElementById('stockMaintSearchInput');
+      if (searchInput && searchKeyword) {
+        searchInput.value = searchKeyword;
+      }
+      filterStockShelfMaintenanceTab('pending');
+    }
+  }
+
+  function closeStockShelfMaintenanceRequestsModal() {
+    const modal = document.getElementById('stockShelfMaintenanceRequestsModal');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
+  }
+
+  function filterStockShelfMaintenanceTab(tab) {
+    _stockMaintCurrentTab = tab || 'pending';
+    const tabIds = {
+      pending: 'stockMaintTabPending',
+      approved: 'stockMaintTabApproved',
+      rejected: 'stockMaintTabRejected',
+      all: 'stockMaintTabAll'
+    };
+    Object.keys(tabIds).forEach(t => {
+      const el = document.getElementById(tabIds[t]);
+      if (el) {
+        if (t === _stockMaintCurrentTab) {
+          el.className = 'btn btn-sm btn-amber stock-maint-filter-btn';
+        } else {
+          el.className = 'btn btn-sm stock-maint-filter-btn';
+        }
+      }
+    });
+    loadStockShelfMaintenanceRequests();
+  }
+
+  async function loadStockShelfMaintenanceRequests() {
+    const tbody = document.getElementById('stockShelfMaintenanceTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>';
+
+    try {
+      const search = (document.getElementById('stockMaintSearchInput')?.value || '').trim();
+      const params = new URLSearchParams({
+        status: _stockMaintCurrentTab,
+        limit: '100'
+      });
+      if (search) params.append('search', search);
+
+      const res = await fetch('/api/inventory/shelf-maintenance-requests?' + params.toString(), {
+        headers: getAuthHeaders()
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Lỗi khi tải danh sách yêu cầu bảo trì');
+
+      _cachedStockMaintRequests = result.data || [];
+
+      // Update counters
+      const counts = result.counts || {};
+      const cPend = document.getElementById('stockMaintCountPending');
+      const cAppr = document.getElementById('stockMaintCountApproved');
+      const cRej = document.getElementById('stockMaintCountRejected');
+      const cAll = document.getElementById('stockMaintCountAll');
+      if (cPend) cPend.textContent = counts.pending != null ? counts.pending : 0;
+      if (cAppr) cAppr.textContent = counts.approved != null ? counts.approved : 0;
+      if (cRej) cRej.textContent = counts.rejected != null ? counts.rejected : 0;
+      if (cAll) cAll.textContent = counts.all != null ? counts.all : 0;
+
+      const badge = document.getElementById('stockPendingShelfMaintenanceBadge');
+      if (badge) {
+        const pCount = counts.pending || 0;
+        if (pCount > 0) {
+          badge.textContent = pCount > 99 ? '99+' : pCount;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      if (_cachedStockMaintRequests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--muted);"><i class="fa-solid fa-inbox" style="font-size:24px; display:block; margin-bottom:8px;"></i>Không có yêu cầu bảo trì kệ nào phù hợp.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = _cachedStockMaintRequests.map(r => {
+        const statusMap = {
+          pending: '<span class="badge" style="background:#FEF3C7; color:#B45309; border:1px solid #FDE68A;"><i class="fa-solid fa-hourglass-half"></i> Chờ duyệt</span>',
+          approved: '<span class="badge" style="background:#D1FAE5; color:#065F46; border:1px solid #A7F3D0;"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>',
+          rejected: '<span class="badge" style="background:#FEE2E2; color:#B91C1C; border:1px solid #FECACA;"><i class="fa-solid fa-circle-xmark"></i> Từ chối</span>',
+          cancelled: '<span class="badge" style="background:#E2E8F0; color:#475569;"><i class="fa-solid fa-ban"></i> Đã hủy</span>'
+        };
+        const statusBadge = statusMap[r.status] || r.status;
+
+        const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+        const adminResp = r.adminNote
+          ? `<div style="font-size:12px; color:var(--navy-900); background:#F8FAFC; padding:4px 8px; border-radius:4px; border:1px solid var(--line);"><strong>${r.reviewedByName || 'Admin'}:</strong> ${r.adminNote}</div>`
+          : (r.status === 'pending' ? '<span style="color:var(--muted); font-size:12px; font-style:italic;">Đang chờ phản hồi...</span>' : '<span style="color:var(--muted); font-size:12px;">--</span>');
+
+        let actionBtn = '<span style="color:var(--muted); font-size:12px;">--</span>';
+        if (r.status === 'pending') {
+          actionBtn = `<button type="button" class="btn btn-sm" style="color:#DC2626; border:1px solid #FECACA; background:#FEF2F2;" onclick="cancelStockShelfMaintenanceRequest('${r._id}', '${r.requestCode}')"><i class="fa-solid fa-xmark"></i> Hủy YC</button>`;
+        }
+
+        return `
+          <tr style="border-bottom:1px solid var(--line);">
+            <td style="padding:10px 12px;">
+              <span class="mono" style="font-weight:700; color:var(--navy-900); font-size:12.5px;">${r.requestCode || '--'}</span>
+              <div style="font-size:11px; color:var(--muted); margin-top:2px;">${dateStr}</div>
+            </td>
+            <td style="padding:10px 12px;">
+              <strong style="color:var(--navy-900);">${r.shelfName || '--'}</strong>
+              <div style="margin-top:2px;">
+                <span class="mono" style="font-size:11px; background:var(--navy-100); color:var(--navy-900); padding:1px 5px; border-radius:4px; font-weight:700;">${r.shelfCode}</span>
+                <span style="font-size:11.5px; color:var(--muted); margin-left:4px;">(${r.zone || ''})</span>
+              </div>
+            </td>
+            <td style="padding:10px 12px; font-size:12.5px;">
+              <div><strong>${r.currentUnits || 0}</strong> cuốn</div>
+              <div style="font-size:11px; color:var(--muted);">${r.booksCount || 0} đầu sách</div>
+            </td>
+            <td style="padding:10px 12px; max-width:260px;">
+              <div style="font-size:12.5px; color:var(--navy-900); font-weight:600;">${r.reason || '--'}</div>
+              <div style="font-size:11.5px; color:#B45309; margin-top:2px;"><i class="fa-solid fa-stopwatch"></i> Dự kiến: ${r.expectedDuration || '1 - 2 ngày'}</div>
+              ${r.note ? `<div style="font-size:11px; color:var(--muted); margin-top:2px; font-style:italic;">Ghi chú: ${r.note}</div>` : ''}
+            </td>
+            <td style="padding:10px 12px; text-align:center;">${statusBadge}</td>
+            <td style="padding:10px 12px; max-width:200px;">${adminResp}</td>
+            <td style="padding:10px 12px; text-align:center;">${actionBtn}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--danger);">${err.message}</td></tr>`;
+    }
+  }
+
+  async function cancelStockShelfMaintenanceRequest(id, code) {
+    const confirmed = await showCustomConfirm(`Bạn có chắc chắn muốn hủy yêu cầu bảo trì kệ <strong>${code}</strong> không?`);
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/inventory/shelf-maintenance-requests/${id}/cancel`, {
+        method: 'PUT',
+        headers: getAuthHeaders()
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Không thể hủy yêu cầu');
+
+      showCustomToast('success', 'Thành công', data.message || 'Đã hủy yêu cầu bảo trì kệ sách');
+      loadStockShelfMaintenanceRequests();
+      await fetchStockShelves(true);
+      updateStockPendingShelfMaintenanceBadge();
+    } catch (e) {
+      showCustomToast('error', 'Lỗi', e.message);
+    }
+  }
+
+  // --- QUẢN LÝ YÊU CẦU ĐIỀU CHUYỂN SÁCH GIỮA CÁC KỆ (STOCK) ---
+  let _stockTransferCurrentTab = 'pending';
+  let _cachedStockTransferRequests = [];
+
+  async function updateStockPendingShelfTransferBadge() {
+    try {
+      const res = await fetch('/api/inventory/shelf-transfer-requests?status=pending&limit=1', { headers: getAuthHeaders() });
+      if (!res.ok) return;
+      const data = await res.json();
+      const count = (data.counts && data.counts.pending != null) ? data.counts.pending : 0;
+      const badge = document.getElementById('stockPendingShelfTransferBadge');
+      if (badge) {
+        if (count > 0) {
+          badge.textContent = count > 99 ? '99+' : count;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    } catch (e) {
+      // silent fail
+    }
+  }
+
+  function openStockShelfTransferRequestsModal(searchKeyword = '') {
+    const modal = document.getElementById('stockShelfTransferRequestsModal');
+    if (modal) {
+      modal.classList.add('active');
+      modal.style.display = 'flex';
+      const searchInput = document.getElementById('stockTransferSearchInput');
+      if (searchInput && searchKeyword) {
+        searchInput.value = searchKeyword;
+      }
+      filterStockShelfTransferTab('pending');
+    }
+  }
+
+  function closeStockShelfTransferRequestsModal() {
+    const modal = document.getElementById('stockShelfTransferRequestsModal');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
+  }
+
+  function filterStockShelfTransferTab(tab) {
+    _stockTransferCurrentTab = tab || 'pending';
+    const tabIds = {
+      pending: 'stockTransferTabPending',
+      approved: 'stockTransferTabApproved',
+      rejected: 'stockTransferTabRejected',
+      all: 'stockTransferTabAll'
+    };
+    Object.keys(tabIds).forEach(t => {
+      const el = document.getElementById(tabIds[t]);
+      if (el) {
+        if (t === _stockTransferCurrentTab) {
+          el.className = 'btn btn-sm btn-amber stock-transfer-filter-btn';
+        } else {
+          el.className = 'btn btn-sm stock-transfer-filter-btn';
+        }
+      }
+    });
+    loadStockShelfTransferRequests();
+  }
+
+  async function loadStockShelfTransferRequests() {
+    const tbody = document.getElementById('stockShelfTransferTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>';
+
+    try {
+      const search = (document.getElementById('stockTransferSearchInput')?.value || '').trim();
+      const params = new URLSearchParams({
+        status: _stockTransferCurrentTab,
+        limit: '100'
+      });
+      if (search) params.append('search', search);
+
+      const res = await fetch('/api/inventory/shelf-transfer-requests?' + params.toString(), {
+        headers: getAuthHeaders()
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || 'Lỗi khi tải danh sách yêu cầu điều chuyển');
+
+      _cachedStockTransferRequests = result.data || [];
+
+      // Update counters
+      const counts = result.counts || {};
+      const cPend = document.getElementById('stockTransferCountPending');
+      const cAppr = document.getElementById('stockTransferCountApproved');
+      const cRej = document.getElementById('stockTransferCountRejected');
+      const cAll = document.getElementById('stockTransferCountAll');
+      if (cPend) cPend.textContent = counts.pending != null ? counts.pending : 0;
+      if (cAppr) cAppr.textContent = counts.approved != null ? counts.approved : 0;
+      if (cRej) cRej.textContent = counts.rejected != null ? counts.rejected : 0;
+      if (cAll) cAll.textContent = counts.all != null ? counts.all : 0;
+
+      const badge = document.getElementById('stockPendingShelfTransferBadge');
+      if (badge) {
+        const pCount = counts.pending || 0;
+        if (pCount > 0) {
+          badge.textContent = pCount > 99 ? '99+' : pCount;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      if (_cachedStockTransferRequests.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px; color:var(--muted);"><i class="fa-solid fa-inbox" style="font-size:24px; display:block; margin-bottom:8px;"></i>Không có yêu cầu điều chuyển nào phù hợp.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = _cachedStockTransferRequests.map(r => {
+        const statusMap = {
+          pending: '<span class="badge" style="background:#FEF3C7; color:#B45309; border:1px solid #FDE68A;"><i class="fa-solid fa-hourglass-half"></i> Chờ duyệt</span>',
+          approved: '<span class="badge" style="background:#D1FAE5; color:#065F46; border:1px solid #A7F3D0;"><i class="fa-solid fa-circle-check"></i> Đã duyệt</span>',
+          rejected: '<span class="badge" style="background:#FEE2E2; color:#B91C1C; border:1px solid #FECACA;"><i class="fa-solid fa-circle-xmark"></i> Từ chối</span>',
+          cancelled: '<span class="badge" style="background:#E2E8F0; color:#475569;"><i class="fa-solid fa-ban"></i> Đã hủy</span>'
+        };
+        const statusBadge = statusMap[r.status] || r.status;
+
+        const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+        const adminResp = r.adminNote
+          ? `<div style="font-size:12px; color:var(--navy-900); background:#F8FAFC; padding:4px 8px; border-radius:4px; border:1px solid var(--line);"><strong>${r.reviewedByName || 'Admin'}:</strong> ${r.adminNote}</div>`
+          : (r.status === 'pending' ? '<span style="color:var(--muted); font-size:12px; font-style:italic;">Đang chờ Admin phê duyệt...</span>' : '<span style="color:var(--muted); font-size:12px;">--</span>');
+
+        let actionBtn = '<span style="color:var(--muted); font-size:12px;">--</span>';
+        if (r.status === 'pending') {
+          actionBtn = `<button type="button" class="btn btn-sm" style="color:#DC2626; border:1px solid #FECACA; background:#FEF2F2;" onclick="cancelStockShelfTransferRequest('${r._id}', '${r.requestCode}')"><i class="fa-solid fa-xmark"></i> Hủy YC</button>`;
+        }
+
+        const itemsSummary = (r.items || []).map(it => {
+          return `<div><strong style="color:var(--navy-900);">${it.title || '--'}</strong> <span style="font-size:11px; color:var(--muted);">(${it.quantity || 1} cuốn)</span></div>`;
+        }).join('');
+
+        const fromShelfBadge = (r.items && r.items[0] && r.items[0].fromShelfCode)
+          ? `<span class="mono" style="font-size:11px; background:#FEF3C7; color:#B45309; padding:2px 6px; border-radius:4px; font-weight:700;">${r.items[0].fromShelfCode}</span>`
+          : '<span style="color:var(--muted); font-size:11px;">Chưa gán</span>';
+
+        const toShelfBadge = `<span class="mono" style="font-size:11px; background:#D1FAE5; color:#065F46; padding:2px 6px; border-radius:4px; font-weight:700;">${r.targetShelfCode}</span>`;
+
+        return `
+          <tr style="border-bottom:1px solid var(--line);">
+            <td style="padding:10px 12px;">
+              <span class="mono" style="font-weight:700; color:var(--navy-900); font-size:12.5px;">${r.requestCode || '--'}</span>
+              <div style="font-size:11px; color:var(--muted); margin-top:2px;">${dateStr}</div>
+            </td>
+            <td style="padding:10px 12px; font-size:12.5px; max-width:240px;">
+              ${itemsSummary}
+              <div style="font-size:11px; color:var(--muted); margin-top:2px;">Tổng: <strong>${r.totalQuantity || 1}</strong> cuốn</div>
+            </td>
+            <td style="padding:10px 12px; font-size:12px; white-space:nowrap;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                ${fromShelfBadge}
+                <span style="color:var(--muted);">➔</span>
+                ${toShelfBadge}
+              </div>
+              <div style="font-size:11px; color:var(--muted); margin-top:3px;">${r.targetShelfName || ''} (${r.targetZone || ''})</div>
+            </td>
+            <td style="padding:10px 12px; max-width:240px;">
+              <div style="font-size:12.5px; color:var(--navy-900); font-weight:600;">${r.reason || '--'}</div>
+              ${r.note ? `<div style="font-size:11px; color:var(--muted); margin-top:2px; font-style:italic;">Ghi chú: ${r.note}</div>` : ''}
+            </td>
+            <td style="padding:10px 12px; text-align:center;">${statusBadge}</td>
+            <td style="padding:10px 12px; max-width:200px;">${adminResp}</td>
+            <td style="padding:10px 12px; text-align:center;">${actionBtn}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--danger);">${err.message}</td></tr>`;
+    }
+  }
+
+  async function cancelStockShelfTransferRequest(id, code) {
+    const confirmed = await showCustomConfirm(`Bạn có chắc chắn muốn hủy yêu cầu điều chuyển <strong>${code}</strong> không?`);
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/inventory/shelf-transfer-requests/${id}/cancel`, {
+        method: 'PUT',
+        headers: getAuthHeaders()
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Không thể hủy yêu cầu');
+
+      showCustomToast('success', 'Thành công', data.message || 'Đã hủy yêu cầu điều chuyển sách');
+      loadStockShelfTransferRequests();
+      updateStockPendingShelfTransferBadge();
+    } catch (e) {
+      showCustomToast('error', 'Lỗi', e.message);
     }
   }
 
@@ -4926,9 +5817,28 @@
       }).join('');
     }
 
+    const reasonPreset = document.getElementById('stockTransferReasonPreset');
+    const reasonInput = document.getElementById('stockTransferReason');
+    const noteInput = document.getElementById('stockTransferNote');
+    if (reasonPreset) reasonPreset.value = 'Kệ nguồn quá tải / Cân bằng dung lượng kho';
+    if (reasonInput) reasonInput.value = 'Kệ nguồn quá tải / Cân bằng dung lượng kho';
+    if (noteInput) noteInput.value = '';
+
     onStockTransferBookSelected();
     onStockTransferTargetShelfSelected();
     document.getElementById('stockShelfTransferModal').classList.add('active');
+  }
+
+  function onStockTransferReasonPresetChange() {
+    const preset = document.getElementById('stockTransferReasonPreset');
+    const reasonInput = document.getElementById('stockTransferReason');
+    if (!preset || !reasonInput) return;
+    if (preset.value === 'other') {
+      reasonInput.value = '';
+      reasonInput.focus();
+    } else {
+      reasonInput.value = preset.value;
+    }
   }
 
   function closeStockShelfTransferModal() {
@@ -4968,7 +5878,7 @@
       const search = (document.getElementById('stockLogsSearch') || {}).value || '';
       const action = (document.getElementById('stockLogsActionFilter') || {}).value || 'all';
       const params = new URLSearchParams({ page: _stockLogsPage, limit: 30, action, search });
-      const res = await fetch('/api/inventory/shelf-activities?' + params.toString(), { headers: getHeaders() });
+      const res = await fetch('/api/inventory/shelf-activities?' + params.toString(), { headers: getAuthHeaders() });
       if (!res.ok) throw new Error('Không thể tải lịch sử hoạt động');
       const data = await res.json();
       _stockLogsTotalPages = data.totalPages || 1;
@@ -5067,29 +5977,34 @@
     e.preventDefault();
     const bookId = document.getElementById('stockTransferBookSelect').value;
     const targetShelfId = document.getElementById('stockTransferTargetShelfSelect').value;
+    const reason = (document.getElementById('stockTransferReason')?.value || '').trim();
+    const note = (document.getElementById('stockTransferNote')?.value || '').trim();
     const btn = document.getElementById('stockTransferSubmitBtn');
 
     if (!bookId || !targetShelfId) {
       showCustomToast('warning', 'Cảnh báo', 'Vui lòng chọn cả đầu sách và kệ đích cần chuyển!');
       return;
     }
+    if (!reason) {
+      showCustomToast('warning', 'Cảnh báo', 'Vui lòng nhập lý do điều chuyển sách!');
+      return;
+    }
 
     if (btn) btn.disabled = true;
 
     try {
-      const res = await fetch('/api/inventory/shelves/transfer', {
+      const res = await fetch('/api/inventory/shelf-transfer-requests', {
         method: 'POST',
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ bookIds: [bookId], targetShelfId })
+        body: JSON.stringify({ bookIds: [bookId], targetShelfId, reason, note })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Lỗi khi điều chuyển sách');
+      if (!res.ok) throw new Error(data.message || 'Lỗi khi gửi yêu cầu điều chuyển');
 
-      showCustomToast('success', 'Thành công', data.message || 'Điều chuyển sách sang kệ mới thành công!');
+      showCustomToast('success', 'Đã gửi yêu cầu', data.message || 'Yêu cầu điều chuyển sách đã được gửi tới Admin phê duyệt!');
       closeStockShelfTransferModal();
-      await ensureStockShelvesLoaded(true);
-      await fetchBooks();
-      renderStockShelvesGrid();
+      updateStockPendingShelfTransferBadge();
+      openStockShelfTransferRequestsModal();
     } catch (err) {
       showCustomToast('error', 'Lỗi', err.message);
     } finally {
@@ -5537,6 +6452,12 @@
     const container = document.getElementById('suppSelectedCategoriesList');
     if (!container) return;
 
+    const catErr = document.getElementById('suppCategoryError');
+    if (selectedSuppCategories && selectedSuppCategories.length > 0) {
+      if (catErr) catErr.style.display = 'none';
+      container.style.borderColor = '#CBD5E1';
+    }
+
     if (!selectedSuppCategories || selectedSuppCategories.length === 0) {
       container.innerHTML = '<span style="font-size:12px; color:var(--muted); font-style:italic;">Chưa chọn thể loại nào (Chọn từ menu trên hoặc tạo mới)</span>';
       return;
@@ -5623,6 +6544,10 @@
     document.getElementById('suppBankName').value = '';
     document.getElementById('suppAccountNumber').value = '';
     document.getElementById('suppAccountHolder').value = '';
+    const catErr = document.getElementById('suppCategoryError');
+    if (catErr) catErr.style.display = 'none';
+    const catList = document.getElementById('suppSelectedCategoriesList');
+    if (catList) catList.style.borderColor = '#CBD5E1';
     selectedSuppCategories = [];
     renderSuppCategoriesList();
     toggleQuickAddCategoryBox(false);
@@ -5637,6 +6562,10 @@
   function editSupplier(id) {
     const s = suppliersData.find(x => x._id === id);
     if (!s) return;
+    const catErr = document.getElementById('suppCategoryError');
+    if (catErr) catErr.style.display = 'none';
+    const catList = document.getElementById('suppSelectedCategoriesList');
+    if (catList) catList.style.borderColor = '#CBD5E1';
     document.getElementById('suppEditId').value = s._id;
     document.getElementById('suppCode').value = s.code || '';
     document.getElementById('suppName').value = s.name;
@@ -5676,6 +6605,19 @@
     }
 
     const categories = [...selectedSuppCategories];
+    if (!categories || categories.length === 0) {
+      showCustomToast('error', 'Lỗi nhập liệu', 'Vui lòng chọn hoặc tạo ít nhất một Danh mục / Thể loại phân phối cho nhà cung cấp!');
+      const catErr = document.getElementById('suppCategoryError');
+      if (catErr) catErr.style.display = 'block';
+      const catList = document.getElementById('suppSelectedCategoriesList');
+      if (catList) {
+        catList.style.borderColor = '#ef4444';
+        catList.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      const catSelect = document.getElementById('suppCategorySelect');
+      if (catSelect) catSelect.focus();
+      return;
+    }
 
     const email = document.getElementById('suppEmail').value.trim();
     if (email && !/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
@@ -6342,16 +7284,28 @@
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--muted);">Chưa có phiếu nhập nào từ NCC này</td></tr>';
         return;
       }
-      tbody.innerHTML = receipts.map(r => `
+      tbody.innerHTML = receipts.map(r => {
+        const qty = (typeof r.totalQuantity === 'number' && r.totalQuantity > 0)
+          ? r.totalQuantity
+          : (r.items ? r.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0) : 0);
+        const itemCount = (r.items && r.items.length) || r.itemCount || 0;
+        const creator = r.creatorName || (r.creator && r.creator.name) || r.createdByName || r.receiverStaff || 'Thủ kho';
+        const importDate = r.importDate || r.receiptDate || r.createdAt;
+
+        return `
         <tr>
           <td class="mono-id" style="font-weight:700;">${r.receiptCode || ('PN-' + r._id.slice(-6).toUpperCase())}</td>
-          <td class="mono" style="font-size:12px;">${new Date(r.importDate || r.createdAt).toLocaleString('vi-VN')}</td>
-          <td style="text-align:center;">${(r.items && r.items.length) || 0} mục</td>
+          <td class="mono" style="font-size:12px;">${new Date(importDate).toLocaleString('vi-VN')}</td>
+          <td style="text-align:center;">
+            <span class="badge b-staff" style="font-size:12px; font-weight:600; white-space:nowrap;">${qty.toLocaleString('vi-VN')} cuốn</span>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">(${itemCount} đầu sách)</div>
+          </td>
           <td style="text-align:right; font-weight:700; color:var(--amber-dark);" class="mono">${(r.totalAmount || 0).toLocaleString()} ₫</td>
-          <td>${(r.creator && r.creator.name) || r.createdByName || 'Thủ kho'}</td>
+          <td>${creator}</td>
           <td style="font-size:12px; color:var(--muted);">${r.note || '---'}</td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     } catch (e) {
       if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger);">${e.message}</td></tr>`;
     }

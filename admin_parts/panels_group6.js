@@ -164,7 +164,7 @@ module.exports = `
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
           <button class="btn btn-secondary" onclick="markAllAuditLogsAsRead()" title="Đánh dấu tất cả thông báo nhật ký là đã xem"><i class="fas fa-check-double" style="color: var(--color-amber);"></i> Đã xem tất cả</button>
-          <button class="btn btn-secondary" onclick="exportAuditLogsCsv()"><i class="fas fa-file-excel" style="color:#10B981;"></i> Xuất file CSV</button>
+          <button class="btn btn-secondary" onclick="exportAuditLogsExcel('xlsx')" title="Xuất toàn bộ nhật ký ra file Excel (.xlsx) có định dạng và màu sắc chuyên nghiệp"><i class="fas fa-file-excel" style="color:#10B981;"></i> Xuất file Excel</button>
           <button class="btn btn-primary" onclick="loadAuditLogs(1)"><i class="fas fa-sync-alt"></i> Làm mới</button>
         </div>
       </div>

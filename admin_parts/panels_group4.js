@@ -64,6 +64,14 @@ module.exports = `
             <i class="fas fa-clipboard-check"></i> Yêu cầu Thêm Kệ từ Kho
             <span id="adminShelfRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#EF4444; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
           </button>
+          <button type="button" class="btn btn-secondary" id="btnViewInvMaintenanceRequests" onclick="switchInvViewMode('shelf-maintenance')">
+            <i class="fas fa-wrench"></i> Yêu cầu Bảo Trì Kệ
+            <span id="adminMaintenanceRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#F59E0B; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btnViewInvTransferRequests" onclick="switchInvViewMode('shelf-transfer')">
+            <i class="fas fa-truck-loading"></i> Yêu cầu Điều Chuyển Sách
+            <span id="adminTransferRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#8B5CF6; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
+          </button>
         </div>
         <div id="invShelfActionBtns" style="display:none; gap:8px; align-items:center;">
           <button type="button" class="btn btn-primary" onclick="openAdminShelfModal()"><i class="fas fa-plus"></i> Thêm Kệ Mới</button>
@@ -401,6 +409,188 @@ module.exports = `
         </div>
       </div>
 
+      <!-- VIEW 6: YÊU CẦU BẢO TRÌ KỆ SÁCH TỪ KHO (ADMIN APPROVAL) -->
+      <div id="invMaintenanceRequestsViewContainer" style="display:none;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:18px;">
+          <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#FEF3C7; color:#D97706; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-hourglass-half"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#92400E; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Chờ Duyệt Bảo Trì</div>
+              <div style="font-size:22px; font-weight:800; color:#B45309;" id="adminCountMaintReqPending">0</div>
+            </div>
+          </div>
+          <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#DCFCE7; color:#16A34A; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#166534; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Đã Phê Duyệt</div>
+              <div style="font-size:22px; font-weight:800; color:#15803D;" id="adminCountMaintReqApproved">0</div>
+            </div>
+          </div>
+          <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-times-circle"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#991B1B; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Đã Từ Chối</div>
+              <div style="font-size:22px; font-weight:800; color:#B91C1C;" id="adminCountMaintReqRejected">0</div>
+            </div>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#E2E8F0; color:#475569; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#475569; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Tổng Số Yêu Cầu</div>
+              <div style="font-size:22px; font-weight:800; color:#1E293B;" id="adminCountMaintReqTotal">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search bar -->
+        <div style="background:var(--card-bg, #fff); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm btn-primary admin-maint-req-tab-btn" id="adminMaintReqTabPending" onclick="filterAdminMaintenanceReqTab('pending')">
+                <i class="fas fa-hourglass-half"></i> Chờ duyệt (<span id="adminTabCountMaintReqPending">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-maint-req-tab-btn" id="adminMaintReqTabApproved" onclick="filterAdminMaintenanceReqTab('approved')">
+                <i class="fas fa-check"></i> Đã duyệt (<span id="adminTabCountMaintReqApproved">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-maint-req-tab-btn" id="adminMaintReqTabRejected" onclick="filterAdminMaintenanceReqTab('rejected')">
+                <i class="fas fa-ban"></i> Đã từ chối (<span id="adminTabCountMaintReqRejected">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-maint-req-tab-btn" id="adminMaintReqTabAll" onclick="filterAdminMaintenanceReqTab('all')">
+                Tất cả (<span id="adminTabCountMaintReqAll">0</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex:1; max-width:400px; min-width:260px;">
+              <div style="position:relative; width:100%;">
+                <input type="text" id="adminMaintReqSearchInput" placeholder="Tìm mã yêu cầu, mã kệ, tên kệ, người gửi..." onkeyup="if(event.key==='Enter') loadAdminMaintenanceRequests()" style="width:100%; height:38px; border:1.5px solid #CBD5E1; border-radius:8px; padding:0 34px 0 12px; font-size:13px; box-sizing:border-box; outline:none; background:#fff;" />
+                <i class="fas fa-search" style="position:absolute; right:12px; top:12px; color:#94A3B8; font-size:13px;"></i>
+              </div>
+              <button type="button" class="btn btn-secondary" onclick="loadAdminMaintenanceRequests()" style="height:38px; padding:0 14px;" title="Làm mới">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" style="border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <table class="table" style="width:100%; border-collapse:collapse; margin-bottom:0;">
+            <thead style="background:#F8FAFC; border-bottom:1.5px solid var(--line);">
+              <tr>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Mã Yêu Cầu</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Kệ Sách Cần Bảo Trì</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Sách Sẽ Chuyển (KE-DP)</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Người Gửi & Lý Do</th>
+                <th style="padding:12px 14px; text-align:center; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Trạng Thái</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Phản Hồi Admin</th>
+                <th style="padding:12px 14px; text-align:right; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="adminMaintenanceRequestsTableBody">
+              <tr><td colspan="7" style="text-align:center; padding:40px; color:var(--muted);"><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách yêu cầu bảo trì kệ...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VIEW 7: YÊU CẦU ĐIỀU CHUYỂN SÁCH TỪ KHO (ADMIN APPROVAL) -->
+      <div id="invTransferRequestsViewContainer" style="display:none;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:18px;">
+          <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#EDE9FE; color:#7C3AED; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-hourglass-half"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#6D28D9; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Chờ Duyệt Điều Chuyển</div>
+              <div style="font-size:22px; font-weight:800; color:#7C3AED;" id="adminCountTransferReqPending">0</div>
+            </div>
+          </div>
+          <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#DCFCE7; color:#16A34A; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#166534; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Đã Phê Duyệt</div>
+              <div style="font-size:22px; font-weight:800; color:#15803D;" id="adminCountTransferReqApproved">0</div>
+            </div>
+          </div>
+          <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-times-circle"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#991B1B; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Đã Từ Chối</div>
+              <div style="font-size:22px; font-weight:800; color:#B91C1C;" id="adminCountTransferReqRejected">0</div>
+            </div>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#E2E8F0; color:#475569; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#475569; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Tổng Số Yêu Cầu</div>
+              <div style="font-size:22px; font-weight:800; color:#1E293B;" id="adminCountTransferReqTotal">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search bar -->
+        <div style="background:var(--card-bg, #fff); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm btn-primary admin-transfer-req-tab-btn" id="adminTransferReqTabPending" onclick="filterAdminTransferReqTab('pending')">
+                <i class="fas fa-hourglass-half"></i> Chờ duyệt (<span id="adminTabCountTransferReqPending">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-transfer-req-tab-btn" id="adminTransferReqTabApproved" onclick="filterAdminTransferReqTab('approved')">
+                <i class="fas fa-check"></i> Đã duyệt (<span id="adminTabCountTransferReqApproved">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-transfer-req-tab-btn" id="adminTransferReqTabRejected" onclick="filterAdminTransferReqTab('rejected')">
+                <i class="fas fa-ban"></i> Đã từ chối (<span id="adminTabCountTransferReqRejected">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-transfer-req-tab-btn" id="adminTransferReqTabAll" onclick="filterAdminTransferReqTab('all')">
+                Tất cả (<span id="adminTabCountTransferReqAll">0</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex:1; max-width:400px; min-width:260px;">
+              <div style="position:relative; width:100%;">
+                <input type="text" id="adminTransferReqSearchInput" placeholder="Tìm mã yêu cầu, tên sách, mã kệ, người gửi..." onkeyup="if(event.key==='Enter') loadAdminTransferRequests()" style="width:100%; height:38px; border:1.5px solid #CBD5E1; border-radius:8px; padding:0 34px 0 12px; font-size:13px; box-sizing:border-box; outline:none; background:#fff;" />
+                <i class="fas fa-search" style="position:absolute; right:12px; top:12px; color:#94A3B8; font-size:13px;"></i>
+              </div>
+              <button type="button" class="btn btn-secondary" onclick="loadAdminTransferRequests()" style="height:38px; padding:0 14px;" title="Làm mới">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" style="border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <table class="table" style="width:100%; border-collapse:collapse; margin-bottom:0;">
+            <thead style="background:#F8FAFC; border-bottom:1.5px solid var(--line);">
+              <tr>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Mã Yêu Cầu</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Sách Điều Chuyển</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Kệ Nguồn ➜ Kệ Đích</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Người Gửi & Lý Do</th>
+                <th style="padding:12px 14px; text-align:center; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Trạng Thái</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Phản Hồi Admin</th>
+                <th style="padding:12px 14px; text-align:right; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="adminTransferRequestsTableBody">
+              <tr><td colspan="7" style="text-align:center; padding:40px; color:var(--muted);"><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách yêu cầu điều chuyển sách...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- PANEL: NHẬP SÁCH NCC -->
@@ -408,9 +598,8 @@ module.exports = `
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Phiếu Nhập Sách (Nhà Cung Cấp)</h2>
-          <p class="panel-subtitle">Quản lý các đợt nhập hàng từ nhà xuất bản / nhà cung cấp, cập nhật giá vốn và tồn kho tự động</p>
+          <p class="panel-subtitle">Quản lý và phê duyệt các đợt nhập hàng từ nhà xuất bản / nhà cung cấp</p>
         </div>
-        <button class="btn btn-primary" onclick="openImportReceiptModal()"><i class="fas fa-file-import"></i> Tạo phiếu nhập hàng</button>
       </div>
 
       <div class="filter-bar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -460,9 +649,8 @@ module.exports = `
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Phiếu Xuất Sách & Xuất Hủy</h2>
-          <p class="panel-subtitle">Quản lý xuất kho bán sỉ, xuất chuyển kho hoặc xuất hủy sách lỗi hỏng</p>
+          <p class="panel-subtitle">Quản lý và phê duyệt phiếu xuất kho bán sỉ, chuyển kho hoặc xuất hủy sách lỗi hỏng</p>
         </div>
-        <button class="btn btn-primary" onclick="openExportReceiptModal()"><i class="fas fa-file-export"></i> Tạo phiếu xuất kho</button>
       </div>
 
       <div class="filter-bar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">

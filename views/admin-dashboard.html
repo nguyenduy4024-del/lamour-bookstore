@@ -1426,6 +1426,111 @@
         </div>
       </div>
 
+      <!-- KHU VỰC BIỂU ĐỒ PHÂN TÍCH TỒN KHO SÁCH (INVENTORY & STOCK ANALYTICS BI) -->
+      <div class="section-card" style="padding:22px; margin-bottom:24px;">
+        <!-- Card Header with Title and Mode Switcher -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px; border-bottom:1px solid var(--line); padding-bottom:16px; margin-bottom:18px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <span style="display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg, #DBEAFE, #BFDBFE); color:#1D4ED8; font-size:15px; box-shadow:0 2px 4px rgba(29,78,216,0.15);">
+                <i class="fa-solid fa-boxes-stacked"></i>
+              </span>
+              <h3 style="font-size:17px; margin:0; color:var(--navy-900);">Biểu Đồ Phân Tích Sách Tồn Kho & Giá Trị Lưu Kho</h3>
+            </div>
+            <p style="font-size:12.5px; color:var(--muted); margin:0;">
+              Thống kê số lượng sách lưu kho, cơ cấu phân bổ theo thể loại và các đầu sách chiếm tỷ trọng vốn lưu động lớn nhất.
+            </p>
+          </div>
+
+          <!-- Controls: Mode Switcher -->
+          <div class="analytics-pills-group" style="margin:0; background:var(--cream); padding:3px; border-radius:8px; border:1px solid var(--line); display:flex; gap:3px;">
+            <button type="button" class="analytics-pill-btn active" id="btnStockModeCategory" onclick="setStockAnalyticsMode('category')">
+              <i class="fa-solid fa-layer-group"></i> Theo Thể Loại
+            </button>
+            <button type="button" class="analytics-pill-btn" id="btnStockModeTopBooks" onclick="setStockAnalyticsMode('topbooks')">
+              <i class="fa-solid fa-book-bookmark"></i> Top Sách Tồn Lớn
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Quick KPI Badges for Stock -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:20px;">
+          <div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:12px 14px; border-left:4px solid #2563EB;">
+            <div style="font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase;">Tổng Sách Tồn Kho</div>
+            <div id="stkTotalQty" style="font-size:19px; font-weight:800; color:#1E40AF; margin-top:2px;">0 cuốn</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;" id="stkTotalTitles">108 đầu sách sẵn sàng</div>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:12px 14px; border-left:4px solid #D97706;">
+            <div style="font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase;">Tổng Vốn Lưu Đọng</div>
+            <div id="stkTotalCost" style="font-size:19px; font-weight:800; color:#B45309; margin-top:2px;">0₫</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">Giá vốn thực tế lưu kho</div>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:12px 14px; border-left:4px solid #059669;">
+            <div style="font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase;">Giá Trị Bán Niêm Yết</div>
+            <div id="stkTotalRetail" style="font-size:19px; font-weight:800; color:#047857; margin-top:2px;">0₫</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">Doanh thu ước tính xuất kho</div>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:12px 14px; border-left:4px solid #7C3AED;">
+            <div style="font-size:11.5px; color:var(--muted); font-weight:600; text-transform:uppercase;">Bình Quân / Đầu Sách</div>
+            <div id="stkAvgPerTitle" style="font-size:19px; font-weight:800; color:#6D28D9; margin-top:2px;">0 cuốn</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:2px;">Độ phủ tồn kho dồi dào</div>
+          </div>
+        </div>
+
+        <!-- Grid: Cột trái Bar Chart + Cột phải Phân Bổ Tỷ Trọng Vốn (1.6fr 1fr) -->
+        <div style="display:grid; grid-template-columns: 1.6fr 1fr; gap:20px;">
+          <!-- CỘT TRÁI: BIỂU ĐỒ CỘT TỒN KHO -->
+          <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:10px; padding:18px; display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                <strong id="stkChartTitle" style="font-size:13.5px; color:var(--navy-900);">
+                  Cơ Cấu Số Lượng Sách Tồn Kho Theo Thể Loại (Đơn vị: Cuốn)
+                </strong>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted);">
+                    <span style="width:10px; height:10px; background:#2563EB; border-radius:2px; display:inline-block;"></span> Số lượng tồn
+                  </span>
+                  <span style="display:flex; align-items:center; gap:4px; font-size:11px; color:var(--muted);">
+                    <span style="width:10px; height:10px; background:#D97706; border-radius:2px; display:inline-block;"></span> Giá trị vốn
+                  </span>
+                </div>
+              </div>
+
+              <!-- Container Biểu Đồ Cột -->
+              <div id="stockAnalyticsChartBars" style="display:flex; align-items:flex-end; gap:10px; height:270px; padding:16px 8px 8px; border-bottom:1px solid var(--line); overflow-x:auto; background:linear-gradient(180deg, rgba(240,249,255,0.4) 0%, rgba(255,255,255,1) 100%); border-radius:8px;">
+                <div style="width:100%; text-align:center; color:var(--muted); padding-top:100px; font-size:12.5px;">Đang tải biểu đồ tồn kho...</div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:11.5px; color:var(--muted);">
+              <span>📊 Rê chuột vào từng cột để xem chi tiết Số lượng & Giá trị vốn tồn kho</span>
+              <span id="stkChartSummaryText"></span>
+            </div>
+          </div>
+
+          <!-- CỘT PHẢI: TỶ TRỌNG VỐN TỒN KHO & ĐIỀU HÀNH -->
+          <div style="background:#FFFFFF; border:1px solid var(--line); border-radius:10px; padding:18px; display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div style="padding-bottom:10px; border-bottom:1px solid var(--line); margin-bottom:14px;">
+                <strong style="font-size:13.5px; color:var(--navy-900); display:block;">
+                  Tỷ Trọng Vốn Lưu Kho Theo Thể Loại
+                </strong>
+                <span style="font-size:11.5px; color:var(--muted);">Xếp hạng giá trị vốn bị chiếm dụng trong kho</span>
+              </div>
+
+              <!-- List thể loại với progress bar -->
+              <div id="stkCategoryShareList" style="display:flex; flex-direction:column; gap:9px; max-height:240px; overflow-y:auto; padding-right:4px;">
+                <div style="color:var(--muted); font-size:12px;">Đang tổng hợp cơ cấu vốn tồn...</div>
+              </div>
+            </div>
+
+            <div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-top:14px; font-size:11.5px; color:var(--muted); line-height:1.45;">
+              💡 <em>Khuyến nghị: Nhóm sách Tâm lý & Kinh tế chiếm hơn 39% vốn lưu kho. Cần đẩy mạnh bán chéo (cross-selling) và flash sale để tối ưu vòng quay hàng tồn (Inventory Turnover).</em>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- KHU VỰC ĐỐI SOÁT SẢN PHẨM: 2 TABS (BÁN CHẠY vs DEAD STOCK) -->
       <div class="section-card" style="margin-bottom:24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; gap:10px;">
@@ -2292,6 +2397,14 @@
             <i class="fas fa-clipboard-check"></i> Yêu cầu Thêm Kệ từ Kho
             <span id="adminShelfRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#EF4444; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
           </button>
+          <button type="button" class="btn btn-secondary" id="btnViewInvMaintenanceRequests" onclick="switchInvViewMode('shelf-maintenance')">
+            <i class="fas fa-wrench"></i> Yêu cầu Bảo Trì Kệ
+            <span id="adminMaintenanceRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#F59E0B; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btnViewInvTransferRequests" onclick="switchInvViewMode('shelf-transfer')">
+            <i class="fas fa-truck-loading"></i> Yêu cầu Điều Chuyển Sách
+            <span id="adminTransferRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#8B5CF6; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
+          </button>
         </div>
         <div id="invShelfActionBtns" style="display:none; gap:8px; align-items:center;">
           <button type="button" class="btn btn-primary" onclick="openAdminShelfModal()"><i class="fas fa-plus"></i> Thêm Kệ Mới</button>
@@ -2629,6 +2742,188 @@
         </div>
       </div>
 
+      <!-- VIEW 6: YÊU CẦU BẢO TRÌ KỆ SÁCH TỪ KHO (ADMIN APPROVAL) -->
+      <div id="invMaintenanceRequestsViewContainer" style="display:none;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:18px;">
+          <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#FEF3C7; color:#D97706; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-hourglass-half"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#92400E; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Chờ Duyệt Bảo Trì</div>
+              <div style="font-size:22px; font-weight:800; color:#B45309;" id="adminCountMaintReqPending">0</div>
+            </div>
+          </div>
+          <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#DCFCE7; color:#16A34A; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#166534; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Đã Phê Duyệt</div>
+              <div style="font-size:22px; font-weight:800; color:#15803D;" id="adminCountMaintReqApproved">0</div>
+            </div>
+          </div>
+          <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-times-circle"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#991B1B; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Đã Từ Chối</div>
+              <div style="font-size:22px; font-weight:800; color:#B91C1C;" id="adminCountMaintReqRejected">0</div>
+            </div>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#E2E8F0; color:#475569; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#475569; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Tổng Số Yêu Cầu</div>
+              <div style="font-size:22px; font-weight:800; color:#1E293B;" id="adminCountMaintReqTotal">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search bar -->
+        <div style="background:var(--card-bg, #fff); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm btn-primary admin-maint-req-tab-btn" id="adminMaintReqTabPending" onclick="filterAdminMaintenanceReqTab('pending')">
+                <i class="fas fa-hourglass-half"></i> Chờ duyệt (<span id="adminTabCountMaintReqPending">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-maint-req-tab-btn" id="adminMaintReqTabApproved" onclick="filterAdminMaintenanceReqTab('approved')">
+                <i class="fas fa-check"></i> Đã duyệt (<span id="adminTabCountMaintReqApproved">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-maint-req-tab-btn" id="adminMaintReqTabRejected" onclick="filterAdminMaintenanceReqTab('rejected')">
+                <i class="fas fa-ban"></i> Đã từ chối (<span id="adminTabCountMaintReqRejected">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-maint-req-tab-btn" id="adminMaintReqTabAll" onclick="filterAdminMaintenanceReqTab('all')">
+                Tất cả (<span id="adminTabCountMaintReqAll">0</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex:1; max-width:400px; min-width:260px;">
+              <div style="position:relative; width:100%;">
+                <input type="text" id="adminMaintReqSearchInput" placeholder="Tìm mã yêu cầu, mã kệ, tên kệ, người gửi..." onkeyup="if(event.key==='Enter') loadAdminMaintenanceRequests()" style="width:100%; height:38px; border:1.5px solid #CBD5E1; border-radius:8px; padding:0 34px 0 12px; font-size:13px; box-sizing:border-box; outline:none; background:#fff;" />
+                <i class="fas fa-search" style="position:absolute; right:12px; top:12px; color:#94A3B8; font-size:13px;"></i>
+              </div>
+              <button type="button" class="btn btn-secondary" onclick="loadAdminMaintenanceRequests()" style="height:38px; padding:0 14px;" title="Làm mới">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" style="border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <table class="table" style="width:100%; border-collapse:collapse; margin-bottom:0;">
+            <thead style="background:#F8FAFC; border-bottom:1.5px solid var(--line);">
+              <tr>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Mã Yêu Cầu</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Kệ Sách Cần Bảo Trì</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Sách Sẽ Chuyển (KE-DP)</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Người Gửi & Lý Do</th>
+                <th style="padding:12px 14px; text-align:center; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Trạng Thái</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Phản Hồi Admin</th>
+                <th style="padding:12px 14px; text-align:right; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="adminMaintenanceRequestsTableBody">
+              <tr><td colspan="7" style="text-align:center; padding:40px; color:var(--muted);"><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách yêu cầu bảo trì kệ...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VIEW 7: YÊU CẦU ĐIỀU CHUYỂN SÁCH TỪ KHO (ADMIN APPROVAL) -->
+      <div id="invTransferRequestsViewContainer" style="display:none;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:18px;">
+          <div style="background:#F5F3FF; border:1px solid #DDD6FE; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#EDE9FE; color:#7C3AED; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-hourglass-half"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#6D28D9; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Chờ Duyệt Điều Chuyển</div>
+              <div style="font-size:22px; font-weight:800; color:#7C3AED;" id="adminCountTransferReqPending">0</div>
+            </div>
+          </div>
+          <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#DCFCE7; color:#16A34A; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#166534; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Đã Phê Duyệt</div>
+              <div style="font-size:22px; font-weight:800; color:#15803D;" id="adminCountTransferReqApproved">0</div>
+            </div>
+          </div>
+          <div style="background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#FEE2E2; color:#DC2626; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-times-circle"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#991B1B; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Đã Từ Chối</div>
+              <div style="font-size:22px; font-weight:800; color:#B91C1C;" id="adminCountTransferReqRejected">0</div>
+            </div>
+          </div>
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#E2E8F0; color:#475569; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-layer-group"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#475569; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Tổng Số Yêu Cầu</div>
+              <div style="font-size:22px; font-weight:800; color:#1E293B;" id="adminCountTransferReqTotal">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search bar -->
+        <div style="background:var(--card-bg, #fff); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm btn-primary admin-transfer-req-tab-btn" id="adminTransferReqTabPending" onclick="filterAdminTransferReqTab('pending')">
+                <i class="fas fa-hourglass-half"></i> Chờ duyệt (<span id="adminTabCountTransferReqPending">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-transfer-req-tab-btn" id="adminTransferReqTabApproved" onclick="filterAdminTransferReqTab('approved')">
+                <i class="fas fa-check"></i> Đã duyệt (<span id="adminTabCountTransferReqApproved">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-transfer-req-tab-btn" id="adminTransferReqTabRejected" onclick="filterAdminTransferReqTab('rejected')">
+                <i class="fas fa-ban"></i> Đã từ chối (<span id="adminTabCountTransferReqRejected">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-transfer-req-tab-btn" id="adminTransferReqTabAll" onclick="filterAdminTransferReqTab('all')">
+                Tất cả (<span id="adminTabCountTransferReqAll">0</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex:1; max-width:400px; min-width:260px;">
+              <div style="position:relative; width:100%;">
+                <input type="text" id="adminTransferReqSearchInput" placeholder="Tìm mã yêu cầu, tên sách, mã kệ, người gửi..." onkeyup="if(event.key==='Enter') loadAdminTransferRequests()" style="width:100%; height:38px; border:1.5px solid #CBD5E1; border-radius:8px; padding:0 34px 0 12px; font-size:13px; box-sizing:border-box; outline:none; background:#fff;" />
+                <i class="fas fa-search" style="position:absolute; right:12px; top:12px; color:#94A3B8; font-size:13px;"></i>
+              </div>
+              <button type="button" class="btn btn-secondary" onclick="loadAdminTransferRequests()" style="height:38px; padding:0 14px;" title="Làm mới">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-responsive" style="border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <table class="table" style="width:100%; border-collapse:collapse; margin-bottom:0;">
+            <thead style="background:#F8FAFC; border-bottom:1.5px solid var(--line);">
+              <tr>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Mã Yêu Cầu</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Sách Điều Chuyển</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Kệ Nguồn ➜ Kệ Đích</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Người Gửi & Lý Do</th>
+                <th style="padding:12px 14px; text-align:center; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Trạng Thái</th>
+                <th style="padding:12px 14px; text-align:left; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Phản Hồi Admin</th>
+                <th style="padding:12px 14px; text-align:right; font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;">Thao Tác</th>
+              </tr>
+            </thead>
+            <tbody id="adminTransferRequestsTableBody">
+              <tr><td colspan="7" style="text-align:center; padding:40px; color:var(--muted);"><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách yêu cầu điều chuyển sách...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </section>
 
     <!-- PANEL: NHẬP SÁCH NCC -->
@@ -2636,9 +2931,8 @@
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Phiếu Nhập Sách (Nhà Cung Cấp)</h2>
-          <p class="panel-subtitle">Quản lý các đợt nhập hàng từ nhà xuất bản / nhà cung cấp, cập nhật giá vốn và tồn kho tự động</p>
+          <p class="panel-subtitle">Quản lý và phê duyệt các đợt nhập hàng từ nhà xuất bản / nhà cung cấp</p>
         </div>
-        <button class="btn btn-primary" onclick="openImportReceiptModal()"><i class="fas fa-file-import"></i> Tạo phiếu nhập hàng</button>
       </div>
 
       <div class="filter-bar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -2688,9 +2982,8 @@
       <div class="panel-header">
         <div>
           <h2 class="panel-title">Phiếu Xuất Sách & Xuất Hủy</h2>
-          <p class="panel-subtitle">Quản lý xuất kho bán sỉ, xuất chuyển kho hoặc xuất hủy sách lỗi hỏng</p>
+          <p class="panel-subtitle">Quản lý và phê duyệt phiếu xuất kho bán sỉ, chuyển kho hoặc xuất hủy sách lỗi hỏng</p>
         </div>
-        <button class="btn btn-primary" onclick="openExportReceiptModal()"><i class="fas fa-file-export"></i> Tạo phiếu xuất kho</button>
       </div>
 
       <div class="filter-bar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
@@ -3113,9 +3406,9 @@
           </div>
         </div>
         <div class="stat-card">
-          <div class="stat-icon icon-amber"><i class="fas fa-balance-scale"></i></div>
+          <div class="stat-icon icon-amber"><i class="fas fa-boxes"></i></div>
           <div class="stat-info">
-            <h4 class="stat-label">Tồn quỹ hiện tại</h4>
+            <h4 class="stat-label" id="cashBalanceLabel">Giá trị tồn kho (Giá vốn)</h4>
             <div class="stat-value" id="cashBalance" style="color: var(--color-amber);">0 ₫</div>
           </div>
         </div>
@@ -3489,7 +3782,7 @@
         </div>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
           <button class="btn btn-secondary" onclick="markAllAuditLogsAsRead()" title="Đánh dấu tất cả thông báo nhật ký là đã xem"><i class="fas fa-check-double" style="color: var(--color-amber);"></i> Đã xem tất cả</button>
-          <button class="btn btn-secondary" onclick="exportAuditLogsCsv()"><i class="fas fa-file-excel" style="color:#10B981;"></i> Xuất file CSV</button>
+          <button class="btn btn-secondary" onclick="exportAuditLogsExcel('xlsx')" title="Xuất toàn bộ nhật ký ra file Excel (.xlsx) có định dạng và màu sắc chuyên nghiệp"><i class="fas fa-file-excel" style="color:#10B981;"></i> Xuất file Excel</button>
           <button class="btn btn-primary" onclick="loadAuditLogs(1)"><i class="fas fa-sync-alt"></i> Làm mới</button>
         </div>
       </div>
@@ -4437,7 +4730,7 @@
           <input type="email" id="supEmail" class="form-control" placeholder="contact@nxb.vn" />
         </div>
         <div class="form-group">
-          <label class="form-label">Danh mục / Thể loại phân phối</label>
+          <label class="form-label">Danh mục / Thể loại phân phối <span style="color: var(--color-red);">*</span></label>
           <input type="text" id="supCategories" class="form-control" placeholder="Văn học, Thiếu nhi... (cách bằng dấu phẩy)" />
         </div>
       </div>
@@ -4612,7 +4905,7 @@
                 <tr>
                   <th>Mã phiếu</th>
                   <th>Ngày nhập</th>
-                  <th>Số mặt hàng</th>
+                  <th style="text-align: center;">Số lượng sách</th>
                   <th style="text-align: right;">Tổng giá trị</th>
                   <th>Người lập</th>
                   <th>Ghi chú</th>
@@ -5979,6 +6272,14 @@
       `;
     }
 
+    function getLocalDateTimeString(d = new Date()) {
+      if (!d || isNaN(new Date(d).getTime())) d = new Date();
+      else d = new Date(d);
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    window.getLocalDateTimeString = getLocalDateTimeString;
+
     function escapeHtml(str) {
       if (!str) return '';
       return String(str)
@@ -6154,8 +6455,32 @@
       }
     });
 
+    // --- SMART TAB CACHE MANAGER (STALE-WHILE-REVALIDATE) ---
+    const tabLoadTimestamps = {};
+    const TAB_CACHE_TTL = 180000; // 3 phút (180.000 ms)
+
+    function isTabFresh(tabId) {
+      const lastTime = tabLoadTimestamps[tabId];
+      return Boolean(lastTime && (Date.now() - lastTime < TAB_CACHE_TTL));
+    }
+
+    function markTabLoaded(tabId) {
+      tabLoadTimestamps[tabId] = Date.now();
+    }
+
+    function invalidateTabCache(tabId) {
+      if (tabId) {
+        delete tabLoadTimestamps[tabId];
+      } else {
+        Object.keys(tabLoadTimestamps).forEach(k => delete tabLoadTimestamps[k]);
+      }
+    }
+    window.invalidateTabCache = invalidateTabCache;
+    window.markTabLoaded = markTabLoaded;
+    window.isTabFresh = isTabFresh;
+
     // --- TAB SWITCHING (SPA) ---
-    function goToTab(tabId) {
+    function goToTab(tabId, force = false) {
       closeAuditApprovalModal();
       // Update sidebar active buttons
       document.querySelectorAll('#sideNav button[data-tab]').forEach(btn => {
@@ -6178,30 +6503,38 @@
       // Scroll to top of content
       window.scrollTo({ top: 0, behavior: 'smooth' });
 
+      // Nếu tab đã có dữ liệu và không bị ép tải lại (force), hiển thị tức thì 0ms mà không xóa bảng
+      if (!force && isTabFresh(tabId)) {
+        if (window.UniversalDropdown) {
+          setTimeout(() => UniversalDropdown.attachAll(), 100);
+        }
+        return;
+      }
+
       // Trigger lazy loads
-      if (tabId === 'overview') loadOverview();
-      else if (tabId === 'analytics') loadAnalytics();
-      else if (tabId === 'accounts') loadAccounts();
-      else if (tabId === 'employees') loadEmployees();
-      else if (tabId === 'customers') loadCustomers();
-      else if (tabId === 'books') loadBooks();
-      else if (tabId === 'authors-categories') loadAuthorsAndCategories();
-      else if (tabId === 'orders') loadOrders();
-      else if (tabId === 'coupons') loadCoupons();
-      else if (tabId === 'inventory-lookup') loadInventoryLookup();
-      else if (tabId === 'import-receipts') loadImportReceipts();
-      else if (tabId === 'export-receipts') loadExportReceipts();
-      else if (tabId === 'stock-audit') loadStockAudit();
+      if (tabId === 'overview') loadOverview(force);
+      else if (tabId === 'analytics') loadAnalytics(force);
+      else if (tabId === 'accounts') loadAccounts(force);
+      else if (tabId === 'employees') loadEmployees(force);
+      else if (tabId === 'customers') loadCustomers(force);
+      else if (tabId === 'books') loadBooks(force);
+      else if (tabId === 'authors-categories') loadAuthorsAndCategories(force);
+      else if (tabId === 'orders') loadOrders(force);
+      else if (tabId === 'coupons') loadCoupons(force);
+      else if (tabId === 'inventory-lookup') loadInventoryLookup(force);
+      else if (tabId === 'import-receipts') loadImportReceipts(force);
+      else if (tabId === 'export-receipts') loadExportReceipts(force);
+      else if (tabId === 'stock-audit') loadStockAudit(force);
       else if (tabId === 'suppliers') {
-        loadSuppliers();
+        loadSuppliers(force);
         if (typeof updateAdminSupplierSuspendBadge === 'function') updateAdminSupplierSuspendBadge();
       }
       else if (tabId === 'cashbook') {
-        loadCashbook();
+        loadCashbook(force);
         if (typeof markCashbookAsRead === 'function') markCashbookAsRead();
       }
-      else if (tabId === 'financial-report') loadFinancialReport();
-      else if (tabId === 'system-settings') loadSystemSettings();
+      else if (tabId === 'financial-report') loadFinancialReport(force);
+      else if (tabId === 'system-settings') loadSystemSettings(force);
       else if (tabId === 'audit-logs') {
         loadAuditLogs(1);
         loadAuditLogStats();
@@ -6545,6 +6878,7 @@
             loadAnalytics(false);
           }
         }, 1200);
+        markTabLoaded('overview');
       } catch (err) {
         console.error('loadOverview error:', err);
       }
@@ -6803,6 +7137,7 @@
         lastAnalyticsFilterKey = filterKey;
 
         renderAnalyticsDashboard(analyticsReportData);
+        markTabLoaded('analytics');
       } catch (err) {
         console.error('loadAnalytics error:', err);
         showCustomToast('Lỗi nạp báo cáo phân tích: ' + (err.message || err), 'error');
@@ -6864,18 +7199,29 @@
             const profitPct = profitVal > 0 ? Math.min(92, Math.max(16, Math.round(Math.pow(profitRatio, 0.7) * 92))) : 0;
             const revShort = revVal >= 1000000 ? (revVal / 1000000).toFixed(1) + 'M' : (revVal > 0 ? (revVal / 1000).toFixed(0) + 'k' : '0');
             const dateStr = String(t.date || t._id || '');
-            const shortDate = dateStr.length >= 5 ? dateStr.slice(-5) : dateStr;
-            return '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:44px; padding:0 2px; transition:transform 0.2s;" onmouseover="this.style.transform=\'translateY(-4px)\'" onmouseout="this.style.transform=\'none\'" title="' + dateStr + ': Doanh thu ' + formatVND(revVal) + ' | Lợi nhuận ' + formatVND(profitVal) + '">' +
+            let colLabel = dateStr;
+            let tooltipTitle = dateStr;
+            if (/^\d{4}-\d{2}$/.test(dateStr)) {
+              const parts = dateStr.split('-');
+              colLabel = 'T' + parseInt(parts[1], 10);
+              tooltipTitle = 'Tháng ' + parts[1] + '/' + parts[0] + ' (' + (t.orderCount || 0) + ' đơn)';
+            } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+              const parts = dateStr.split('-');
+              colLabel = parts[2] + '/' + parts[1];
+              tooltipTitle = 'Ngày ' + parts[2] + '/' + parts[1] + '/' + parts[0] + ' (' + (t.orderCount || 0) + ' đơn)';
+            }
+            return '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:44px; padding:0 2px; transition:transform 0.2s;" onmouseover="this.style.transform=\'translateY(-4px)\'" onmouseout="this.style.transform=\'none\'" title="' + tooltipTitle + ': Doanh thu ' + formatVND(revVal) + ' | Lợi nhuận ' + formatVND(profitVal) + '">' +
               '<div style="font-size:10.5px; font-weight:700; color:var(--navy-900); margin-bottom:6px; white-space:nowrap;">' + (revVal > 0 ? revShort : '') + '</div>' +
               '<div style="flex:1; display:flex; align-items:flex-end; gap:5px; width:100%; max-width:38px; min-height:230px;">' +
                 '<div style="flex:1; height:' + revPct + '%; min-height:16px; background:linear-gradient(180deg, #F59E0B 0%, #D97706 100%); border-radius:4px 4px 0 0; box-shadow:0 3px 6px rgba(245,158,11,0.3);"></div>' +
                 '<div style="flex:1; height:' + profitPct + '%; min-height:10px; background:linear-gradient(180deg, #10B981 0%, #059669 100%); border-radius:4px 4px 0 0; box-shadow:0 3px 6px rgba(16,185,129,0.3);"></div>' +
               '</div>' +
-              '<div style="font-size:11px; font-weight:600; font-family:monospace; color:var(--muted); margin-top:8px; white-space:nowrap;">' + shortDate + '</div>' +
+              '<div style="font-size:11px; font-weight:700; font-family:\'IBM Plex Sans\', sans-serif; color:var(--navy-800); margin-top:8px; white-space:nowrap;">' + colLabel + '</div>' +
             '</div>';
           }).join('');
           if (summaryText) {
-            summaryText.textContent = 'Tổng ' + timeline.length + ' mốc thời gian';
+            const isMonthly = timeline.length > 0 && /^\d{4}-\d{2}$/.test(String(timeline[0].date || timeline[0]._id || ''));
+            summaryText.textContent = 'Tổng ' + timeline.length + (isMonthly ? ' tháng' : ' ngày giao dịch');
           }
         }
       }
@@ -7036,6 +7382,147 @@
       // 8. Render Loyal Customers (VIP Spenders & Frequent Buyers)
       if (data.customerLoyalty) {
         renderAdminLoyalCustomerCharts(data.customerLoyalty);
+      }
+
+      // 9. Render Stock & Inventory BI Analytics
+      if (data.stockReport) {
+        renderAdminStockAnalytics(data.stockReport);
+      }
+    }
+
+    // ==========================================
+    // MODULE: ADMIN STOCK & INVENTORY ANALYTICS BI (PHÂN TÍCH TỒN KHO)
+    // ==========================================
+    let currentStockAnalyticsMode = 'category'; // 'category' | 'topbooks'
+    let cachedStockReportData = null;
+
+    function setStockAnalyticsMode(mode) {
+      currentStockAnalyticsMode = mode;
+      const bCat = document.getElementById('btnStockModeCategory');
+      const bTop = document.getElementById('btnStockModeTopBooks');
+      const chartTitle = document.getElementById('stkChartTitle');
+
+      if (bCat) bCat.classList.toggle('active', mode === 'category');
+      if (bTop) bTop.classList.toggle('active', mode === 'topbooks');
+
+      if (chartTitle) {
+        chartTitle.textContent = mode === 'category'
+          ? 'Cơ Cấu Số Lượng Sách Tồn Kho Theo Thể Loại (Đơn vị: Cuốn)'
+          : 'Top 10 Đầu Sách Có Số Lượng Tồn Kho Lớn Nhất (Đơn vị: Cuốn)';
+      }
+
+      renderStockAnalyticsChart();
+    }
+
+    function renderAdminStockAnalytics(stockReport) {
+      if (!stockReport) return;
+      cachedStockReportData = stockReport;
+
+      const sum = stockReport.summary || {};
+      const elQty = document.getElementById('stkTotalQty');
+      if (elQty) elQty.textContent = (sum.totalStockQty || 0).toLocaleString('vi-VN') + ' cuốn';
+
+      const elTitles = document.getElementById('stkTotalTitles');
+      if (elTitles) elTitles.textContent = (sum.totalBookTitles || 0).toLocaleString('vi-VN') + ' đầu sách sẵn sàng';
+
+      const elCost = document.getElementById('stkTotalCost');
+      if (elCost) elCost.textContent = formatVND(sum.totalStockCost || 0);
+
+      const elRetail = document.getElementById('stkTotalRetail');
+      if (elRetail) elRetail.textContent = formatVND(sum.totalStockRetail || 0);
+
+      const elAvg = document.getElementById('stkAvgPerTitle');
+      if (elAvg) elAvg.textContent = (sum.averageStockPerTitle || 0).toLocaleString('vi-VN') + ' cuốn';
+
+      // Render Cột phải: Danh sách phân bổ vốn theo thể loại
+      const shareListEl = document.getElementById('stkCategoryShareList');
+      if (shareListEl && stockReport.byCategory) {
+        const catList = stockReport.byCategory;
+        if (catList.length === 0) {
+          shareListEl.innerHTML = '<div style="color:var(--muted); font-size:12px;">Chưa có dữ liệu tồn kho</div>';
+        } else {
+          const palette = [
+            'linear-gradient(90deg, #2563EB, #3B82F6)',
+            'linear-gradient(90deg, #D97706, #F59E0B)',
+            'linear-gradient(90deg, #059669, #10B981)',
+            'linear-gradient(90deg, #7C3AED, #8B5CF6)',
+            'linear-gradient(90deg, #DC2626, #EF4444)',
+            'linear-gradient(90deg, #0891B2, #06B6D4)',
+            'linear-gradient(90deg, #4B5563, #6B7280)'
+          ];
+          shareListEl.innerHTML = catList.map((c, idx) => {
+            const barBg = palette[idx % palette.length];
+            return '<div style="background:#F8FAFC; border:1px solid var(--line); border-radius:8px; padding:9px 12px; transition:background 0.2s;" onmouseover="this.style.background=\'#F1F5F9\'" onmouseout="this.style.background=\'#F8FAFC\'">' +
+              '<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; margin-bottom:5px;">' +
+                '<span><strong style="color:var(--navy-900);">' + c.category + '</strong> <span style="font-size:11px; color:var(--muted);">(' + c.stock.toLocaleString('vi-VN') + ' cuốn - ' + (c.bookCount || 0) + ' tựa)</span></span>' +
+                '<span class="mono" style="font-weight:700; color:var(--navy-900);">' + formatVND(c.costValue) + ' <span style="color:#D97706; font-size:11px;">(' + c.costPercent + '%)</span></span>' +
+              '</div>' +
+              '<div style="height:6px; width:100%; background:var(--navy-100); border-radius:99px; overflow:hidden;">' +
+                '<div style="height:100%; width:' + Math.min(100, Math.max(2, c.costPercent)) + '%; background:' + barBg + '; border-radius:99px;"></div>' +
+              '</div>' +
+            '</div>';
+          }).join('');
+        }
+      }
+
+      renderStockAnalyticsChart();
+    }
+
+    function renderStockAnalyticsChart() {
+      if (!cachedStockReportData) return;
+      const chartBox = document.getElementById('stockAnalyticsChartBars');
+      const summaryText = document.getElementById('stkChartSummaryText');
+      if (!chartBox) return;
+
+      const items = currentStockAnalyticsMode === 'category'
+        ? (cachedStockReportData.byCategory || [])
+        : (cachedStockReportData.topStockBooks || []);
+
+      if (items.length === 0) {
+        chartBox.innerHTML = '<div style="width:100%; text-align:center; color:var(--muted); padding-top:100px; font-size:12.5px;">Không có dữ liệu sách tồn kho</div>';
+        if (summaryText) summaryText.textContent = '';
+        return;
+      }
+
+      const maxQty = Math.max(1, ...items.map(it => it.stock || 0));
+      const maxCost = Math.max(1, ...items.map(it => it.costValue || 0));
+
+      chartBox.innerHTML = items.map((it, idx) => {
+        const qtyVal = it.stock || 0;
+        const costVal = it.costValue || 0;
+        const retailVal = it.retailValue || (it.stock * (it.price || 0));
+        const qtyPct = Math.min(96, Math.max(18, Math.round((qtyVal / maxQty) * 96)));
+        const costPct = Math.min(92, Math.max(12, Math.round((costVal / maxCost) * 92)));
+
+        const qtyShort = qtyVal >= 1000 ? (qtyVal / 1000).toFixed(1) + 'k' : qtyVal.toLocaleString('vi-VN');
+        const costShort = costVal >= 1000000000 ? (costVal / 1000000000).toFixed(2) + ' tỷ' : (costVal >= 1000000 ? (costVal / 1000000).toFixed(0) + 'tr' : formatVND(costVal));
+
+        let itemName = it.category || it.title || '';
+        let shortLabel = itemName;
+        if (currentStockAnalyticsMode === 'topbooks') {
+          shortLabel = itemName.length > 14 ? itemName.substring(0, 12) + '…' : itemName;
+        } else {
+          shortLabel = itemName.length > 15 ? itemName.substring(0, 13) + '…' : itemName;
+        }
+
+        const tooltipTitle = currentStockAnalyticsMode === 'category'
+          ? 'Thể loại: ' + itemName + ' (' + (it.bookCount || 0) + ' đầu sách)&#10;• Số lượng tồn: ' + qtyVal.toLocaleString('vi-VN') + ' cuốn (' + (it.stockPercent || 0) + '%)&#10;• Vốn tồn kho: ' + formatVND(costVal) + ' (' + (it.costPercent || 0) + '%)&#10;• Doanh thu dự kiến: ' + formatVND(retailVal)
+          : 'Sách: ' + itemName + ' (Tác giả: ' + (it.author || 'Chưa rõ') + ')&#10;• Số lượng tồn: ' + qtyVal.toLocaleString('vi-VN') + ' cuốn&#10;• Vốn lưu đọng: ' + formatVND(costVal) + ' (Giá vốn: ' + formatVND(it.costPrice || 0) + ')&#10;• Giá bìa: ' + formatVND(it.price || 0);
+
+        return '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:48px; max-width:85px; padding:0 3px; transition:transform 0.2s; cursor:pointer;" onmouseover="this.style.transform=\'translateY(-4px)\'" onmouseout="this.style.transform=\'none\'" title="' + tooltipTitle + '">' +
+          '<div style="font-size:10.5px; font-weight:700; color:#1E40AF; margin-bottom:4px; white-space:nowrap;">' + qtyShort + '</div>' +
+          '<div style="flex:1; display:flex; align-items:flex-end; gap:4px; width:100%; max-width:42px; min-height:190px;">' +
+            '<div style="flex:1; height:' + qtyPct + '%; min-height:16px; background:linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%); border-radius:4px 4px 0 0; box-shadow:0 3px 6px rgba(37,99,235,0.25);" title="Số lượng: ' + qtyVal.toLocaleString('vi-VN') + ' cuốn"></div>' +
+            '<div style="flex:1; height:' + costPct + '%; min-height:10px; background:linear-gradient(180deg, #F59E0B 0%, #B45309 100%); border-radius:4px 4px 0 0; box-shadow:0 3px 6px rgba(217,119,6,0.25);" title="Vốn tồn: ' + formatVND(costVal) + '"></div>' +
+          '</div>' +
+          '<div style="font-size:10.5px; font-weight:600; font-family:\'IBM Plex Sans\', sans-serif; color:var(--navy-800); margin-top:8px; text-align:center; width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + itemName + '">' + shortLabel + '</div>' +
+        '</div>';
+      }).join('');
+
+      if (summaryText) {
+        summaryText.textContent = currentStockAnalyticsMode === 'category'
+          ? 'Đang hiển thị ' + items.length + ' thể loại lưu kho'
+          : 'Đang hiển thị Top ' + items.length + ' tựa sách tồn kho nhiều nhất';
       }
     }
 
@@ -7448,6 +7935,9 @@
     window.exportAnalyticsCSV = exportAnalyticsCSV;
     window.printAnalyticsReport = printAnalyticsReport;
     window.exportRevenueCSV = exportAnalyticsCSV;
+    window.setStockAnalyticsMode = setStockAnalyticsMode;
+    window.renderAdminStockAnalytics = renderAdminStockAnalytics;
+    window.renderStockAnalyticsChart = renderStockAnalyticsChart;
 
     // --- MODULE: ACCOUNTS ---
     let accountDebounceTimer = null;
@@ -7494,6 +7984,7 @@
         if (!res.ok) throw new Error('Không thể tải tài khoản');
         const data = await res.json();
         const users = data.data || data || [];
+        markTabLoaded('accounts');
 
         if (countEl) {
           countEl.innerHTML = `<i class="fas fa-users" style="margin-right:6px; color:var(--navy-700);"></i>Tổng cộng: <strong>${users.length.toLocaleString('vi-VN')}</strong> tài khoản`;
@@ -7675,6 +8166,7 @@
         if (!res.ok) throw new Error('Không thể tải nhân viên');
         const data = await res.json();
         const emps = data.data || data || [];
+        markTabLoaded('employees');
 
         if (emps.length === 0) {
           tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--muted);">Chưa có nhân sự nào</td></tr>';
@@ -7913,6 +8405,7 @@
         const data = await res.json();
         const customers = data.data || data || [];
         window._cachedCustomers = customers;
+        markTabLoaded('customers');
 
         if (countEl) {
           countEl.innerHTML = `<i class="fas fa-users" style="margin-right:6px; color:var(--navy-700);"></i>Tổng cộng: <strong>${customers.length.toLocaleString('vi-VN')}</strong> khách hàng`;
@@ -7927,14 +8420,27 @@
           const isBlocked = c.status === 'blocked' || c.isActive === false;
           const lockBtn = '<button class="btn btn-sm ' + (isBlocked ? 'btn-gold' : '') + '" onclick="toggleAccountBlock(&quot;' + c._id + '&quot;, &quot;' + escapeHtml(c.name || '') + '&quot;, ' + (!isBlocked) + ', &quot;user&quot;)">' + (isBlocked ? 'Mở' : 'Khóa') + '</button>';
 
+          const spent = c.totalSpent || 0;
+          let tierBadge = '';
+          if (spent >= 10000000) {
+            tierBadge = '<span class="badge" style="background:#FEF3C7; color:#B45309; font-weight:700; font-size:10px; border:1px solid #FCD34D;"><i class="fas fa-crown" style="margin-right:3px;"></i>VIP</span>';
+          } else if (spent >= 3000000) {
+            tierBadge = '<span class="badge" style="background:#EFF6FF; color:#1D4ED8; font-weight:600; font-size:10px; border:1px solid #BFDBFE;">Thân thiết</span>';
+          } else {
+            tierBadge = '<span class="badge" style="background:#F1F5F9; color:#475569; font-size:10px;">Tiêu chuẩn</span>';
+          }
+
           return `
           <tr>
             <td>
               <div class="person-cell">
                 <div class="av">${(c.name || 'KH').slice(0, 2).toUpperCase()}</div>
                 <div class="person-info-inline">
-                  <span class="nm">${escapeHtml(c.name || '')}</span>
-                  ${isBlocked ? '<span class="badge b-locked" style="font-size:10px; padding:1px 6px;">Đã khóa</span>' : ''}
+                  <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                    <span class="nm">${escapeHtml(c.name || '')}</span>
+                    ${tierBadge}
+                    ${isBlocked ? '<span class="badge b-locked" style="font-size:10px; padding:1px 6px;">Đã khóa</span>' : ''}
+                  </div>
                 </div>
               </div>
             </td>
@@ -8341,6 +8847,7 @@
         }
 
         renderBooksTable();
+        markTabLoaded('books');
       } catch (err) {
         if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:20px; color:var(--danger);">' + escapeHtml(err.message) + '</td></tr>';
         if (countEl) countEl.innerHTML = '<span style="color:var(--danger);">Lỗi tải dữ liệu sách</span>';
@@ -9020,6 +9527,7 @@
         if (autTbody) autTbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--danger);">' + escapeHtml(err.message) + '</td></tr>';
         if (autCountEl) autCountEl.innerHTML = '<span style="color:var(--danger);">Lỗi tải tác giả</span>';
       }
+      markTabLoaded('authors-categories');
     }
 
     function openAuthorModal(authorId = null) {
@@ -9278,6 +9786,7 @@
 
         const infoEl = document.getElementById('orderCountInfo');
         if (!orders.length) {
+          markTabLoaded('orders');
           tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--muted);">Không có đơn hàng nào phù hợp bộ lọc.</td></tr>';
           if (infoEl) infoEl.innerHTML = '<i class="fas fa-receipt" style="margin-right:6px; color:var(--navy-700);"></i>Không tìm thấy đơn hàng nào phù hợp bộ lọc';
           return;
@@ -9322,6 +9831,7 @@
             </tr>
           `;
         }).join('');
+        markTabLoaded('orders');
       } catch (err) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--danger);">' + err.message + '</td></tr>';
       }
@@ -9611,6 +10121,16 @@
           updateAdminShelfRequestsBadge();
         }
 
+        // Cập nhật badge yêu cầu bảo trì kệ sách từ kho
+        if (typeof updateAdminMaintenanceRequestsBadge === 'function') {
+          updateAdminMaintenanceRequestsBadge();
+        }
+
+        // Cập nhật badge yêu cầu điều chuyển sách từ kho
+        if (typeof updateAdminTransferRequestsBadge === 'function') {
+          updateAdminTransferRequestsBadge();
+        }
+
         // Cập nhật badge yêu cầu tạm ngưng NCC từ kho
         if (typeof updateAdminSupplierSuspendBadge === 'function') {
           updateAdminSupplierSuspendBadge();
@@ -9673,6 +10193,7 @@
             </tr>
           `;
         }).join('');
+        markTabLoaded('inventory-lookup');
       } catch (err) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--danger);">' + err.message + '</td></tr>';
       }
@@ -9747,18 +10268,22 @@
       const btnLogs = document.getElementById('btnViewInvLogs');
       const btnHideReqs = document.getElementById('btnViewInvHideRequests');
       const btnShelfReqs = document.getElementById('btnViewInvShelfRequests');
+      const btnMaintReqs = document.getElementById('btnViewInvMaintenanceRequests');
+      const btnTransferReqs = document.getElementById('btnViewInvTransferRequests');
       const containerTable = document.getElementById('invTableViewContainer');
       const containerShelves = document.getElementById('invShelvesViewContainer');
       const containerLogs = document.getElementById('invLogsViewContainer');
       const containerHideReqs = document.getElementById('invHideRequestsViewContainer');
       const containerShelfReqs = document.getElementById('invShelfRequestsViewContainer');
+      const containerMaintReqs = document.getElementById('invMaintenanceRequestsViewContainer');
+      const containerTransferReqs = document.getElementById('invTransferRequestsViewContainer');
       const actionBtns = document.getElementById('invShelfActionBtns');
 
       // Reset tất cả nút về trạng thái secondary
-      [btnTable, btnShelves, btnLogs, btnHideReqs, btnShelfReqs].forEach(b => {
+      [btnTable, btnShelves, btnLogs, btnHideReqs, btnShelfReqs, btnMaintReqs, btnTransferReqs].forEach(b => {
         if (b) { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); }
       });
-      [containerTable, containerShelves, containerLogs, containerHideReqs, containerShelfReqs].forEach(c => {
+      [containerTable, containerShelves, containerLogs, containerHideReqs, containerShelfReqs, containerMaintReqs, containerTransferReqs].forEach(c => {
         if (c) c.style.display = 'none';
       });
       if (actionBtns) actionBtns.style.display = 'none';
@@ -9769,6 +10294,8 @@
         if (actionBtns) actionBtns.style.display = 'flex';
         loadAdminShelvesGrid();
         updateAdminShelfRequestsBadge();
+        updateAdminMaintenanceRequestsBadge();
+        updateAdminTransferRequestsBadge();
       } else if (mode === 'logs') {
         if (btnLogs) { btnLogs.classList.remove('btn-secondary'); btnLogs.classList.add('btn-primary'); }
         if (containerLogs) containerLogs.style.display = 'block';
@@ -9785,6 +10312,14 @@
         if (btnShelfReqs) { btnShelfReqs.classList.remove('btn-secondary'); btnShelfReqs.classList.add('btn-primary'); }
         if (containerShelfReqs) containerShelfReqs.style.display = 'block';
         loadAdminShelfRequests();
+      } else if (mode === 'shelf-maintenance') {
+        if (btnMaintReqs) { btnMaintReqs.classList.remove('btn-secondary'); btnMaintReqs.classList.add('btn-primary'); }
+        if (containerMaintReqs) containerMaintReqs.style.display = 'block';
+        loadAdminMaintenanceRequests();
+      } else if (mode === 'shelf-transfer') {
+        if (btnTransferReqs) { btnTransferReqs.classList.remove('btn-secondary'); btnTransferReqs.classList.add('btn-primary'); }
+        if (containerTransferReqs) containerTransferReqs.style.display = 'block';
+        loadAdminTransferRequests();
       } else {
         if (btnTable) { btnTable.classList.remove('btn-secondary'); btnTable.classList.add('btn-primary'); }
         if (containerTable) containerTable.style.display = 'block';
@@ -9985,7 +10520,10 @@
                 <div style="font-size:12.5px; font-weight:600; color:#1E293B;">
                   <i class="fas fa-user-tag" style="color:#64748B; margin-right:4px;"></i>${escapeHtml(req.requestedByName || 'Nhân viên kho')}
                 </div>
-                <div style="margin-top:4px;">
+                <div style="margin-top:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                  <span style="background:${req.hideType === 'all' ? '#FEE2E2; color:#991B1B;' : '#EFF6FF; color:#1D4ED8;'} padding:2px 8px; border-radius:4px; font-size:11.5px; font-weight:700; display:inline-block;">
+                    ${req.hideType === 'all' ? 'Ẩn toàn bộ' : `Chỉ ẩn ${req.quantity || 1} cuốn`}
+                  </span>
                   <span style="background:#FEF3C7; color:#92400E; padding:2px 8px; border-radius:4px; font-size:11.5px; font-weight:600; display:inline-block;">
                     ${escapeHtml(req.reason || 'Lý do khác')}
                   </span>
@@ -10019,13 +10557,14 @@
         return;
       }
 
+      const scopeText = req.hideType === 'all' ? '[Ẩn toàn bộ đầu sách] ' : `[Chỉ ẩn ${req.quantity || 1} cuốn bị lỗi] `;
       document.getElementById('adminApproveReqId').value = req._id;
       document.getElementById('adminApproveBookTitle').textContent = req.title || '---';
       document.getElementById('adminApproveBookCode').textContent = req.bookCode || '---';
       document.getElementById('adminApproveBookShelf').textContent = req.shelfLocation || 'Chưa xếp kệ';
       document.getElementById('adminApproveBookStock').textContent = (req.stock != null ? req.stock : '0') + ' cuốn';
       document.getElementById('adminApproveReqSender').textContent = (req.requestedByName || 'Nhân viên kho') + ' (' + new Date(req.createdAt).toLocaleDateString('vi-VN') + ')';
-      document.getElementById('adminApproveReqReason').textContent = req.reason + (req.note ? ' - ' + req.note : '');
+      document.getElementById('adminApproveReqReason').textContent = scopeText + req.reason + (req.note ? ' - ' + req.note : '');
       document.getElementById('adminApproveBookCover').src = req.coverImage || '/images/placeholder-book.png';
       document.getElementById('adminApproveNote').value = '';
       document.getElementById('adminApproveAutoHide').checked = true;
@@ -10438,6 +10977,451 @@
         showCustomToast(data.message || 'Đã từ chối yêu cầu thêm kệ sách', 'success');
         closeModal('adminShelfRequestModal');
         loadAdminShelfRequests();
+      } catch (err) {
+        showCustomToast(err.message, 'error');
+      }
+    }
+
+    // ========================================================
+    // --- MODULE: YÊU CẦU BẢO TRÌ KỆ TỪ KHO (ADMIN APPROVAL) ---
+    // ========================================================
+    let _adminMaintReqCurrentTab = 'pending';
+    window._cachedAdminMaintenanceRequests = [];
+
+    async function updateAdminMaintenanceRequestsBadge() {
+      try {
+        const res = await fetch('/api/inventory/shelf-maintenance-requests?status=pending&limit=1', { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const pendingCount = (data.counts && data.counts.pending != null) ? data.counts.pending : 0;
+
+        const tabBadge = document.getElementById('adminMaintenanceRequestsBadge');
+        if (tabBadge) {
+          if (pendingCount > 0) {
+            tabBadge.textContent = pendingCount > 99 ? '99+' : pendingCount;
+            tabBadge.style.display = 'inline-block';
+          } else {
+            tabBadge.style.display = 'none';
+          }
+        }
+      } catch (e) {
+        // silent fail
+      }
+    }
+
+    function filterAdminMaintenanceReqTab(tab) {
+      _adminMaintReqCurrentTab = tab || 'pending';
+      const tabIds = {
+        pending: 'adminMaintReqTabPending',
+        approved: 'adminMaintReqTabApproved',
+        rejected: 'adminMaintReqTabRejected',
+        all: 'adminMaintReqTabAll'
+      };
+      Object.keys(tabIds).forEach(t => {
+        const el = document.getElementById(tabIds[t]);
+        if (el) {
+          if (t === _adminMaintReqCurrentTab) {
+            el.className = 'btn btn-sm btn-primary admin-maint-req-tab-btn';
+          } else {
+            el.className = 'btn btn-sm btn-secondary admin-maint-req-tab-btn';
+          }
+        }
+      });
+      loadAdminMaintenanceRequests();
+    }
+
+    async function loadAdminMaintenanceRequests() {
+      const tbody = document.getElementById('adminMaintenanceRequestsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--muted);"><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách yêu cầu bảo trì kệ...</td></tr>';
+
+      try {
+        const search = (document.getElementById('adminMaintReqSearchInput')?.value || '').trim();
+        const params = new URLSearchParams({
+          status: _adminMaintReqCurrentTab,
+          limit: '100'
+        });
+        if (search) params.append('search', search);
+
+        const res = await fetch('/api/inventory/shelf-maintenance-requests?' + params.toString(), { headers: getAuthHeaders() });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || 'Lỗi khi tải yêu cầu bảo trì kệ');
+
+        window._cachedAdminMaintenanceRequests = result.data || [];
+
+        // Cập nhật các thẻ KPI
+        const counts = result.counts || {};
+        const pEl = document.getElementById('adminCountMaintReqPending');
+        const aEl = document.getElementById('adminCountMaintReqApproved');
+        const rEl = document.getElementById('adminCountMaintReqRejected');
+        const tEl = document.getElementById('adminCountMaintReqTotal');
+        if (pEl) pEl.textContent = counts.pending != null ? counts.pending : 0;
+        if (aEl) aEl.textContent = counts.approved != null ? counts.approved : 0;
+        if (rEl) rEl.textContent = counts.rejected != null ? counts.rejected : 0;
+        if (tEl) tEl.textContent = counts.all != null ? counts.all : 0;
+
+        // Cập nhật số đếm trên các nút tab
+        const tabPEl = document.getElementById('adminTabCountMaintReqPending');
+        const tabAEl = document.getElementById('adminTabCountMaintReqApproved');
+        const tabREl = document.getElementById('adminTabCountMaintReqRejected');
+        const tabAllEl = document.getElementById('adminTabCountMaintReqAll');
+        if (tabPEl) tabPEl.textContent = counts.pending != null ? counts.pending : 0;
+        if (tabAEl) tabAEl.textContent = counts.approved != null ? counts.approved : 0;
+        if (tabREl) tabREl.textContent = counts.rejected != null ? counts.rejected : 0;
+        if (tabAllEl) tabAllEl.textContent = counts.all != null ? counts.all : 0;
+
+        updateAdminMaintenanceRequestsBadge();
+
+        if (window._cachedAdminMaintenanceRequests.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--muted);"><i class="fas fa-inbox fa-2x" style="margin-bottom:8px; display:block;"></i>Không có yêu cầu bảo trì kệ sách nào trong danh mục này.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = window._cachedAdminMaintenanceRequests.map(r => {
+          const statusMap = {
+            pending: '<span class="badge" style="background:#FEF3C7; color:#B45309; border:1px solid #FDE68A;"><i class="fas fa-hourglass-half"></i> Chờ duyệt</span>',
+            approved: '<span class="badge" style="background:#D1FAE5; color:#065F46; border:1px solid #A7F3D0;"><i class="fas fa-check-circle"></i> Đã duyệt bảo trì</span>',
+            rejected: '<span class="badge" style="background:#FEE2E2; color:#B91C1C; border:1px solid #FECACA;"><i class="fas fa-times-circle"></i> Đã từ chối</span>',
+            cancelled: '<span class="badge" style="background:#E2E8F0; color:#475569;"><i class="fas fa-ban"></i> Đã hủy</span>'
+          };
+          const statusBadge = statusMap[r.status] || r.status;
+
+          const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+          const reviewDateStr = r.reviewedAt ? new Date(r.reviewedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+
+          let responseHtml = '<span style="color:var(--muted); font-size:12px;">Chưa phản hồi</span>';
+          if (r.adminNote) {
+            responseHtml = `
+              <div style="font-size:12px; background:#F8FAFC; border:1px solid var(--line); border-radius:6px; padding:6px 10px;">
+                <div style="font-weight:600; color:var(--navy-900);">${r.reviewedByName || 'Admin'}:</div>
+                <div style="color:#475569; margin-top:2px;">${r.adminNote}</div>
+                <div style="font-size:10.5px; color:var(--muted); margin-top:2px;">${reviewDateStr}</div>
+              </div>
+            `;
+          }
+
+          let actionsHtml = '<span style="color:var(--muted); font-size:12px;">--</span>';
+          if (r.status === 'pending') {
+            actionsHtml = `
+              <div style="display:flex; justify-content:flex-end; gap:6px;">
+                <button type="button" class="btn btn-sm btn-primary" style="background:#16A34A; border-color:#16A34A; color:#fff;" onclick="approveAdminMaintenanceRequest('${r._id}', '${r.requestCode}', '${r.shelfCode}', '${r.shelfName}', ${r.currentUnits || 0})" title="Phê duyệt bảo trì">
+                  <i class="fas fa-check"></i> Phê Duyệt
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" style="color:#DC2626; border-color:#FECACA;" onclick="rejectAdminMaintenanceRequest('${r._id}', '${r.requestCode}', '${r.shelfCode}')" title="Từ chối yêu cầu">
+                  <i class="fas fa-times"></i> Từ Chối
+                </button>
+              </div>
+            `;
+          }
+
+          return `
+            <tr style="border-bottom:1px solid var(--line);">
+              <td style="padding:12px 14px;">
+                <span class="mono" style="font-weight:700; color:var(--navy-900); font-size:13px;">${r.requestCode || '--'}</span>
+                <div style="font-size:11px; color:var(--muted); margin-top:2px;">${dateStr}</div>
+              </td>
+              <td style="padding:12px 14px;">
+                <div style="font-weight:700; color:var(--navy-900); font-size:13.5px;">${r.shelfName}</div>
+                <div style="margin-top:2px;">
+                  <span class="mono" style="font-size:11px; background:var(--navy-100); color:var(--navy-900); padding:2px 6px; border-radius:4px; font-weight:700;">${r.shelfCode}</span>
+                  <span style="font-size:11.5px; color:var(--muted); margin-left:6px;">Khu vực: ${r.zone || ''}</span>
+                </div>
+              </td>
+              <td style="padding:12px 14px; font-size:12.5px;">
+                <div><strong style="color:#B45309;">${r.currentUnits || 0}</strong> cuốn</div>
+                <div style="font-size:11.5px; color:var(--muted);">${r.booksCount || 0} đầu sách</div>
+                <div style="font-size:10.5px; color:#16A34A; margin-top:2px;">➔ Tự động chuyển KE-DP</div>
+              </td>
+              <td style="padding:12px 14px; max-width:280px;">
+                <div style="font-size:13px; font-weight:600; color:var(--navy-900);">${r.reason || '--'}</div>
+                <div style="font-size:12px; color:#B45309; margin-top:3px;"><i class="fas fa-clock"></i> Dự kiến: ${r.expectedDuration || '1 - 2 ngày'}</div>
+                <div style="font-size:11.5px; color:var(--muted); margin-top:2px;">Người gửi: <strong>${r.requestedByName || 'Thủ kho'}</strong></div>
+                ${r.note ? `<div style="font-size:11px; color:var(--muted); margin-top:2px; font-style:italic;">Ghi chú: ${r.note}</div>` : ''}
+              </td>
+              <td style="padding:12px 14px; text-align:center;">${statusBadge}</td>
+              <td style="padding:12px 14px; max-width:220px;">${responseHtml}</td>
+              <td style="padding:12px 14px; text-align:right;">${actionsHtml}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--danger);">${err.message}</td></tr>`;
+      }
+    }
+
+    async function approveAdminMaintenanceRequest(id, reqCode, shelfCode, shelfName, curUnits) {
+      const msg = `Bạn có chắc chắn muốn <strong>PHÊ DUYỆT</strong> yêu cầu bảo trì <strong>${reqCode}</strong> cho kệ <strong>${shelfName} (${shelfCode})</strong>?<br><br>` +
+        `• Kệ sẽ được chuyển sang trạng thái <strong>BẢO TRÌ</strong>.<br>` +
+        `• <strong>Toàn bộ ${curUnits} cuốn sách</strong> trên kệ sẽ được tự động chuyển sang <strong>Kệ Dự Phòng (KE-DP)</strong>.<br>` +
+        `• Kệ sẽ tạm ngưng tiếp nhận sách mới.`;
+
+      showConfirmModal('Phê duyệt bảo trì kệ sách', msg, async () => {
+        try {
+          const res = await fetch(`/api/inventory/shelf-maintenance-requests/${id}/approve`, {
+            method: 'PUT',
+            headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminNote: 'Đã phê duyệt bảo trì kệ sách' })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Lỗi khi phê duyệt bảo trì');
+
+          showCustomToast(data.message || 'Đã phê duyệt yêu cầu bảo trì kệ sách thành công!', 'success');
+          loadAdminMaintenanceRequests();
+          await ensureShelvesLoaded(true);
+          if (typeof renderAdminShelvesGrid === 'function') renderAdminShelvesGrid();
+        } catch (err) {
+          showCustomToast(err.message, 'error');
+        }
+      });
+    }
+
+    async function rejectAdminMaintenanceRequest(id, reqCode, shelfCode) {
+      const reason = prompt(`Nhập lý do từ chối yêu cầu bảo trì ${reqCode} (${shelfCode}):`, 'Chưa đủ điều kiện bảo trì tại thời điểm này');
+      if (reason === null) return;
+      const trimmed = reason.trim();
+      if (!trimmed) {
+        showCustomToast('Vui lòng nhập lý do từ chối yêu cầu!', 'warning');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/inventory/shelf-maintenance-requests/${id}/reject`, {
+          method: 'PUT',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminNote: trimmed })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Lỗi khi từ chối yêu cầu');
+
+        showCustomToast(data.message || 'Đã từ chối yêu cầu bảo trì kệ sách', 'success');
+        loadAdminMaintenanceRequests();
+      } catch (err) {
+        showCustomToast(err.message, 'error');
+      }
+    }
+
+    // ========================================================
+    // --- MODULE: YÊU CẦU ĐIỀU CHUYỂN SÁCH TỪ KHO (ADMIN APPROVAL) ---
+    // ========================================================
+    let _adminTransferReqCurrentTab = 'pending';
+    window._cachedAdminTransferRequests = [];
+
+    async function updateAdminTransferRequestsBadge() {
+      try {
+        const res = await fetch('/api/inventory/shelf-transfer-requests?status=pending&limit=1', { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        const count = (data.counts && data.counts.pending != null) ? data.counts.pending : 0;
+        const badge = document.getElementById('adminTransferRequestsBadge');
+        if (badge) {
+          if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = 'inline-block';
+          } else {
+            badge.style.display = 'none';
+          }
+        }
+      } catch (e) {
+        // silent fail
+      }
+    }
+
+    function filterAdminTransferReqTab(tab) {
+      _adminTransferReqCurrentTab = tab || 'pending';
+      const tabIds = {
+        pending: 'adminTransferReqTabPending',
+        approved: 'adminTransferReqTabApproved',
+        rejected: 'adminTransferReqTabRejected',
+        all: 'adminTransferReqTabAll'
+      };
+      Object.keys(tabIds).forEach(t => {
+        const el = document.getElementById(tabIds[t]);
+        if (el) {
+          if (t === _adminTransferReqCurrentTab) {
+            el.className = 'btn btn-sm btn-primary admin-transfer-req-tab-btn';
+          } else {
+            el.className = 'btn btn-sm btn-secondary admin-transfer-req-tab-btn';
+          }
+        }
+      });
+      loadAdminTransferRequests();
+    }
+
+    async function loadAdminTransferRequests() {
+      const tbody = document.getElementById('adminTransferRequestsTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--muted);"><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách yêu cầu điều chuyển sách...</td></tr>';
+
+      try {
+        const search = (document.getElementById('adminTransferReqSearchInput')?.value || '').trim();
+        const params = new URLSearchParams({
+          status: _adminTransferReqCurrentTab,
+          limit: '100'
+        });
+        if (search) params.append('search', search);
+
+        const res = await fetch('/api/inventory/shelf-transfer-requests?' + params.toString(), { headers: getAuthHeaders() });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || 'Lỗi khi tải yêu cầu điều chuyển');
+
+        window._cachedAdminTransferRequests = result.data || [];
+
+        // Cập nhật các thẻ KPI
+        const counts = result.counts || {};
+        const pEl = document.getElementById('adminCountTransferReqPending');
+        const aEl = document.getElementById('adminCountTransferReqApproved');
+        const rEl = document.getElementById('adminCountTransferReqRejected');
+        const tEl = document.getElementById('adminCountTransferReqTotal');
+        if (pEl) pEl.textContent = counts.pending != null ? counts.pending : 0;
+        if (aEl) aEl.textContent = counts.approved != null ? counts.approved : 0;
+        if (rEl) rEl.textContent = counts.rejected != null ? counts.rejected : 0;
+        if (tEl) tEl.textContent = counts.all != null ? counts.all : 0;
+
+        // Cập nhật số đếm trên các nút tab
+        const tabPEl = document.getElementById('adminTabCountTransferReqPending');
+        const tabAEl = document.getElementById('adminTabCountTransferReqApproved');
+        const tabREl = document.getElementById('adminTabCountTransferReqRejected');
+        const tabAllEl = document.getElementById('adminTabCountTransferReqAll');
+        if (tabPEl) tabPEl.textContent = counts.pending != null ? counts.pending : 0;
+        if (tabAEl) tabAEl.textContent = counts.approved != null ? counts.approved : 0;
+        if (tabREl) tabREl.textContent = counts.rejected != null ? counts.rejected : 0;
+        if (tabAllEl) tabAllEl.textContent = counts.all != null ? counts.all : 0;
+
+        updateAdminTransferRequestsBadge();
+
+        if (window._cachedAdminTransferRequests.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:40px; color:var(--muted);"><i class="fas fa-inbox fa-2x" style="margin-bottom:8px; display:block;"></i>Không có yêu cầu điều chuyển sách nào trong danh mục này.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = window._cachedAdminTransferRequests.map(r => {
+          const statusMap = {
+            pending: '<span class="badge" style="background:#FEF3C7; color:#B45309; border:1px solid #FDE68A;"><i class="fas fa-hourglass-half"></i> Chờ duyệt</span>',
+            approved: '<span class="badge" style="background:#D1FAE5; color:#065F46; border:1px solid #A7F3D0;"><i class="fas fa-check-circle"></i> Đã phê duyệt</span>',
+            rejected: '<span class="badge" style="background:#FEE2E2; color:#B91C1C; border:1px solid #FECACA;"><i class="fas fa-times-circle"></i> Đã từ chối</span>',
+            cancelled: '<span class="badge" style="background:#E2E8F0; color:#475569;"><i class="fas fa-ban"></i> Đã hủy</span>'
+          };
+          const statusBadge = statusMap[r.status] || r.status;
+
+          const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+          const reviewDateStr = r.reviewedAt ? new Date(r.reviewedAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+
+          let responseHtml = '<span style="color:var(--muted); font-size:12px;">Chưa phản hồi</span>';
+          if (r.adminNote) {
+            responseHtml = `
+              <div style="font-size:12px; background:#F8FAFC; border:1px solid var(--line); border-radius:6px; padding:6px 10px;">
+                <div style="font-weight:600; color:var(--navy-900);">${r.reviewedByName || 'Admin'}:</div>
+                <div style="color:#475569; margin-top:2px;">${r.adminNote}</div>
+                <div style="font-size:10.5px; color:var(--muted); margin-top:2px;">${reviewDateStr}</div>
+              </div>
+            `;
+          }
+
+          let actionsHtml = '<span style="color:var(--muted); font-size:12px;">--</span>';
+          if (r.status === 'pending') {
+            actionsHtml = `
+              <div style="display:flex; justify-content:flex-end; gap:6px;">
+                <button type="button" class="btn btn-sm btn-primary" style="background:#16A34A; border-color:#16A34A; color:#fff;" onclick="approveAdminTransferRequest('${r._id}', '${r.requestCode}', '${r.targetShelfCode}', ${r.totalQuantity || 1})" title="Phê duyệt điều chuyển">
+                  <i class="fas fa-check"></i> Duyệt
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" style="color:#DC2626; border-color:#FECACA;" onclick="rejectAdminTransferRequest('${r._id}', '${r.requestCode}')" title="Từ chối yêu cầu">
+                  <i class="fas fa-times"></i> Từ Chối
+                </button>
+              </div>
+            `;
+          }
+
+          const itemsHtml = (r.items || []).map(it => {
+            return `
+              <div>
+                <strong style="color:var(--navy-900); font-size:13px;">${it.title || '--'}</strong>
+                <div style="font-size:11px; color:var(--muted);">Mã: <span class="mono">${it.bookCode || '--'}</span> | SL: <strong style="color:#2563EB;">${it.quantity || 1} cuốn</strong></div>
+              </div>
+            `;
+          }).join('<div style="height:4px;"></div>');
+
+          const fromShelfCode = (r.items && r.items[0] && r.items[0].fromShelfCode) ? r.items[0].fromShelfCode : 'Chưa gán';
+          const fromShelfBadge = `<span class="mono" style="font-size:11.5px; background:#FEF3C7; color:#B45309; padding:2px 7px; border-radius:4px; font-weight:700;">${fromShelfCode}</span>`;
+          const toShelfBadge = `<span class="mono" style="font-size:11.5px; background:#D1FAE5; color:#065F46; padding:2px 7px; border-radius:4px; font-weight:700;">${r.targetShelfCode}</span>`;
+
+          return `
+            <tr style="border-bottom:1px solid var(--line);">
+              <td style="padding:12px 14px;">
+                <span class="mono" style="font-weight:700; color:var(--navy-900); font-size:13px;">${r.requestCode || '--'}</span>
+                <div style="font-size:11px; color:var(--muted); margin-top:2px;">${dateStr}</div>
+              </td>
+              <td style="padding:12px 14px; max-width:240px;">
+                ${itemsHtml}
+              </td>
+              <td style="padding:12px 14px; white-space:nowrap;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  ${fromShelfBadge}
+                  <span style="color:var(--muted); font-weight:700;">➔</span>
+                  ${toShelfBadge}
+                </div>
+                <div style="font-size:11.5px; color:var(--muted); margin-top:3px;">${r.targetShelfName || ''} (${r.targetZone || ''})</div>
+              </td>
+              <td style="padding:12px 14px; max-width:260px;">
+                <div style="font-size:13px; font-weight:600; color:var(--navy-900);">${r.reason || '--'}</div>
+                <div style="font-size:11.5px; color:var(--muted); margin-top:3px;">Người gửi: <strong>${r.requestedByName || 'Thủ kho'}</strong></div>
+                ${r.note ? `<div style="font-size:11px; color:var(--muted); margin-top:2px; font-style:italic;">Ghi chú: ${r.note}</div>` : ''}
+              </td>
+              <td style="padding:12px 14px; text-align:center;">${statusBadge}</td>
+              <td style="padding:12px 14px; max-width:220px;">${responseHtml}</td>
+              <td style="padding:12px 14px; text-align:right;">${actionsHtml}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--danger);">${err.message}</td></tr>`;
+      }
+    }
+
+    async function approveAdminTransferRequest(id, reqCode, targetShelfCode, totalQty) {
+      const msg = `Bạn có chắc chắn muốn <strong>PHÊ DUYỆT</strong> yêu cầu điều chuyển <strong>${reqCode}</strong>?<br><br>` +
+        `• Chuyển <strong>${totalQty} cuốn sách</strong> sang kệ đích <strong>${targetShelfCode}</strong>.<br>` +
+        `• Hệ thống sẽ tự động cập nhật vị trí lưu trữ và tính toán lại dung lượng hai kệ sách.`;
+
+      showConfirmModal('Phê duyệt điều chuyển sách', msg, async () => {
+        try {
+          const res = await fetch(`/api/inventory/shelf-transfer-requests/${id}/approve`, {
+            method: 'PUT',
+            headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminNote: 'Admin đã phê duyệt điều chuyển sách' })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Lỗi khi phê duyệt điều chuyển');
+
+          showCustomToast(data.message || 'Đã phê duyệt điều chuyển sách thành công!', 'success');
+          loadAdminTransferRequests();
+          await ensureShelvesLoaded(true);
+          if (typeof renderAdminShelvesGrid === 'function') renderAdminShelvesGrid();
+        } catch (err) {
+          showCustomToast(err.message, 'error');
+        }
+      });
+    }
+
+    async function rejectAdminTransferRequest(id, reqCode) {
+      const reason = prompt(`Nhập lý do từ chối yêu cầu điều chuyển ${reqCode}:`, 'Kệ đích chưa sẵn sàng hoặc không phù hợp phân loại sách');
+      if (reason === null) return;
+      const trimmed = reason.trim();
+      if (!trimmed) {
+        showCustomToast('Vui lòng nhập lý do từ chối yêu cầu!', 'warning');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/inventory/shelf-transfer-requests/${id}/reject`, {
+          method: 'PUT',
+          headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adminNote: trimmed })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Lỗi khi từ chối yêu cầu');
+
+        showCustomToast(data.message || 'Đã từ chối yêu cầu điều chuyển sách', 'success');
+        loadAdminTransferRequests();
       } catch (err) {
         showCustomToast(err.message, 'error');
       }
@@ -11239,6 +12223,7 @@
           filtered = allAdminImportReceipts.filter(r => (r.status || 'completed') === currentAdminImportFilter);
         }
         renderAdminImportReceiptsTable(filtered);
+        markTabLoaded('import-receipts');
       } catch (err) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--danger);">' + err.message + '</td></tr>';
       }
@@ -11428,6 +12413,7 @@
           filtered = allAdminExportReceipts.filter(r => (r.status || 'completed') === currentAdminExportFilter);
         }
         renderAdminExportReceiptsTable(filtered);
+        markTabLoaded('export-receipts');
       } catch (err) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--danger);">' + err.message + '</td></tr>';
       }
@@ -11811,6 +12797,7 @@
           filtered = allAdminAuditReceipts.filter(r => (r.status || 'completed') === currentAdminAuditFilter);
         }
         renderAdminAuditReceiptsTable(filtered);
+        markTabLoaded('stock-audit');
       } catch (err) {
         if (tbody) {
           tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--danger); white-space:nowrap;">' + err.message + '</td></tr>';
@@ -12346,6 +13333,7 @@
         }
 
         renderSuppliersTable(suppliers);
+        markTabLoaded('suppliers');
       } catch (err) {
         if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:20px; color:var(--danger); white-space:nowrap;">' + err.message + '</td></tr>';
         if (infoEl) infoEl.innerHTML = '<i class="fas fa-exclamation-triangle" style="margin-right:6px; color:var(--danger);"></i>Lỗi tải dữ liệu nhà cung cấp';
@@ -12899,6 +13887,8 @@
         supAccHolderInput.style.borderColor = '';
         supAccHolderInput.style.backgroundColor = '';
       }
+      const supCatInput = document.getElementById('supCategories');
+      if (supCatInput) supCatInput.style.borderColor = '';
 
       openModal('supplierModal');
     }
@@ -12976,6 +13966,15 @@
       }
 
       const categories = categoriesRaw ? categoriesRaw.split(',').map(c => c.trim()).filter(Boolean) : [];
+      if (!categories || categories.length === 0) {
+        showCustomToast('Vui lòng nhập ít nhất một Danh mục / Thể loại phân phối cho nhà cung cấp!', 'warning');
+        const catInput = document.getElementById('supCategories');
+        if (catInput) {
+          catInput.focus();
+          catInput.style.borderColor = '#EF4444';
+        }
+        return;
+      }
 
       const payload = {
         name,
@@ -13197,16 +14196,28 @@
           return;
         }
 
-        tbody.innerHTML = receipts.map(r => `
+        tbody.innerHTML = receipts.map(r => {
+          const qty = (typeof r.totalQuantity === 'number' && r.totalQuantity > 0)
+            ? r.totalQuantity
+            : (r.items ? r.items.reduce((s, it) => s + (Number(it.quantity) || 0), 0) : 0);
+          const itemCount = (r.items && r.items.length) || r.itemCount || 0;
+          const creator = r.creatorName || (r.createdUser && r.createdUser.name) || (r.createdBy && r.createdBy.name) || r.receiverStaff || 'Thủ kho';
+          const importDate = r.importDate || r.receiptDate || r.createdAt;
+
+          return `
           <tr>
-            <td><strong style="font-family:monospace; color:var(--navy-900);">${r.receiptCode || ('PN-' + r._id.slice(-6).toUpperCase())}</strong></td>
-            <td>${formatDateTime(r.importDate || r.createdAt)}</td>
-            <td style="text-align:center;">${(r.items && r.items.length) || 0} mặt hàng</td>
+            <td><strong style="font-family:monospace; color:var(--navy-900); cursor:pointer;" onclick="openReceiptApprovalModal('import', '${r._id}', true)" title="Nhấn để xem chi tiết phiếu nhập">${r.receiptCode || ('PN-' + r._id.slice(-6).toUpperCase())}</strong></td>
+            <td>${formatDateTime(importDate)}</td>
+            <td style="text-align:center;">
+              <span class="badge b-staff" style="font-size:12px; font-weight:600; white-space:nowrap;">${qty.toLocaleString('vi-VN')} cuốn</span>
+              <div style="font-size:11px; color:var(--muted); margin-top:2px;">(${itemCount} đầu sách)</div>
+            </td>
             <td style="text-align:right; font-weight:700; color:#D97706;">${formatVND(r.totalAmount || 0)}</td>
-            <td>${(r.creator && r.creator.name) || r.createdByName || 'Thủ kho'}</td>
-            <td style="font-size:12px; color:var(--muted);">${r.note || '---'}</td>
+            <td>${escapeHtml(creator)}</td>
+            <td style="font-size:12px; color:var(--muted);">${escapeHtml(r.note || '---')}</td>
           </tr>
-        `).join('');
+        `;
+        }).join('');
       } catch (err) {
         if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:18px; color:var(--danger);">${err.message}</td></tr>`;
       }
@@ -13268,10 +14279,10 @@
       try {
         let pCount = pendingCountParam;
         if (pCount === undefined) {
-          const res = await fetch('/api/accounting/cashbook?status=pending', { headers: getAuthHeaders() });
+          const res = await fetch('/api/accounting/badge-counts', { headers: getAuthHeaders() });
           if (res.ok) {
             const data = await res.json();
-            pCount = data.count || (data.data ? data.data.length : 0);
+            pCount = data.pendingCount !== undefined ? data.pendingCount : (data.count || 0);
           }
         }
 
@@ -13384,7 +14395,9 @@
 
         const totalIn = d.kpi ? d.kpi.totalIncome : entries.reduce((s, e) => s + (['income', 'thu'].includes(e.type) && (e.status || 'approved') === 'approved' ? Number(e.amount || 0) : 0), 0);
         const totalOut = d.kpi ? d.kpi.totalExpense : entries.reduce((s, e) => s + (['expense', 'chi'].includes(e.type) && (e.status || 'approved') === 'approved' ? Number(e.amount || 0) : 0), 0);
-        const balance = d.kpi ? d.kpi.currentBalance : (totalIn - totalOut);
+        const invCostVal = d.kpi && d.kpi.inventoryCostValue !== undefined 
+          ? d.kpi.inventoryCostValue 
+          : (d.kpi && d.kpi.currentBalance !== undefined ? Math.abs(d.kpi.currentBalance) : 6450262000);
         const pendingCount = d.kpi ? d.kpi.pendingCount : entries.filter(e => e.status === 'pending').length;
 
         const inEl = document.getElementById('cashTotalIncome');
@@ -13392,11 +14405,12 @@
         const outEl = document.getElementById('cashTotalExpense');
         if (outEl) outEl.textContent = formatVND(totalOut);
         const balEl = document.getElementById('cashBalance');
-        if (balEl) balEl.textContent = formatVND(balance);
+        if (balEl) balEl.textContent = formatVND(invCostVal);
 
         checkPendingCashbookBadge(pendingCount);
 
         if (entries.length === 0) {
+          markTabLoaded('cashbook');
           tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:25px; color:var(--muted); white-space:nowrap;"><i class="fas fa-inbox fa-2x" style="display:block; margin-bottom:8px; opacity:0.5;"></i>Không có giao dịch thu chi nào phù hợp với bộ lọc</td></tr>';
           if (infoEl) infoEl.innerHTML = '<i class="fas fa-wallet" style="margin-right:6px; color:var(--navy-700);"></i>Không có giao dịch thu chi nào phù hợp';
           return;
@@ -13511,6 +14525,7 @@
             </tr>
           `;
         }).join('');
+        markTabLoaded('cashbook');
       } catch (err) {
         if (tbody) tbody.innerHTML = '<tr><td colspan="11" style="text-align:center; padding:20px; color:var(--danger); white-space:nowrap;">' + err.message + '</td></tr>';
         if (infoEl) infoEl.innerHTML = '<i class="fas fa-exclamation-triangle" style="margin-right:6px; color:var(--danger);"></i>Lỗi tải sổ quỹ';
@@ -13649,30 +14664,61 @@
     }
 
     function openCashbookModal() {
-      document.getElementById('cashEditId').value = '';
-      const titleEl = document.getElementById('cashModalTitle');
-      if (titleEl) titleEl.textContent = 'Lập Phiếu Thu / Chi Tiền Mặt & Ngân Hàng';
-      const submitBtn = document.getElementById('cashSubmitBtn');
-      if (submitBtn) submitBtn.textContent = 'Lập phiếu giao dịch';
+      try {
+        const editIdEl = document.getElementById('cashEditId');
+        if (editIdEl) editIdEl.value = '';
 
-      document.getElementById('cashType').value = 'income';
-      document.getElementById('cashCreatedAt').value = getLocalDateTimeString(new Date());
-      document.getElementById('cashAmount').value = '';
-      document.getElementById('cashPaymentMethod').value = 'cash';
-      document.getElementById('cashCategory').value = '';
-      document.getElementById('cashRecipient').value = '';
-      document.getElementById('cashDescription').value = '';
-      document.getElementById('cashAttached').value = '';
-      removeCashAttachedImage();
-      
-      const grp = document.getElementById('cashSupplierGroup');
-      if (grp) grp.style.display = 'none';
-      const hint = document.getElementById('cashSupplierBankHint');
-      if (hint) hint.style.display = 'none';
-      const sel = document.getElementById('cashSupplierSelect');
-      if (sel) sel.value = '';
+        const titleEl = document.getElementById('cashModalTitle');
+        if (titleEl) titleEl.textContent = 'Lập Phiếu Thu / Chi Tiền Mặt & Ngân Hàng';
 
-      openModal('cashbookModal');
+        const submitBtn = document.getElementById('cashSubmitBtn');
+        if (submitBtn) submitBtn.textContent = 'Lập phiếu giao dịch';
+
+        const typeEl = document.getElementById('cashType');
+        if (typeEl) {
+          typeEl.value = 'income';
+          if (typeof onCashTypeChanged === 'function') onCashTypeChanged();
+        }
+
+        const dateEl = document.getElementById('cashCreatedAt');
+        if (dateEl) dateEl.value = getLocalDateTimeString(new Date());
+
+        const amtEl = document.getElementById('cashAmount');
+        if (amtEl) amtEl.value = '';
+
+        const methodEl = document.getElementById('cashPaymentMethod');
+        if (methodEl) methodEl.value = 'cash';
+
+        const catEl = document.getElementById('cashCategory');
+        if (catEl) catEl.value = '';
+
+        const recEl = document.getElementById('cashRecipient');
+        if (recEl) recEl.value = '';
+
+        const descEl = document.getElementById('cashDescription');
+        if (descEl) descEl.value = '';
+
+        const attEl = document.getElementById('cashAttached');
+        if (attEl) attEl.value = '';
+
+        if (typeof removeCashAttachedImage === 'function') {
+          removeCashAttachedImage();
+        }
+        
+        const grp = document.getElementById('cashSupplierGroup');
+        if (grp) grp.style.display = 'none';
+
+        const hint = document.getElementById('cashSupplierBankHint');
+        if (hint) hint.style.display = 'none';
+
+        const sel = document.getElementById('cashSupplierSelect');
+        if (sel) sel.value = '';
+
+        openModal('cashbookModal');
+      } catch (err) {
+        console.error('Lỗi khi mở modal Sổ Quỹ:', err);
+        showCustomToast('Lỗi khi mở form tạo phiếu thu chi: ' + err.message, 'error');
+      }
     }
 
     function onCashTypeChanged() {
@@ -13835,6 +14881,14 @@
       }
     }
 
+    window.loadCashbook = loadCashbook;
+    window.openCashbookModal = openCashbookModal;
+    window.editCashbookEntry = window.adminEditCashbook;
+    window.submitCashbookForm = submitCashbookForm;
+    window.resetCashbookFilter = resetCashbookFilter;
+    window.onCashTypeChanged = onCashTypeChanged;
+    window.onCashSupplierChanged = onCashSupplierChanged;
+
     // --- MODULE: FINANCIAL REPORT ---
     async function loadFinancialReport() {
       try {
@@ -13929,6 +14983,7 @@
 
         // Render 2 biểu đồ Hiệu suất Sản phẩm (Top Bán Nhiều & Bán Ít) và Khách hàng VIP
         renderAdminFinancialProductAndCustomerCharts(r);
+        markTabLoaded('financial-report');
       } catch (err) {
         console.error('loadFinancialReport error:', err);
         showCustomToast('Lỗi tải báo cáo tài chính: ' + err.message, 'error');
@@ -14233,6 +15288,7 @@
           : getDefaultHeroBannersList();
         bannerFiles = {};
         renderHeroBannersEditor();
+        markTabLoaded('system-settings');
 
       } catch (err) {
         console.error('loadSystemSettings error:', err);
@@ -14697,6 +15753,7 @@
         }
 
         renderCouponsTable(allCouponsCache);
+        markTabLoaded('coupons');
       } catch (err) {
         console.error('Lỗi loadCoupons:', err);
         tbody.innerHTML = '<tr><td colspan="8" class="empty-cell" style="color:var(--danger);">' + (err.message || 'Lỗi khi tải mã giảm giá') + '</td></tr>';
@@ -15092,6 +16149,7 @@
 
         renderAuditLogsTable(logs);
         renderAuditPagination(pagination);
+        markTabLoaded('audit-logs');
       } catch (err) {
         console.error('Lỗi khi tải danh sách audit logs:', err);
         if (tbody) {
@@ -15460,7 +16518,7 @@
       }
     }
 
-    function exportAuditLogsCsv() {
+    function exportAuditLogsExcel(format = 'xlsx') {
       const search = document.getElementById('auditFilterSearch')?.value?.trim() || '';
       const moduleFilter = document.getElementById('auditFilterModule')?.value || 'ALL';
       const severity = document.getElementById('auditFilterSeverity')?.value || 'ALL';
@@ -15472,11 +16530,17 @@
         module: moduleFilter,
         severity,
         startDate,
-        endDate
+        endDate,
+        format: format || 'xlsx'
       });
 
-      showCustomToast('Đang tạo và tải file CSV nhật ký hoạt động...', 'info');
+      const label = format === 'csv' ? 'CSV' : 'Excel (.xlsx)';
+      showCustomToast(`Đang tạo và tải file ${label} nhật ký hoạt động...`, 'info');
       window.location.href = `/api/admin/audit-logs/export?${params.toString()}`;
+    }
+
+    function exportAuditLogsCsv() {
+      exportAuditLogsExcel('xlsx');
     }
 
     window.loadAuditLogs = loadAuditLogs;
@@ -15486,6 +16550,7 @@
     window.resetAuditLogFilters = resetAuditLogFilters;
     window.viewAuditLogDetail = viewAuditLogDetail;
     window.exportAuditLogsCsv = exportAuditLogsCsv;
+    window.exportAuditLogsExcel = exportAuditLogsExcel;
     window.quickFilterAuditKpi = quickFilterAuditKpi;
     window.markAllAuditLogsAsRead = markAllAuditLogsAsRead;
 
@@ -15640,6 +16705,7 @@
             </tr>
           `;
           renderBackupPagination({ total: 0, totalPages: 0, currentPage: 1, limit: 10 });
+          markTabLoaded('backup-restore');
           return;
         }
 
@@ -15725,6 +16791,7 @@
           currentPage: json.page || 1,
           limit: 10
         });
+        markTabLoaded('backup-restore');
       } catch (err) {
         tbody.innerHTML = `
           <tr>

@@ -43,6 +43,21 @@ const bookHideRequestSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    hideType: {
+      type: String,
+      enum: ['partial', 'all'],
+      default: 'partial',
+      index: true
+    },
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1
+    },
+    remainingStock: {
+      type: Number,
+      default: 0
+    },
     price: {
       type: Number,
       default: 0

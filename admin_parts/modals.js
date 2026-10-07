@@ -655,7 +655,7 @@ module.exports = `
           <input type="email" id="supEmail" class="form-control" placeholder="contact@nxb.vn" />
         </div>
         <div class="form-group">
-          <label class="form-label">Danh mục / Thể loại phân phối</label>
+          <label class="form-label">Danh mục / Thể loại phân phối <span style="color: var(--color-red);">*</span></label>
           <input type="text" id="supCategories" class="form-control" placeholder="Văn học, Thiếu nhi... (cách bằng dấu phẩy)" />
         </div>
       </div>
@@ -830,7 +830,7 @@ module.exports = `
                 <tr>
                   <th>Mã phiếu</th>
                   <th>Ngày nhập</th>
-                  <th>Số mặt hàng</th>
+                  <th style="text-align: center;">Số lượng sách</th>
                   <th style="text-align: right;">Tổng giá trị</th>
                   <th>Người lập</th>
                   <th>Ghi chú</th>

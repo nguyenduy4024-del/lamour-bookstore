@@ -6,8 +6,19 @@ const Supplier = require('../models/Supplier');
 const Book = require('../models/Book');
 const { logActivity } = require('../utils/auditLogger');
 
+let isTransactionsSeeded = false;
+let financialReportCache = { data: null, timestamp: 0 };
+let cashbookKpiCache = { data: null, timestamp: 0 };
+
+const invalidateAccountingCache = () => {
+  financialReportCache = { data: null, timestamp: 0 };
+  cashbookKpiCache = { data: null, timestamp: 0 };
+};
+
 // Khởi tạo các giao dịch mẫu ban đầu nếu Sổ Quỹ chưa có dữ liệu
 const seedDefaultTransactionsIfEmpty = async () => {
+  if (isTransactionsSeeded) return;
+  isTransactionsSeeded = true;
   const count = await Transaction.countDocuments();
   if (count === 0) {
     const accountantUser = await User.findOne({ role: 'accountant' }) || await User.findOne({ role: 'admin' });
@@ -212,6 +223,24 @@ const seedDefaultTransactionsIfEmpty = async () => {
   }
 };
 
+// @desc    Lấy số lượng phiếu thu/chi chờ duyệt (siêu nhẹ cho sidebar/badge)
+// @route   GET /api/accounting/badge-counts
+// @access  Private (Accountant, Admin)
+const getAccountingBadgeCounts = async (req, res) => {
+  try {
+    const [pendingReceipts, pendingPayments] = await Promise.all([
+      Transaction.Receipt.countDocuments({ status: 'pending' }),
+      Transaction.Payment.countDocuments({ status: 'pending' })
+    ]);
+    res.status(200).json({
+      success: true,
+      pendingCount: pendingReceipts + pendingPayments
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, pendingCount: 0 });
+  }
+};
+
 // @desc    Lấy danh sách Sổ Quỹ Thu - Chi (Cashbook) kèm 3 thẻ KPI
 // @route   GET /api/accounting/cashbook
 // @access  Private (Accountant, Admin)
@@ -220,35 +249,65 @@ const getCashbook = async (req, res) => {
     await seedDefaultTransactionsIfEmpty();
 
     const { startDate, endDate, type, keyword, status } = req.query;
+    const limit = parseInt(req.query.limit) || (req.query.all === 'true' ? 1000 : 150);
+    const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * limit;
 
-    // 1. Tính toán các thẻ KPI tổng quan toàn hệ thống (CHỈ TÍNH CÁC PHIẾU ĐÃ ĐƯỢC DUYỆT)
-    const allTransactions = await Transaction.find().lean();
-    let totalIncome = 0;
-    let totalExpense = 0;
-    let pendingCount = 0;
-    let pendingIncome = 0;
-    let pendingExpense = 0;
+    // 1. Tính toán các thẻ KPI tổng quan toàn hệ thống bằng MongoDB Aggregation song song
+    const now = Date.now();
+    let kpiData;
+    if (cashbookKpiCache.data && (now - cashbookKpiCache.timestamp < 15000)) {
+      kpiData = cashbookKpiCache.data;
+    } else {
+      const [incAgg, expAgg, pendIncAgg, pendExpAgg] = await Promise.all([
+        Transaction.Receipt.aggregate([
+          { $match: { $or: [{ status: 'approved' }, { status: { $exists: false } }, { status: null }] } },
+          { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]),
+        Transaction.Payment.aggregate([
+          { $match: { $or: [{ status: 'approved' }, { status: { $exists: false } }, { status: null }] } },
+          { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]),
+        Transaction.Receipt.aggregate([
+          { $match: { status: 'pending' } },
+          { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+        ]),
+        Transaction.Payment.aggregate([
+          { $match: { status: 'pending' } },
+          { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+        ])
+      ]);
 
-    allTransactions.forEach(t => {
-      const amt = Number(t.amount) || 0;
-      const tStatus = t.status || 'approved';
-      if (tStatus === 'approved') {
-        if (['income', 'thu'].includes(t.type)) {
-          totalIncome += amt;
-        } else if (['expense', 'chi'].includes(t.type)) {
-          totalExpense += amt;
-        }
-      } else if (tStatus === 'pending') {
-        pendingCount++;
-        if (['income', 'thu'].includes(t.type)) {
-          pendingIncome += amt;
-        } else if (['expense', 'chi'].includes(t.type)) {
-          pendingExpense += amt;
-        }
+      const totalIncome = incAgg[0]?.total || 0;
+      const totalExpense = expAgg[0]?.total || 0;
+      const pendingCount = (pendIncAgg[0]?.count || 0) + (pendExpAgg[0]?.count || 0);
+      const pendingIncome = pendIncAgg[0]?.total || 0;
+      const pendingExpense = pendExpAgg[0]?.total || 0;
+
+      // Tính giá trị tồn kho thực tế (Giá vốn) của nhà sách để hiển thị số dương
+      const allBooks = await Book.find({}, 'stock price costPrice').lean();
+      let inventoryCostValue = 0;
+      let inventoryUnits = 0;
+      for (const b of allBooks) {
+        const s = Math.max(0, Number(b.stock) || 0);
+        inventoryUnits += s;
+        const price = Number(b.price) || 0;
+        const cost = Number(b.costPrice) > 0 ? Number(b.costPrice) : Math.round(price * 0.65);
+        inventoryCostValue += (s * cost);
       }
-    });
 
-    const currentBalance = totalIncome - totalExpense;
+      kpiData = {
+        totalIncome,
+        totalExpense,
+        inventoryCostValue,
+        inventoryUnits,
+        currentBalance: inventoryCostValue, // Hiển thị giá trị tồn kho dương theo cấu hình mới
+        pendingCount,
+        pendingIncome,
+        pendingExpense
+      };
+      cashbookKpiCache = { data: kpiData, timestamp: now };
+    }
 
     // 2. Lọc danh sách giao dịch theo điều kiện tìm kiếm
     const query = {};
@@ -300,7 +359,9 @@ const getCashbook = async (req, res) => {
       .populate('approvedBy', 'name email role')
       .populate('referenceOrder', 'invoiceCode totalAmount finalAmount status paymentMethod')
       .populate('referenceReceipt', 'receiptCode totalAmount')
-      .sort({ createdAt: -1, _id: -1 });
+      .sort({ createdAt: -1, _id: -1 })
+      .skip(skip)
+      .limit(limit);
 
     // Chuẩn hóa dữ liệu trả về cho frontend
     const normalizedData = transactions.map(t => {
@@ -338,14 +399,7 @@ const getCashbook = async (req, res) => {
     res.status(200).json({
       success: true,
       count: normalizedData.length,
-      kpi: {
-        totalIncome,
-        totalExpense,
-        currentBalance,
-        pendingCount,
-        pendingIncome,
-        pendingExpense
-      },
+      kpi: kpiData,
       data: normalizedData
     });
   } catch (error) {
@@ -510,6 +564,7 @@ const createCashbookEntry = async (req, res) => {
       ]
     });
 
+    invalidateAccountingCache();
     res.status(201).json({
       success: true,
       message: successMsg,
@@ -657,6 +712,7 @@ const updateTransaction = async (req, res) => {
       diff
     });
 
+    invalidateAccountingCache();
     res.status(200).json({
       success: true,
       message: `Cập nhật phiếu giao dịch "${transaction.transactionCode}" thành công`,
@@ -714,6 +770,7 @@ const deleteTransaction = async (req, res) => {
       ]
     });
 
+    invalidateAccountingCache();
     res.status(200).json({
       success: true,
       message: 'Đã xóa phiếu giao dịch thành công'
@@ -773,6 +830,7 @@ const approveTransaction = async (req, res) => {
       ]
     });
 
+    invalidateAccountingCache();
     res.status(200).json({
       success: true,
       message: `Đã phê duyệt ${typeText} "${transaction.transactionCode}" thành công! Giao dịch được phép hạch toán vào Sổ Quỹ.`,
@@ -828,6 +886,7 @@ const rejectTransaction = async (req, res) => {
       ]
     });
 
+    invalidateAccountingCache();
     res.status(200).json({
       success: true,
       message: `Đã từ chối ${typeText} "${transaction.transactionCode}". Giao dịch KHÔNG được phép thu/chi!`,
@@ -847,83 +906,44 @@ const rejectTransaction = async (req, res) => {
 // @access  Private (Accountant, Admin)
 const getFinancialReport = async (req, res) => {
   try {
-    const invoices = await Invoice.find().populate('items.book', 'costPrice price title stock');
-    const allBooks = await Book.find().lean();
-    const importReceipts = await ImportReceipt.find().lean();
-
-    // 1. DOANH THU BÁN HÀNG GỘP (Gross Sales): Các hóa đơn hoàn tất hoặc đã thanh toán (POS & Web)
-    const completedInvoices = invoices.filter(inv => ['completed', 'paid'].includes(inv.status));
-    const grossSales = completedInvoices.reduce((sum, inv) => {
-      const val = Number(inv.finalAmount !== undefined ? inv.finalAmount : inv.totalAmount) || 0;
-      return sum + val;
-    }, 0);
-
-    // 2. CÁC KHOẢN GIẢM TRỪ DOANH THU (Sales Returns): Đơn hàng khách trả lại
-    const returnedInvoices = invoices.filter(inv => inv.status === 'returned');
-    const salesReturns = returnedInvoices.reduce((sum, inv) => {
-      const refund = (inv.returnRequest && inv.returnRequest.refundAmount) 
-        ? Number(inv.returnRequest.refundAmount) 
-        : (Number(inv.finalAmount || inv.totalAmount) || 0);
-      return sum + refund;
-    }, 0);
-
-    // 3. DOANH THU THUẦN (Net Revenue = Doanh thu gộp - Giảm trừ)
-    const netRevenue = Math.max(0, grossSales - salesReturns);
-
-    // 4. GIÁ VỐN HÀNG BÁN THỰC TẾ (COGS): Tính theo từng cuốn sách bán ra trong đơn thành công
-    let cogs = 0;
-    for (const inv of completedInvoices) {
-      if (Array.isArray(inv.items)) {
-        for (const item of inv.items) {
-          const qty = Math.max(1, Number(item.quantity) || 1);
-          let itemCost = Number(item.costPrice);
-
-          // Nếu chưa có costPrice trên đơn, lấy từ Book hoặc tính fallback 65% giá bán
-          if (!itemCost || itemCost <= 0) {
-            if (item.book && Number(item.book.costPrice) > 0) {
-              itemCost = Number(item.book.costPrice);
-            } else {
-              const sellPrice = Number(item.price || (item.book ? item.book.price : 0)) || 0;
-              itemCost = Math.round(sellPrice * 0.65);
-            }
-          }
-
-          cogs += (itemCost * qty);
-        }
-      }
+    const now = Date.now();
+    // Cache 60 giây: khi reload trang hay đổi tab, phản hồi ngay lập tức dưới 5ms
+    if (!req.query.force && financialReportCache.data && (now - financialReportCache.timestamp < 60000)) {
+      return res.status(200).json({
+        success: true,
+        data: financialReportCache.data,
+        cached: true
+      });
     }
 
-    // 5. LỢI NHUẬN THỰC TẾ (Profit = Doanh thu thuần - Giá vốn COGS)
-    const profit = netRevenue - cogs;
-    const profitMarginPercent = netRevenue > 0 ? Number(((profit / netRevenue) * 100).toFixed(1)) : 0;
+    // 1. Chạy song song các truy vấn tối ưu và dùng lean()
+    const [invoices, allBooks, importReceipts] = await Promise.all([
+      Invoice.find({ status: { $in: ['completed', 'paid', 'returned'] } })
+        .select('status totalAmount finalAmount returnRequest items customerName customerPhone user')
+        .lean(),
+      Book.find()
+        .select('title author category price costPrice stock')
+        .lean(),
+      ImportReceipt.find({ paymentStatus: { $ne: 'paid' } })
+        .select('totalAmount paidAmount paymentStatus')
+        .lean()
+    ]);
 
-    // 6. TỒN KHO HIỆN TẠI (Current Inventory): Tính trực tiếp từ kho sách thực tế (số lượng cuốn & giá trị vốn)
-    let currentInventoryUnits = 0;
-    let currentInventoryCostValue = 0;
-    let currentInventoryRetailValue = 0;
-    for (const b of allBooks) {
-      const st = Math.max(0, Number(b.stock) || 0);
-      currentInventoryUnits += st;
-      const cp = Number(b.costPrice) > 0 ? Number(b.costPrice) : Math.round(Number(b.price || 0) * 0.65);
-      currentInventoryCostValue += (st * cp);
-      currentInventoryRetailValue += (st * (Number(b.price) || 0));
-    }
-
-    // Tổng công nợ nhà cung cấp
-    const totalSupplierDebt = importReceipts
-      .filter(r => (r.paymentStatus || 'unpaid') !== 'paid')
-      .reduce((sum, r) => sum + Math.max(0, (r.totalAmount || 0) - (r.paidAmount || 0)), 0);
-
-    // 7. TỔNG HỢP HIỆU SUẤT SẢN PHẨM & KHÁCH HÀNG
+    // Tạo Map chi phí sách và khởi tạo bookSalesMap để tra cứu O(1)
+    const bookCostMap = new Map();
     const bookSalesMap = {};
     for (const b of allBooks) {
-      bookSalesMap[b._id.toString()] = {
-        id: b._id.toString(),
+      const bId = b._id.toString();
+      const cp = Number(b.costPrice) > 0 ? Number(b.costPrice) : Math.round(Number(b.price || 0) * 0.65);
+      bookCostMap.set(bId, cp);
+
+      bookSalesMap[bId] = {
+        id: bId,
         title: b.title,
         author: b.author || 'Chưa rõ tác giả',
         category: b.category || 'Khác',
         price: b.price || 0,
-        costPrice: b.costPrice || Math.round((b.price || 0) * 0.65),
+        costPrice: cp,
         stock: b.stock || 0,
         quantity: 0,
         revenue: 0,
@@ -931,6 +951,28 @@ const getFinancialReport = async (req, res) => {
       };
     }
 
+    // 1. DOANH THU BÁN HÀNG GỘP (Gross Sales): Các hóa đơn hoàn tất hoặc đã thanh toán (POS & Web)
+    const completedInvoices = invoices.filter(inv => ['completed', 'paid'].includes(inv.status));
+    let grossSales = 0;
+    for (const inv of completedInvoices) {
+      grossSales += Number(inv.finalAmount !== undefined ? inv.finalAmount : inv.totalAmount) || 0;
+    }
+
+    // 2. CÁC KHOẢN GIẢM TRỪ DOANH THU (Sales Returns): Đơn hàng khách trả lại
+    const returnedInvoices = invoices.filter(inv => inv.status === 'returned');
+    let salesReturns = 0;
+    for (const inv of returnedInvoices) {
+      const refund = (inv.returnRequest && inv.returnRequest.refundAmount) 
+        ? Number(inv.returnRequest.refundAmount) 
+        : (Number(inv.finalAmount || inv.totalAmount) || 0);
+      salesReturns += refund;
+    }
+
+    // 3. DOANH THU THUẦN (Net Revenue = Doanh thu gộp - Giảm trừ)
+    const netRevenue = Math.max(0, grossSales - salesReturns);
+
+    // 4. GIÁ VỐN HÀNG BÁN THỰC TẾ (COGS) & HIỆU SUẤT SẢN PHẨM / KHÁCH HÀNG
+    let cogs = 0;
     const customerMap = {};
 
     for (const inv of completedInvoices) {
@@ -940,7 +982,6 @@ const getFinancialReport = async (req, res) => {
       const custName = inv.customerName || 'Khách lẻ';
       const custPhone = inv.customerPhone || '';
       const orderAmount = Number(inv.finalAmount !== undefined ? inv.finalAmount : inv.totalAmount) || 0;
-      let orderItemCount = 0;
 
       if (!customerMap[custKey]) {
         customerMap[custKey] = {
@@ -955,36 +996,52 @@ const getFinancialReport = async (req, res) => {
       customerMap[custKey].totalSpent += orderAmount;
       customerMap[custKey].orderCount += 1;
 
+      let orderItemCount = 0;
       if (Array.isArray(inv.items)) {
         for (const item of inv.items) {
           const qty = Math.max(1, Number(item.quantity) || 1);
           orderItemCount += qty;
           const itemPrice = Number(item.price) || 0;
           const itemSubtotal = Number(item.subtotal) || (qty * itemPrice);
-          let itemCost = Number(item.costPrice);
-          if (!itemCost || itemCost <= 0) {
-            itemCost = Math.round(itemPrice * 0.65);
-          }
-          const itemProfit = itemSubtotal - (itemCost * qty);
 
           const bookId = item.book ? (item.book._id ? item.book._id.toString() : item.book.toString()) : null;
+          let itemCost = Number(item.costPrice);
+          if (!itemCost || itemCost <= 0) {
+            itemCost = (bookId && bookCostMap.has(bookId)) ? bookCostMap.get(bookId) : Math.round(itemPrice * 0.65);
+          }
+
+          cogs += (itemCost * qty);
+          const itemProfit = itemSubtotal - (itemCost * qty);
+
           if (bookId && bookSalesMap[bookId]) {
             bookSalesMap[bookId].quantity += qty;
             bookSalesMap[bookId].revenue += itemSubtotal;
             bookSalesMap[bookId].grossProfit += itemProfit;
-          } else {
-            const t = (item.book && item.book.title) ? item.book.title : (item.title || 'Sách khác');
-            const foundKey = Object.keys(bookSalesMap).find(k => bookSalesMap[k].title.toLowerCase() === t.toLowerCase());
-            if (foundKey) {
-              bookSalesMap[foundKey].quantity += qty;
-              bookSalesMap[foundKey].revenue += itemSubtotal;
-              bookSalesMap[foundKey].grossProfit += itemProfit;
-            }
           }
         }
       }
       customerMap[custKey].totalProducts += orderItemCount;
     }
+
+    // 5. LỢI NHUẬN THỰC TẾ (Profit = Doanh thu thuần - Giá vốn COGS)
+    const profit = netRevenue - cogs;
+    const profitMarginPercent = netRevenue > 0 ? Number(((profit / netRevenue) * 100).toFixed(1)) : 0;
+
+    // 6. TỒN KHO HIỆN TẠI (Current Inventory): Tính trực tiếp từ kho sách thực tế (số lượng cuốn & giá trị vốn)
+    let currentInventoryUnits = 0;
+    let currentInventoryCostValue = 0;
+    let currentInventoryRetailValue = 0;
+    for (const b of allBooks) {
+      const st = Math.max(0, Number(b.stock) || 0);
+      currentInventoryUnits += st;
+      const cp = bookCostMap.get(b._id.toString()) || 0;
+      currentInventoryCostValue += (st * cp);
+      currentInventoryRetailValue += (st * (Number(b.price) || 0));
+    }
+
+    // Tổng công nợ nhà cung cấp
+    const totalSupplierDebt = importReceipts
+      .reduce((sum, r) => sum + Math.max(0, (r.totalAmount || 0) - (r.paidAmount || 0)), 0);
 
     const allBooksList = Object.values(bookSalesMap);
     const topSellingBooks = allBooksList
@@ -1009,36 +1066,40 @@ const getFinancialReport = async (req, res) => {
       .sort((a, b) => b.totalProducts - a.totalProducts || b.totalSpent - a.totalSpent)
       .slice(0, 10);
 
+    const reportData = {
+      grossSales,
+      salesReturns,
+      netRevenue,
+      cogs,
+      profit,
+      grossProfit: profit,
+      netProfit: profit,
+      profitMarginPercent,
+      grossMarginPercent: profitMarginPercent,
+      netMarginPercent: profitMarginPercent,
+      currentInventoryUnits,
+      currentInventoryCostValue,
+      currentInventoryRetailValue,
+      totalSupplierDebt,
+      totalCustomerDebt: 0,
+      completedInvoicesCount: completedInvoices.length,
+      returnedInvoicesCount: returnedInvoices.length,
+      totalBooksCount: allBooks.length,
+      topSellingBooks,
+      slowSellingBooks,
+      topSpenderCustomers,
+      topVolumeCustomers,
+      chart: {
+        labels: ['Doanh thu thuần', 'Giá vốn (COGS)', 'Lợi nhuận thực tế', 'Tồn kho (Giá vốn)'],
+        data: [netRevenue, cogs, Math.max(0, profit), currentInventoryCostValue]
+      }
+    };
+
+    financialReportCache = { data: reportData, timestamp: now };
+
     res.status(200).json({
       success: true,
-      data: {
-        grossSales,
-        salesReturns,
-        netRevenue,
-        cogs,
-        profit,
-        grossProfit: profit,
-        netProfit: profit,
-        profitMarginPercent,
-        grossMarginPercent: profitMarginPercent,
-        netMarginPercent: profitMarginPercent,
-        currentInventoryUnits,
-        currentInventoryCostValue,
-        currentInventoryRetailValue,
-        totalSupplierDebt,
-        totalCustomerDebt: 0,
-        completedInvoicesCount: completedInvoices.length,
-        returnedInvoicesCount: returnedInvoices.length,
-        totalBooksCount: allBooks.length,
-        topSellingBooks,
-        slowSellingBooks,
-        topSpenderCustomers,
-        topVolumeCustomers,
-        chart: {
-          labels: ['Doanh thu thuần', 'Giá vốn (COGS)', 'Lợi nhuận thực tế', 'Tồn kho (Giá vốn)'],
-          data: [netRevenue, cogs, Math.max(0, profit), currentInventoryCostValue]
-        }
-      }
+      data: reportData
     });
 
     const isExport = req.query.export === 'true' || req.query.action === 'export';
@@ -1183,6 +1244,7 @@ const paySupplierDebt = async (req, res) => {
       ]
     });
 
+    invalidateAccountingCache();
     res.status(200).json({
       success: true,
       message: `Đã thanh toán ${payAmount.toLocaleString('vi-VN')}₫ cho phiếu nhập ${receipt.receiptCode} thành công`,
@@ -1266,6 +1328,7 @@ const payCustomerDebt = async (req, res) => {
       ]
     });
 
+    invalidateAccountingCache();
     res.status(200).json({
       success: true,
       message: `Đã thu ${payAmount.toLocaleString('vi-VN')}₫ cho hóa đơn ${invoice.invoiceCode} thành công`,
@@ -1295,5 +1358,7 @@ module.exports = {
   getFinancialReport,
   getSupplierDebts,
   paySupplierDebt,
-  payCustomerDebt
+  payCustomerDebt,
+  getAccountingBadgeCounts,
+  invalidateAccountingCache
 };

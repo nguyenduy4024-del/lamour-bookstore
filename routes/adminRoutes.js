@@ -31,6 +31,7 @@ const {
   getAuditLogStats,
   getAuditLogDetail,
   exportAuditLogsCsv,
+  exportAuditLogsExcel,
   markAuditLogAsRead,
   markAllAuditLogsAsRead
 } = require('../controllers/auditLogController');

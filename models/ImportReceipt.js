@@ -204,6 +204,22 @@ importReceiptSchema.pre('save', function (next) {
   if (this.deliveryPerson && !this.delivererName) this.delivererName = this.deliveryPerson;
   if (this.warehouseName && !this.importWarehouse) this.importWarehouse = this.warehouseName;
   if (this.importWarehouse && !this.warehouseName) this.warehouseName = this.importWarehouse;
+
+  // Tự động tính tổng số lượng sách và tổng tiền nếu có danh sách mặt hàng
+  if (Array.isArray(this.items) && this.items.length > 0) {
+    const calcQty = this.items.reduce((sum, it) => sum + (Number(it.quantity) || 0), 0);
+    if (!this.totalQuantity || this.totalQuantity <= 0) {
+      this.totalQuantity = calcQty;
+    }
+    const calcAmount = this.items.reduce((sum, it) => {
+      const q = Number(it.quantity) || 0;
+      const p = Number(it.importPrice || it.costPrice || it.price) || 0;
+      return sum + (it.totalPrice || (q * p));
+    }, 0);
+    if (!this.totalAmount || this.totalAmount <= 0) {
+      this.totalAmount = calcAmount;
+    }
+  }
   next();
 });
 

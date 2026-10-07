@@ -133,6 +133,40 @@ const getCoupons = async (req, res) => {
   }
 };
 
+// @desc    Lấy danh sách mã giảm giá đang hoạt động (Public / Staff POS / Web)
+// @route   GET /api/coupons/active
+// @access  Public / Staff / Admin
+const getActiveCoupons = async (req, res) => {
+  try {
+    const now = new Date();
+    const query = {
+      isActive: true,
+      endDate: { $gte: now },
+      $or: [
+        { startDate: { $exists: false } },
+        { startDate: null },
+        { startDate: { $lte: now } }
+      ]
+    };
+
+    const coupons = await Coupon.find(query).sort({ minOrderValue: 1, discountValue: -1 });
+    // Lọc các mã chưa hết lượt sử dụng
+    const availableCoupons = coupons.filter(c => !c.usageLimit || (c.usedCount || 0) < c.usageLimit);
+
+    res.status(200).json({
+      success: true,
+      total: availableCoupons.length,
+      data: availableCoupons
+    });
+  } catch (error) {
+    console.error('Lỗi getActiveCoupons:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Lỗi khi tải danh sách mã giảm giá khả dụng'
+    });
+  }
+};
+
 // @desc    Lấy chi tiết 1 mã giảm giá
 // @route   GET /api/coupons/:id
 // @access  Private (Admin, Staff, Accountant)
@@ -405,6 +439,7 @@ const deleteCoupon = async (req, res) => {
 
 module.exports = {
   validateCoupon,
+  getActiveCoupons,
   getCoupons,
   getCouponById,
   createCoupon,
