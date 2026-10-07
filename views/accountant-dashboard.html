@@ -1762,6 +1762,56 @@
     });
   }
 
+  function showCustomPrompt(title = 'Nhập lý do từ chối', message = 'Vui lòng nhập lý do:', defaultValue = '') {
+    return new Promise((resolve) => {
+      let overlay = document.getElementById('custom-prompt-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'custom-prompt-overlay';
+        overlay.className = 'confirm-overlay';
+        overlay.innerHTML = `
+          <div class="confirm-modal" style="max-width: 480px; text-align: left;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; color:#B91C1C; font-weight:700; font-size:16px;">
+              <span style="font-size:18px;">❌</span> <span id="custom-prompt-title">Từ chối duyệt phiếu</span>
+            </div>
+            <div style="font-size:13px; color:var(--muted); margin-bottom:10px;" id="custom-prompt-msg"></div>
+            <textarea id="custom-prompt-input" style="width:100%; border:1.5px solid var(--line); border-radius:8px; padding:10px; font-family:inherit; font-size:13px; outline:none; resize:vertical; min-height:85px; box-sizing:border-box;" placeholder="Nhập lý do..."></textarea>
+            <div class="confirm-actions" style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+              <button class="confirm-btn" id="custom-prompt-cancel" style="padding:7px 14px; font-size:13px;">Hủy bỏ</button>
+              <button class="confirm-btn" id="custom-prompt-ok" style="background:#B91C1C; color:#fff; border-color:#B91C1C; font-weight:700; padding:7px 16px; font-size:13px;">Xác nhận từ chối</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+      }
+      document.getElementById('custom-prompt-title').textContent = title;
+      document.getElementById('custom-prompt-msg').innerHTML = message;
+      const input = document.getElementById('custom-prompt-input');
+      input.value = defaultValue;
+      overlay.classList.add('active');
+      setTimeout(() => input.focus(), 60);
+
+      const okBtn = document.getElementById('custom-prompt-ok');
+      const cancelBtn = document.getElementById('custom-prompt-cancel');
+      const cleanup = () => {
+        overlay.classList.remove('active');
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+      };
+      const onOk = () => {
+        const val = input.value.trim();
+        cleanup();
+        resolve(val);
+      };
+      const onCancel = () => {
+        cleanup();
+        resolve(null);
+      };
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+    });
+  }
+
   const fmt = n => (n || 0).toLocaleString('vi-VN') + '₫';
   function escapeHtml(str) {
     return String(str || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -3158,27 +3208,12 @@
       if (curStatus === 'pending') {
         actionButtons += `
           <button class="btn btn-sm" style="background:#15803d; color:#fff; border-color:#15803d; font-weight:700;" onclick="approveTransactionAdmin('${t._id}', '${escapeHtml(t.transactionCode || '')}')" title="Duyệt phiếu thu/chi">✓ Duyệt</button>
-          <button class="btn btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="rejectTransactionAdmin('${t._id}', '${escapeHtml(t.transactionCode || '')}')" title="Từ chối phiếu">✕</button>
+          <button class="btn btn-sm" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; font-weight:700;" onclick="rejectTransactionAdmin('${t._id}', '${escapeHtml(t.transactionCode || '')}')" title="Từ chối phiếu">✕ Từ chối</button>
         `;
-        if (isAdmin || (!t.referenceSupplierReturn && !t.referenceOrder && !t.referenceReceipt)) {
-          actionButtons += `
-            <button class="btn btn-sm" onclick="editTransaction('${t._id}')" title="Chỉnh sửa phiếu">✏️ Sửa</button>
-            <button class="btn btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deleteTransaction('${t._id}', '${escapeHtml(t.transactionCode || '')}')" title="Hủy phiếu">🗑️ Hủy</button>
-          `;
-        }
       } else if (curStatus === 'approved') {
-        if (isAdmin) {
-          actionButtons += `
-            <button class="btn btn-sm" onclick="editTransaction('${t._id}')" title="Chỉnh sửa phiếu">✏️</button>
-            <button class="btn btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deleteTransaction('${t._id}', '${escapeHtml(t.transactionCode || '')}')" title="Xóa phiếu">🗑️</button>
-          `;
-        } else {
-          actionButtons += `<span style="font-size:11px; color:var(--muted); padding:2px 4px;" title="Phiếu đã duyệt không thể sửa/xóa">🔒 Đã khóa</span>`;
-        }
+        actionButtons += `<span style="font-size:11.5px; color:var(--muted); padding:3px 7px; border:1px solid var(--line); border-radius:5px; display:inline-flex; align-items:center; gap:4px;" title="Phiếu đã duyệt không thể sửa/xóa">🔒 Đã khóa</span>`;
       } else if (curStatus === 'rejected') {
-        actionButtons += `
-          <button class="btn btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deleteTransaction('${t._id}', '${escapeHtml(t.transactionCode || '')}')" title="Xóa phiếu">🗑️ Xóa</button>
-        `;
+        actionButtons += `<span style="font-size:11.5px; color:#b91c1c; background:#fee2e2; padding:3px 7px; border:1px solid #fecaca; border-radius:5px; display:inline-flex; align-items:center; gap:4px;" title="${escapeHtml(t.rejectionReason || 'Đã từ chối')}"><i class="fas fa-times-circle"></i> Đã từ chối</span>`;
       }
 
       return `
@@ -3242,7 +3277,11 @@
   }
 
   async function rejectTransactionAdmin(id, code) {
-    const reason = prompt(`Nhập lý do từ chối phiếu "${code}":`, 'Không đủ chứng từ hợp lệ');
+    const reason = await showCustomPrompt(
+      'Từ chối duyệt phiếu',
+      `Nhập lý do từ chối phiếu <strong>${escapeHtml(code || '')}</strong> (nếu là phiếu thu trả hàng NCC, yêu cầu sẽ được gửi hoàn trả về cho bộ phận Kho):`,
+      'Không đủ chứng từ hợp lệ / Nhà cung cấp chưa xác nhận hoàn tiền'
+    );
     if (reason === null) return;
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -3257,7 +3296,7 @@
       });
       const result = await res.json();
       if (res.ok && result.success) {
-        showCustomToast('info', 'Đã từ chối', result.message || 'Đã từ chối duyệt phiếu.');
+        showCustomToast('info', 'Đã từ chối', result.message || 'Đã từ chối duyệt phiếu và cập nhật trạng thái.');
         await fetchTransactions();
         applyFinancialFilter();
       } else {

@@ -11053,7 +11053,11 @@
       if (st === 'pending_admin' || st === 'pending') {
         statusBadge = `<span class="badge" style="background:#FEF3C7; color:#B45309; border:1px solid #FDE68A; font-size:11px; font-weight:700; white-space:nowrap;">⏳ Chờ Admin duyệt</span>`;
       } else if (st === 'admin_approved') {
-        statusBadge = `<span class="badge" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; font-size:11px; font-weight:700; white-space:nowrap;">📦 Admin đã duyệt - Chờ xuất</span>`;
+        if (r.accountantRejectReason) {
+          statusBadge = `<span class="badge" style="background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; font-size:11px; font-weight:700; white-space:nowrap;" title="Lý do Kế toán từ chối: ${escapeHtml(r.accountantRejectReason)}">⚠️ Kế toán trả về: ${escapeHtml(r.accountantRejectReason.length > 25 ? r.accountantRejectReason.slice(0, 25) + '...' : r.accountantRejectReason)}</span>`;
+        } else {
+          statusBadge = `<span class="badge" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; font-size:11px; font-weight:700; white-space:nowrap;">📦 Admin đã duyệt - Chờ xuất</span>`;
+        }
       } else if (st === 'pending_accountant') {
         statusBadge = `<span class="badge" style="background:#FAF5FF; color:#7E22CE; border:1px solid #E9D5FF; font-size:11px; font-weight:700; white-space:nowrap;">💳 Chờ Kế toán duyệt tiền</span>`;
       } else if (st === 'completed') {
@@ -11069,6 +11073,8 @@
         transCol = `<span class="mono" style="font-size:11.5px; color:#15803D; font-weight:700;">${transCode} (Đã thu)</span>`;
       } else if (transCode && st === 'pending_accountant') {
         transCol = `<span class="mono" style="font-size:11.5px; color:#7E22CE; font-weight:700;">${transCode} (Chờ duyệt)</span>`;
+      } else if (st === 'admin_approved' && r.accountantRejectReason) {
+        transCol = `<span style="font-size:11px; color:#B91C1C; font-weight:600;" title="${escapeHtml(r.accountantRejectReason)}">⚠️ Kế toán từ chối</span>`;
       } else {
         transCol = `<span style="font-size:11.5px; color:var(--muted); font-style:italic;">Chưa xuất kho</span>`;
       }
@@ -11077,8 +11083,8 @@
       if (st === 'admin_approved') {
         actionCol = `
           <div style="display:inline-flex; gap:6px; align-items:center; justify-content:flex-end;">
-            <button type="button" class="btn btn-sm" onclick="confirmWarehouseDispatchSupplierReturn('${r._id}', '${escapeHtml(r.returnCode)}', '${escapeHtml(supName)}', ${r.totalQuantity || 0})" style="font-weight:700; font-size:11.5px; padding:5px 10px; background:#D97706; color:#fff; border-color:#D97706; white-space:nowrap;" title="Thủ kho ấn OK để xác nhận xuất gửi hàng lại cho NCC">
-              ✓ Xuất gửi NCC (OK)
+            <button type="button" class="btn btn-sm" onclick="confirmWarehouseDispatchSupplierReturn('${r._id}', '${escapeHtml(r.returnCode)}', '${escapeHtml(supName)}', ${r.totalQuantity || 0})" style="font-weight:700; font-size:11.5px; padding:5px 10px; background:${r.accountantRejectReason ? '#DC2626' : '#D97706'}; color:#fff; border-color:${r.accountantRejectReason ? '#DC2626' : '#D97706'}; white-space:nowrap;" title="${r.accountantRejectReason ? 'Kế toán từ chối duyệt tiền, Thủ kho kiểm tra lại và ấn xuất gửi lại NCC' : 'Thủ kho ấn OK để xác nhận xuất gửi hàng lại cho NCC'}">
+              ${r.accountantRejectReason ? '✓ Xuất lại NCC (OK)' : '✓ Xuất gửi NCC (OK)'}
             </button>
             <button type="button" class="btn btn-sm" onclick="printSupplierReturnReceipt('${r._id}')" title="In phiếu trả hàng NCC chuẩn A4" style="background:#FFF; font-weight:600; font-size:11.5px; padding:5px 8px; white-space:nowrap;">
               🖨️

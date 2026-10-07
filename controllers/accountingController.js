@@ -879,9 +879,70 @@ const rejectTransaction = async (req, res) => {
     transaction.status = 'rejected';
     transaction.approvedBy = req.user ? req.user._id : null;
     transaction.approvedAt = new Date();
-    transaction.rejectionReason = (reason || '').trim() || 'Admin từ chối duyệt giao dịch này.';
+    transaction.rejectionReason = (reason || '').trim() || 'Kế toán từ chối duyệt giao dịch này.';
 
     await transaction.save();
+
+    // Nếu phiếu này liên kết với Phiếu trả hàng Nhà cung cấp: gửi trả lại cho actor Kho
+    if (transaction.referenceSupplierReturn) {
+      try {
+        const SupplierReturn = require('../models/SupplierReturn');
+        const StockAdjustment = require('../models/StockAdjustment');
+        const supplierReturn = await SupplierReturn.findById(transaction.referenceSupplierReturn);
+
+        if (supplierReturn) {
+          // 1. Hoàn lại số lượng tồn kho sách cho Thủ kho (vì phiếu thu hoàn tiền bị Kế toán từ chối, hàng gửi về Kho)
+          for (const it of supplierReturn.items) {
+            const isFromUnrestocked = Boolean(it.isFromCustomerReturn);
+            if (!isFromUnrestocked && it.book) {
+              const q = Math.max(1, Number(it.quantity) || 1);
+              const currentBook = await Book.findById(it.book);
+              if (currentBook) {
+                const prevStock = currentBook.stock || 0;
+                const newStock = prevStock + q;
+                currentBook.stock = newStock;
+                await currentBook.save();
+
+                await StockAdjustment.create({
+                  book: currentBook._id,
+                  bookCode: currentBook.bookCode || '',
+                  title: currentBook.title,
+                  previousStock: prevStock,
+                  adjustmentQty: q,
+                  newStock: newStock,
+                  reason: `Hoàn nhập kho do Kế toán từ chối duyệt tiền phiếu trả NCC #${supplierReturn.returnCode}`,
+                  decision: `Từ chối duyệt: ${transaction.rejectionReason}`,
+                  adjustedBy: req.user ? req.user._id : null
+                });
+              }
+            }
+          }
+
+          // 2. Cập nhật phiếu trả NCC: gửi về cho actor Kho
+          supplierReturn.status = 'admin_approved';
+          supplierReturn.accountantRejectReason = transaction.rejectionReason;
+          supplierReturn.accountantApprovedBy = req.user ? req.user._id : null;
+          supplierReturn.accountantApprovedAt = new Date();
+          supplierReturn.warehouseDispatchedAt = null;
+          supplierReturn.warehouseDispatchedBy = null;
+          supplierReturn.refundTransaction = null;
+          supplierReturn.refundTransactionCode = '';
+          await supplierReturn.save();
+
+          logActivity(req, {
+            module: 'INVENTORY',
+            action: 'SUPPLIER_RETURN_REJECT_BY_ACCOUNTANT',
+            severity: 'WARNING',
+            targetId: String(supplierReturn._id),
+            targetModel: 'SupplierReturn',
+            targetLabel: `Phiếu trả NCC #${supplierReturn.returnCode}`,
+            description: `Kế toán ${req.user ? req.user.name : 'Kế toán'} từ chối duyệt thu tiền hoàn phiếu #${supplierReturn.returnCode}. Hàng đã được hoàn lại tồn kho và gửi về actor Kho xử lý tiếp. Lý do: ${transaction.rejectionReason}`
+          });
+        }
+      } catch (suppErr) {
+        console.error('Lỗi khi gửi trả SupplierReturn về cho Kho trong rejectTransaction:', suppErr);
+      }
+    }
 
     const populated = await Transaction.findById(transaction._id)
       .populate('performedBy', 'name email role')
@@ -934,7 +995,7 @@ const getFinancialReport = async (req, res) => {
     }
 
     // 1. Chạy song song các truy vấn tối ưu và dùng lean()
-    const [invoices, allBooks, importReceipts] = await Promise.all([
+    const [invoices, allBooks, importReceipts, otherIncomeReceipts] = await Promise.all([
       Invoice.find({ status: { $in: ['completed', 'paid', 'returned'] } })
         .select('status totalAmount finalAmount returnRequest items customerName customerPhone user')
         .lean(),
@@ -943,7 +1004,12 @@ const getFinancialReport = async (req, res) => {
         .lean(),
       ImportReceipt.find({ paymentStatus: { $ne: 'paid' } })
         .select('totalAmount paidAmount paymentStatus')
-        .lean()
+        .lean(),
+      Transaction.find({
+        status: 'approved',
+        type: { $in: ['thu', 'income'] },
+        referenceOrder: null
+      }).select('amount').lean()
     ]);
 
     // Tạo Map chi phí sách và khởi tạo bookSalesMap để tra cứu O(1)
@@ -974,6 +1040,15 @@ const getFinancialReport = async (req, res) => {
     for (const inv of completedInvoices) {
       grossSales += Number(inv.finalAmount !== undefined ? inv.finalAmount : inv.totalAmount) || 0;
     }
+
+    // Thu nhập khác từ các phiếu thu đã duyệt vào quỹ (ví dụ: tiền hoàn từ NCC, thanh lý...)
+    let otherIncome = 0;
+    if (Array.isArray(otherIncomeReceipts)) {
+      for (const r of otherIncomeReceipts) {
+        otherIncome += Number(r.amount) || 0;
+      }
+    }
+    grossSales += otherIncome;
 
     // 2. CÁC KHOẢN GIẢM TRỪ DOANH THU (Sales Returns): Đơn hàng khách trả lại
     const returnedInvoices = invoices.filter(inv => inv.status === 'returned');

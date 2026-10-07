@@ -14076,8 +14076,13 @@
           stBadge = '<span class="badge" style="background:#FEF3C7; color:#92400E; border:1px solid #FCD34D; font-weight:700;"><span class="badge-dot" style="background:#F59E0B;"></span> B1: Chờ Admin duyệt</span>';
           stepText = 'Kho đã gửi yêu cầu &bull; Chờ duyệt';
         } else if (st === 'admin_approved') {
-          stBadge = '<span class="badge" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; font-weight:700;"><span class="badge-dot" style="background:#2563EB;"></span> B2: Admin đã duyệt</span>';
-          stepText = 'Đã duyệt &bull; Chờ Kho xuất gửi hàng NCC (OK)';
+          if (r.accountantRejectReason) {
+            stBadge = `<span class="badge" style="background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; font-weight:700;" title="Kế toán từ chối: ${escapeHtml(r.accountantRejectReason)}"><span class="badge-dot" style="background:#EF4444;"></span> ⚠️ Kế toán trả về Kho</span>`;
+            stepText = `Kế toán từ chối &bull; Gửi về Kho: ${escapeHtml(r.accountantRejectReason)}`;
+          } else {
+            stBadge = '<span class="badge" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; font-weight:700;"><span class="badge-dot" style="background:#2563EB;"></span> B2: Admin đã duyệt</span>';
+            stepText = 'Đã duyệt &bull; Chờ Kho xuất gửi hàng NCC (OK)';
+          }
         } else if (st === 'pending_accountant') {
           stBadge = '<span class="badge" style="background:#FAF5FF; color:#7E22CE; border:1px solid #E9D5FF; font-weight:700;"><span class="badge-dot" style="background:#A855F7;"></span> B3: Đã xuất gửi hàng</span>';
           stepText = `Chờ Kế toán duyệt thu tiền (${r.refundTransactionCode || 'PT-THNCC'})`;
@@ -14264,7 +14269,11 @@
       if (st === 'pending_admin' || st === 'pending') {
         badgeHtml = '<span class="badge" style="background:#FEF3C7; color:#92400E; border:1px solid #FCD34D; font-weight:700;"><span class="badge-dot" style="background:#F59E0B;"></span> B1: Chờ Admin duyệt</span>';
       } else if (st === 'admin_approved') {
-        badgeHtml = '<span class="badge" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; font-weight:700;"><span class="badge-dot" style="background:#2563EB;"></span> B2: Admin đã duyệt - Chờ xuất hàng</span>';
+        if (r.accountantRejectReason) {
+          badgeHtml = `<span class="badge" style="background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; font-weight:700;"><span class="badge-dot" style="background:#EF4444;"></span> ⚠️ Kế toán trả về Kho (${escapeHtml(r.accountantRejectReason)})</span>`;
+        } else {
+          badgeHtml = '<span class="badge" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; font-weight:700;"><span class="badge-dot" style="background:#2563EB;"></span> B2: Admin đã duyệt - Chờ xuất hàng</span>';
+        }
       } else if (st === 'pending_accountant') {
         badgeHtml = '<span class="badge" style="background:#FAF5FF; color:#7E22CE; border:1px solid #E9D5FF; font-weight:700;"><span class="badge-dot" style="background:#A855F7;"></span> B3: Đã xuất hàng - Chờ Kế toán thu tiền</span>';
       } else if (st === 'completed') {

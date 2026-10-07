@@ -162,6 +162,11 @@ const supplierReturnSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
+    accountantRejectReason: {
+      type: String,
+      default: '',
+      trim: true
+    },
     // Trạng thái hoàn tiền từ Nhà cung cấp cho Kế toán
     refundStatus: {
       type: String,
