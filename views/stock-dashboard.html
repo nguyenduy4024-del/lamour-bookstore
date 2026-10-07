@@ -409,14 +409,16 @@
     </div>
 
     <nav class="side-nav">
-      <button data-tab="tab-books" class="active">
+      <button data-tab="tab-books" class="active" style="display:flex; align-items:center;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        Tra cứu tồn kho sách
+        <span style="flex:1;">Tra cứu tồn kho sách</span>
+        <span id="sidebarStockHideBadge" style="display:none; background:#EA580C; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:6px;" title="Yêu cầu ẩn sách chờ duyệt">0</span>
       </button>
 
-      <button data-tab="tab-suppliers">
+      <button data-tab="tab-suppliers" style="display:flex; align-items:center;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
-        Nhà cung cấp
+        <span style="flex:1;">Nhà cung cấp</span>
+        <span id="sidebarStockSupSuspendBadge" style="display:none; background:#EF4444; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:6px;" title="Yêu cầu tạm ngưng NCC chờ duyệt">0</span>
       </button>
 
       <button data-tab="tab-import">
@@ -434,14 +436,16 @@
         Kiểm kê kho
       </button>
 
-      <button data-tab="tab-supplier-returns" id="tab-supplier-returns-btn">
+      <button data-tab="tab-supplier-returns" id="tab-supplier-returns-btn" style="display:flex; align-items:center;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 17l-5-5m0 0l5-5m-5 5h12"/><path d="M20 12v6a2 2 0 0 1-2 2H6"/></svg>
-        Trả hàng NCC & Sách hoàn
+        <span style="flex:1;">Trả hàng NCC & Sách hoàn</span>
+        <span id="sidebarStockReturnsBadge" style="display:none; background:#EF4444; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:6px;" title="Sách khách hoàn chờ xử lý">0</span>
       </button>
 
-      <button data-tab="tab-shelves" id="tab-shelves-btn">
+      <button data-tab="tab-shelves" id="tab-shelves-btn" style="display:flex; align-items:center;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-        Sơ đồ Kệ sách
+        <span style="flex:1;">Sơ đồ Kệ sách</span>
+        <span id="sidebarStockShelvesBadge" style="display:none; background:#8B5CF6; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:6px;" title="Yêu cầu liên quan đến kệ">0</span>
       </button>
     </nav>
 
@@ -3728,6 +3732,11 @@
       badgeEl.textContent = pendingHideCount;
       badgeEl.style.display = pendingHideCount > 0 ? 'inline-block' : 'none';
     }
+    const sideHideEl = document.getElementById('sidebarStockHideBadge');
+    if (sideHideEl) {
+      sideHideEl.textContent = pendingHideCount;
+      sideHideEl.style.display = pendingHideCount > 0 ? 'inline-block' : 'none';
+    }
   }
 
   function renderBooks(list) {
@@ -5016,6 +5025,18 @@
   let _stockShelfReqCurrentTab = 'pending';
   let _cachedStockShelfRequests = [];
 
+  function updateStockSidebarShelvesBadge() {
+    const b1 = parseInt(document.getElementById('stockPendingShelfRequestsBadge')?.textContent || '0') || 0;
+    const b2 = parseInt(document.getElementById('stockPendingShelfMaintenanceBadge')?.textContent || '0') || 0;
+    const b3 = parseInt(document.getElementById('stockPendingShelfTransferBadge')?.textContent || '0') || 0;
+    const total = b1 + b2 + b3;
+    const sideBadge = document.getElementById('sidebarStockShelvesBadge');
+    if (sideBadge) {
+      sideBadge.textContent = total > 99 ? '99+' : total;
+      sideBadge.style.display = total > 0 ? 'inline-block' : 'none';
+    }
+  }
+
   async function updateStockPendingShelfRequestsBadge() {
     try {
       const res = await fetch('/api/inventory/shelf-create-requests?status=pending&limit=1', { headers: getAuthHeaders() });
@@ -5031,6 +5052,7 @@
           badge.style.display = 'none';
         }
       }
+      updateStockSidebarShelvesBadge();
     } catch (e) {
       // silent fail
     }
@@ -5254,6 +5276,7 @@
           badge.style.display = 'none';
         }
       }
+      updateStockSidebarShelvesBadge();
     } catch (e) {
       // silent fail
     }
@@ -5553,6 +5576,7 @@
           badge.style.display = 'none';
         }
       }
+      updateStockSidebarShelvesBadge();
     } catch (e) {
       // silent fail
     }
@@ -6248,6 +6272,11 @@
           if (badge) {
             badge.textContent = result.kpi.pendingSuspendCount;
             badge.style.display = result.kpi.pendingSuspendCount > 0 ? 'inline-flex' : 'none';
+          }
+          const sideSupBadge = document.getElementById('sidebarStockSupSuspendBadge');
+          if (sideSupBadge) {
+            sideSupBadge.textContent = result.kpi.pendingSuspendCount;
+            sideSupBadge.style.display = result.kpi.pendingSuspendCount > 0 ? 'inline-flex' : 'none';
           }
         }
 
@@ -10445,6 +10474,11 @@
         if (document.getElementById('badgePendingReturnsCount')) {
           document.getElementById('badgePendingReturnsCount').textContent = pendingOnlyCount;
         }
+        const sideRetBadge = document.getElementById('sidebarStockReturnsBadge');
+        if (sideRetBadge) {
+          sideRetBadge.textContent = pendingOnlyCount;
+          sideRetBadge.style.display = pendingOnlyCount > 0 ? 'inline-block' : 'none';
+        }
         if (document.getElementById('pendingCustomerReturnsCount')) {
           document.getElementById('pendingCustomerReturnsCount').textContent = pendingCustomerReturnsData.length;
         }
@@ -11276,6 +11310,11 @@
   generateExportReceiptCode();
   generateAuditCode();
   generateSupplierReturnCode();
+
+  // Lập tức tải và kích hoạt toàn bộ thông báo / huy hiệu kệ ngay khi thủ kho đăng nhập
+  updateStockPendingShelfRequestsBadge();
+  updateStockPendingShelfMaintenanceBadge();
+  updateStockPendingShelfTransferBadge();
 
   // Khởi tạo Universal Custom Floating Dropdown cho toàn bộ thủ kho
   if (window.UniversalDropdown) {

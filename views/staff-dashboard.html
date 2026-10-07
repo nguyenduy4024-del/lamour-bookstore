@@ -2793,9 +2793,10 @@
         Kho hàng & Tồn kho
       </button>
 
-      <button type="button" data-tab="tab-customers">
+      <button type="button" data-tab="tab-customers" style="display:flex; align-items:center;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-        Đơn mua khách hàng
+        <span style="flex:1;">Đơn mua khách hàng</span>
+        <span id="sidebarStaffOrdersBadge" style="display:none; background:#EF4444; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:6px;" title="Đơn hàng chờ xử lý">0</span>
       </button>
 
       <button type="button" data-tab="tab-returns" id="tab-returns-btn">
@@ -10337,6 +10338,14 @@
       if (document.getElementById('custOrderFilterCancelled')) document.getElementById('custOrderFilterCancelled').textContent = counts.cancelled;
       if (document.getElementById('custOrderFilterReturned')) document.getElementById('custOrderFilterReturned').textContent = counts.returned;
 
+      // Cập nhật huy hiệu thông báo đơn hàng cho nhân viên thu ngân
+      const sideOrdersBadge = document.getElementById('sidebarStaffOrdersBadge');
+      if (sideOrdersBadge) {
+        const pendingCount = (counts.pending_payment || 0) + (counts.delivering || 0);
+        sideOrdersBadge.textContent = pendingCount > 99 ? '99+' : pendingCount;
+        sideOrdersBadge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+      }
+
       if (currentCustOrders.length === 0) {
         tbody.innerHTML = `
           <tr>
@@ -11718,6 +11727,10 @@
   renderOrderTabs();
   syncCartUI();
   initStaffDropdowns();
+
+  // Lập tức tải và kích hoạt toàn bộ thông báo / huy hiệu ngay khi nhân viên đăng nhập
+  fetchActiveCouponsForPos();
+  loadCustomerOrders();
 </script>
 </body>
 </html>

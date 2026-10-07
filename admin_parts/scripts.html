@@ -433,6 +433,103 @@
       return headers;
     }
 
+    // --- NOTIFICATION BADGES CENTRAL INITIALIZER ---
+    async function updateAdminImportBadge() {
+      try {
+        const res = await fetch('/api/inventory/import-receipts?status=pending_approval', { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const d = await res.json();
+        const list = d.data || d || [];
+        const count = Array.isArray(list) ? list.length : 0;
+        const pBadge = document.getElementById('adminPendingImportBadge');
+        if (pBadge) {
+          pBadge.textContent = count;
+          pBadge.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+        const sBadge = document.getElementById('sidebarPendingImportBadge');
+        if (sBadge) {
+          sBadge.textContent = count;
+          sBadge.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+      } catch (e) {}
+    }
+
+    async function updateAdminExportBadge() {
+      try {
+        const res = await fetch('/api/inventory/export-receipts?status=pending_approval', { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const d = await res.json();
+        const list = d.data || d || [];
+        const count = Array.isArray(list) ? list.length : 0;
+        const pBadge = document.getElementById('adminPendingExportBadge');
+        if (pBadge) {
+          pBadge.textContent = count;
+          pBadge.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+        const sBadge = document.getElementById('sidebarPendingExportBadge');
+        if (sBadge) {
+          sBadge.textContent = count;
+          sBadge.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+      } catch (e) {}
+    }
+
+    async function updateAdminAuditBadge() {
+      try {
+        const res = await fetch('/api/inventory/audit-receipts?status=pending_approval', { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const d = await res.json();
+        const list = d.data || d || [];
+        const count = Array.isArray(list) ? list.length : 0;
+        const sideAuditBadge = document.getElementById('sidebarPendingAuditBadge');
+        if (sideAuditBadge) {
+          sideAuditBadge.textContent = count;
+          sideAuditBadge.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+        const tabAuditBadge = document.getElementById('adminPendingAuditTabBadge');
+        if (tabAuditBadge) {
+          tabAuditBadge.textContent = count;
+          tabAuditBadge.style.display = count > 0 ? 'inline-block' : 'none';
+        }
+      } catch (e) {}
+    }
+
+    async function checkShelfLogsBadge() {
+      try {
+        const res = await fetch('/api/inventory/shelf-activities?limit=1', { headers: getAuthHeaders() });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (typeof updateShelfLogsNotificationBadge === 'function') {
+          updateShelfLogsNotificationBadge(data.total || 0);
+        }
+      } catch (e) {}
+    }
+
+    async function initAllAdminNotificationBadges() {
+      try {
+        await Promise.allSettled([
+          typeof updateAdminHideRequestsBadge === 'function' ? updateAdminHideRequestsBadge() : Promise.resolve(),
+          typeof updateAdminShelfRequestsBadge === 'function' ? updateAdminShelfRequestsBadge() : Promise.resolve(),
+          typeof updateAdminMaintenanceRequestsBadge === 'function' ? updateAdminMaintenanceRequestsBadge() : Promise.resolve(),
+          typeof updateAdminTransferRequestsBadge === 'function' ? updateAdminTransferRequestsBadge() : Promise.resolve(),
+          checkShelfLogsBadge(),
+          typeof updateAdminSupplierSuspendBadge === 'function' ? updateAdminSupplierSuspendBadge() : Promise.resolve(),
+          updateAdminImportBadge(),
+          updateAdminExportBadge(),
+          updateAdminAuditBadge(),
+          typeof checkPendingCashbookBadge === 'function' ? checkPendingCashbookBadge() : Promise.resolve(),
+          typeof loadAuditLogStats === 'function' ? loadAuditLogStats() : Promise.resolve()
+        ]);
+      } catch (err) {
+        console.warn('initAllAdminNotificationBadges error:', err);
+      }
+    }
+    window.initAllAdminNotificationBadges = initAllAdminNotificationBadges;
+    window.updateAdminImportBadge = updateAdminImportBadge;
+    window.updateAdminExportBadge = updateAdminExportBadge;
+    window.updateAdminAuditBadge = updateAdminAuditBadge;
+    window.checkShelfLogsBadge = checkShelfLogsBadge;
+
     // --- AUTHENTICATION & PROFILE CHECK ---
     async function checkAdminAuth() {
       try {
@@ -472,6 +569,9 @@
 
         // Auto load overview
         loadOverview();
+
+        // Ngay khi đăng nhập: Lập tức kích hoạt hiển thị toàn bộ thông báo và huy hiệu chờ duyệt trên hệ thống
+        initAllAdminNotificationBadges();
       } catch (err) {
         console.error('Auth error:', err);
       }
@@ -547,6 +647,13 @@
           const pAudits = kpi.pendingAuditsCount || 0;
           sideAuditBadge.textContent = pAudits;
           sideAuditBadge.style.display = pAudits > 0 ? 'inline-block' : 'none';
+        }
+
+        const sideOrdersBadge = document.getElementById('sidebarPendingOrdersBadge');
+        if (sideOrdersBadge) {
+          const urgentOrd = kpi.urgentOrders || 0;
+          sideOrdersBadge.textContent = urgentOrd;
+          sideOrdersBadge.style.display = urgentOrd > 0 ? 'inline-block' : 'none';
         }
 
         if (typeof checkPendingCashbookBadge === 'function') {
@@ -4131,6 +4238,7 @@
       try {
         const res = await fetch('/api/inventory/hide-requests?status=pending&limit=1', { headers: getAuthHeaders() });
         if (!res.ok) return;
+        const data = await res.json();
         const pendingCount = (data.counts && data.counts.pending != null) 
           ? data.counts.pending 
           : (data.pendingCount != null ? data.pendingCount : (data.total || 0));
@@ -6016,6 +6124,11 @@
           pBadge.textContent = pendingCount;
           pBadge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
         }
+        const sBadge = document.getElementById('sidebarPendingImportBadge');
+        if (sBadge) {
+          sBadge.textContent = pendingCount;
+          sBadge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+        }
 
         let filtered = allAdminImportReceipts;
         if (currentAdminImportFilter !== 'all') {
@@ -6205,6 +6318,11 @@
         if (pBadge) {
           pBadge.textContent = pendingCount;
           pBadge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+        }
+        const sBadge = document.getElementById('sidebarPendingExportBadge');
+        if (sBadge) {
+          sBadge.textContent = pendingCount;
+          sBadge.style.display = pendingCount > 0 ? 'inline-block' : 'none';
         }
 
         let filtered = allAdminExportReceipts;

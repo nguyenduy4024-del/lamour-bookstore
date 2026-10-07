@@ -54,9 +54,10 @@ module.exports = `
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
         Tác giả & Thể loại
       </button>
-      <button data-tab="orders">
+      <button data-tab="orders" style="display:flex; align-items:center;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-        Đơn mua khách hàng
+        <span style="flex:1;">Đơn mua khách hàng</span>
+        <span id="sidebarPendingOrdersBadge" style="display:none; background:#EF4444; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:6px;" title="Đơn hàng chờ xử lý">0</span>
       </button>
       <button data-tab="coupons">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
@@ -70,13 +71,15 @@ module.exports = `
         <span style="flex:1;">Tồn kho & Vị trí kệ</span>
         <span id="sidebarPendingHideBadge" style="display:none; background:#EF4444; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:6px;" title="Yêu cầu ẩn sách từ kho chờ duyệt">0</span>
       </button>
-      <button data-tab="import-receipts">
+      <button data-tab="import-receipts" style="display:flex; align-items:center;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-        Nhập sách (NCC)
+        <span style="flex:1;">Nhập sách (NCC)</span>
+        <span id="sidebarPendingImportBadge" style="display:none; background:#EF4444; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:6px;" title="Phiếu nhập chờ duyệt">0</span>
       </button>
-      <button data-tab="export-receipts">
+      <button data-tab="export-receipts" style="display:flex; align-items:center;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
-        Xuất sách
+        <span style="flex:1;">Xuất sách</span>
+        <span id="sidebarPendingExportBadge" style="display:none; background:#EF4444; color:#fff; font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; margin-left:6px;" title="Phiếu xuất chờ duyệt">0</span>
       </button>
       <button data-tab="stock-audit" style="display:flex; align-items:center;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
