@@ -843,15 +843,19 @@ module.exports = `
         </div>
       </div>
 
-      <!-- SUB-NAVIGATION: DANH SÁCH NCC VS YÊU CẦU TẠM NGƯNG TỪ KHO -->
+      <!-- SUB-NAVIGATION: DANH SÁCH NCC VS YÊU CẦU TẠM NGƯNG TỪ KHO VS YÊU CẦU TRẢ HÀNG NCC -->
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px; border-bottom:1.5px solid var(--line); padding-bottom:12px;">
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button type="button" class="btn btn-primary" id="btnViewSupplierList" onclick="switchSupplierViewMode('list')">
             <i class="fas fa-list"></i> Danh sách Nhà cung cấp
           </button>
           <button type="button" class="btn btn-secondary" id="btnViewSupplierSuspendRequests" onclick="switchSupplierViewMode('suspend-requests')">
             <i class="fas fa-pause-circle"></i> Yêu cầu Tạm ngưng từ Kho
             <span id="adminSupplierSuspendRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#EF4444; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btnViewSupplierReturnRequests" onclick="switchSupplierViewMode('return-requests')">
+            <i class="fas fa-undo-alt"></i> Yêu cầu Trả hàng NCC từ Kho
+            <span id="adminSupplierReturnRequestsBadge" class="badge" style="display:none; margin-left:6px; background:#F59E0B; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; border-radius:999px;">0</span>
           </button>
         </div>
       </div>
@@ -1047,6 +1051,104 @@ module.exports = `
         <div class="supplier-table-footer" id="supplierSuspendTableFooter">
           <span id="supplierSuspendCountInfo" style="font-weight:600; color:var(--text);"><i class="fas fa-pause-circle" style="margin-right:6px; color:var(--navy-700);"></i>Đang tải danh sách yêu cầu tạm ngưng...</span>
           <span style="font-size:12px; color:var(--muted);"><i class="fas fa-arrows-alt-v" style="margin-right:4px;"></i>Cuộn dọc nếu danh sách dài &bull; Cuộn ngang xem chi tiết</span>
+        </div>
+      </div>
+
+      <!-- VIEW 3: YÊU CẦU TRẢ HÀNG NHÀ CUNG CẤP TỪ THỦ KHO -->
+      <div id="supplierReturnRequestsViewContainer" style="display:none;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:18px;">
+          <div style="background:#FFFBEB; border:1px solid #FDE68A; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#FEF3C7; color:#D97706; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-hourglass-half"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#92400E; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Chờ Admin Duyệt</div>
+              <div style="font-size:22px; font-weight:800; color:#B45309;" id="adminCountSupReturnPending">0</div>
+            </div>
+          </div>
+          <div style="background:#EFF6FF; border:1px solid #BFDBFE; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#DBEAFE; color:#2563EB; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-box-open"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#1E40AF; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Đã Duyệt - Chờ Kho Xuất</div>
+              <div style="font-size:22px; font-weight:800; color:#1D4ED8;" id="adminCountSupReturnApproved">0</div>
+            </div>
+          </div>
+          <div style="background:#FAF5FF; border:1px solid #E9D5FF; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#F3E8FF; color:#7E22CE; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-file-invoice-dollar"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#6B21A8; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Chờ Kế Toán Thu Tiền</div>
+              <div style="font-size:22px; font-weight:800; color:#7E22CE;" id="adminCountSupReturnAccountant">0</div>
+            </div>
+          </div>
+          <div style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:10px; padding:14px 18px; display:flex; align-items:center; gap:14px;">
+            <div style="width:42px; height:42px; border-radius:8px; background:#DCFCE7; color:#16A34A; display:flex; align-items:center; justify-content:center; font-size:18px;">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+              <div style="font-size:12px; color:#166534; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Đã Hoàn Tất</div>
+              <div style="font-size:22px; font-weight:800; color:#15803D;" id="adminCountSupReturnCompleted">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search bar -->
+        <div style="background:var(--card-bg, #fff); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm btn-primary admin-sup-ret-tab-btn" id="adminSupRetTabPending" onclick="filterAdminSupplierReturnTab('pending_admin')">
+                <i class="fas fa-hourglass-half"></i> Chờ duyệt (<span id="adminTabCountSupRetPending">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-sup-ret-tab-btn" id="adminSupRetTabApproved" onclick="filterAdminSupplierReturnTab('admin_approved')">
+                <i class="fas fa-box-open"></i> Đã duyệt - Chờ xuất (<span id="adminTabCountSupRetApproved">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-sup-ret-tab-btn" id="adminSupRetTabAccountant" onclick="filterAdminSupplierReturnTab('pending_accountant')">
+                <i class="fas fa-file-invoice-dollar"></i> Chờ kế toán duyệt tiền (<span id="adminTabCountSupRetAccountant">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-sup-ret-tab-btn" id="adminSupRetTabCompleted" onclick="filterAdminSupplierReturnTab('completed')">
+                <i class="fas fa-check-circle"></i> Hoàn thành (<span id="adminTabCountSupRetCompleted">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-sup-ret-tab-btn" id="adminSupRetTabRejected" onclick="filterAdminSupplierReturnTab('rejected')">
+                <i class="fas fa-ban"></i> Đã từ chối (<span id="adminTabCountSupRetRejected">0</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary admin-sup-ret-tab-btn" id="adminSupRetTabAll" onclick="filterAdminSupplierReturnTab('all')">
+                Tất cả (<span id="adminTabCountSupRetAll">0</span>)
+              </button>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <div class="search-input-wrap" style="position:relative; min-width:240px;">
+                <i class="fas fa-search" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:12.5px;"></i>
+                <input type="text" id="adminSupRetSearch" class="form-control" placeholder="Tìm mã phiếu, NCC, lý do..." style="padding-left:32px; height:36px; font-size:12.5px;" oninput="filterAdminSupplierReturnsTable()" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-container" id="supplierReturnTableContainer">
+          <table class="table-compact" id="supplierReturnTable">
+            <thead>
+              <tr>
+                <th style="min-width: 120px;">Mã phiếu trả</th>
+                <th style="min-width: 220px;">Nhà Cung Cấp</th>
+                <th style="min-width: 180px;">Sách trả & Số lượng</th>
+                <th style="text-align: right; min-width: 140px;">Tổng tiền hoàn</th>
+                <th style="min-width: 220px;">Lý do & Người lập</th>
+                <th style="text-align: center; min-width: 180px;">Tiến trình 4 bước</th>
+                <th style="text-align: right; min-width: 160px;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody id="adminSupplierReturnTableBody">
+              <tr><td colspan="7" class="empty-cell" style="white-space: nowrap;"><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách yêu cầu trả hàng NCC...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="supplier-table-footer" id="supplierReturnTableFooter">
+          <span id="supplierReturnCountInfo" style="font-weight:600; color:var(--text);"><i class="fas fa-undo-alt" style="margin-right:6px; color:var(--navy-700);"></i>Đang tải dữ liệu...</span>
+          <span style="font-size:12px; color:var(--muted);"><i class="fas fa-arrows-alt-v" style="margin-right:4px;"></i>Quy trình: 1. Kho lập &rarr; 2. Admin duyệt &rarr; 3. Kho xuất hàng (OK) &rarr; 4. Kế toán duyệt thu tiền</span>
         </div>
       </div>
     </section>

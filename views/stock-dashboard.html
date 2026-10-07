@@ -1784,7 +1784,7 @@
           <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:10px;">
             <button type="button" class="btn" onclick="switchSupplierReturnSubTab('history')">Hủy bỏ</button>
             <button type="submit" id="btnSubmitSupplierReturn" class="btn btn-amber" style="padding:10px 24px; font-size:14px; font-weight:700; display:inline-flex; align-items:center; gap:8px;">
-              💾 Hoàn Tất Xuất Trả NCC & Nhận Tiền Về Quỹ Kế Toán
+              📤 Gửi Yêu Cầu Trả Hàng Tới Admin Phê Duyệt
             </button>
           </div>
         </form>
@@ -1818,9 +1818,9 @@
                 <th style="min-width: 220px; white-space: nowrap;">Lý do xuất trả</th>
                 <th style="min-width: 130px; text-align:center; white-space: nowrap;">Số lượng trả</th>
                 <th style="min-width: 160px; text-align:right; white-space: nowrap;">Tổng tiền hoàn (₫)</th>
-                <th style="min-width: 140px; text-align:center; white-space: nowrap;">Kế toán nhận tiền</th>
-                <th style="min-width: 160px; white-space: nowrap;">Phiếu thu liên kết</th>
-                <th style="min-width: 130px; text-align:right; white-space: nowrap;">Thao tác</th>
+                <th style="min-width: 140px; text-align:center; white-space: nowrap;">Trạng thái quy trình</th>
+                <th style="min-width: 160px; white-space: nowrap;">Giao dịch Thu kế toán</th>
+                <th style="min-width: 160px; text-align:right; white-space: nowrap;">Thao tác</th>
               </tr>
             </thead>
             <tbody id="returnHistoryTableBody">
@@ -10968,7 +10968,7 @@
     const submitBtn = document.getElementById('btnSubmitSupplierReturn') || (e && e.target && e.target.querySelector && e.target.querySelector('button[type="submit"]'));
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý xuất trả...';
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi yêu cầu tới Admin...';
     }
 
     try {
@@ -10979,7 +10979,7 @@
       });
       const result = await res.json();
       if (res.ok && result.success) {
-        showCustomToast('success', 'Thành công', result.message || 'Lập phiếu trả hàng NCC thành công!');
+        showCustomToast('success', 'Thành công', result.message || 'Đã gửi yêu cầu trả hàng NCC tới Admin phê duyệt!');
         document.getElementById('supplierReturnForm')?.reset();
         document.getElementById('returnSourceInvoiceId').value = '';
         generateSupplierReturnCode();
@@ -11000,8 +11000,36 @@
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '💾 Hoàn Tất Xuất Trả NCC & Nhận Tiền Về Quỹ Kế Toán';
+        submitBtn.innerHTML = '📤 Gửi Yêu Cầu Trả Hàng Tới Admin Phê Duyệt';
       }
+    }
+  }
+
+  async function confirmWarehouseDispatchSupplierReturn(returnId, returnCode, supplierName, totalQuantity) {
+    if (!await showCustomConfirm(`XÁC NHẬN ĐÓNG GÓI & XUẤT GỬI HÀNG CHO NCC\n\nBạn có chắc chắn đã xuất gửi ${totalQuantity} cuốn sách cho nhà cung cấp "${supplierName}" (Phiếu: ${returnCode})?\n\nKhi ấn OK: Tồn kho sẽ được giảm trừ và thông tin thu tiền sẽ tự động chuyển tới Quản lý Thu/Chi của Kế toán.`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/inventory/supplier-returns/${returnId}/warehouse-dispatch`, {
+        method: 'PUT',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ note: 'Kho xác nhận xuất gửi hàng lại cho NCC' })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showCustomToast('success', 'Xuất hàng thành công', data.message || 'Kho đã gửi hàng lại cho NCC!');
+        await Promise.all([
+          fetchSupplierReturnsData(),
+          fetchBooks(),
+          fetchAdjustmentHistory()
+        ]);
+      } else {
+        showCustomToast('error', 'Thất bại', data.message || 'Không thể xác nhận xuất hàng trả NCC');
+      }
+    } catch (err) {
+      console.error(err);
+      showCustomToast('error', 'Lỗi kết nối', 'Không thể kết nối máy chủ để xác nhận xuất hàng.');
     }
   }
 
@@ -11018,17 +11046,62 @@
       const d = r.returnDate || r.createdAt;
       const dateStr = d ? new Date(d).toLocaleDateString('vi-VN') : '--';
       const supName = (r.supplier && r.supplier.name) || r.supplierName || 'Nhà cung cấp';
-      const transCode = r.refundTransactionCode || (r.refundTransaction && r.refundTransaction.transactionCode) || 'Đã ghi nhận';
+      const transCode = r.refundTransactionCode || (r.refundTransaction && r.refundTransaction.transactionCode) || '';
+
+      const st = r.status;
+      let statusBadge = '';
+      if (st === 'pending_admin' || st === 'pending') {
+        statusBadge = `<span class="badge" style="background:#FEF3C7; color:#B45309; border:1px solid #FDE68A; font-size:11px; font-weight:700; white-space:nowrap;">⏳ Chờ Admin duyệt</span>`;
+      } else if (st === 'admin_approved') {
+        statusBadge = `<span class="badge" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; font-size:11px; font-weight:700; white-space:nowrap;">📦 Admin đã duyệt - Chờ xuất</span>`;
+      } else if (st === 'pending_accountant') {
+        statusBadge = `<span class="badge" style="background:#FAF5FF; color:#7E22CE; border:1px solid #E9D5FF; font-size:11px; font-weight:700; white-space:nowrap;">💳 Chờ Kế toán duyệt tiền</span>`;
+      } else if (st === 'completed') {
+        statusBadge = `<span class="badge" style="background:#DCFCE7; color:#15803D; border:1px solid #BBF7D0; font-size:11px; font-weight:700; white-space:nowrap;">✓ Hoàn tất (Đã vào quỹ)</span>`;
+      } else if (st === 'rejected') {
+        statusBadge = `<span class="badge" style="background:#FEE2E2; color:#B91C1C; border:1px solid #FECACA; font-size:11px; font-weight:700; white-space:nowrap;" title="${escapeHtml(r.adminRejectReason || 'Admin từ chối')}">✕ Admin từ chối</span>`;
+      } else {
+        statusBadge = `<span class="badge" style="background:#F1F5F9; color:#475569; font-size:11px;">${st}</span>`;
+      }
+
+      let transCol = '';
+      if (transCode && st === 'completed') {
+        transCol = `<span class="mono" style="font-size:11.5px; color:#15803D; font-weight:700;">${transCode} (Đã thu)</span>`;
+      } else if (transCode && st === 'pending_accountant') {
+        transCol = `<span class="mono" style="font-size:11.5px; color:#7E22CE; font-weight:700;">${transCode} (Chờ duyệt)</span>`;
+      } else {
+        transCol = `<span style="font-size:11.5px; color:var(--muted); font-style:italic;">Chưa xuất kho</span>`;
+      }
+
+      let actionCol = '';
+      if (st === 'admin_approved') {
+        actionCol = `
+          <div style="display:inline-flex; gap:6px; align-items:center; justify-content:flex-end;">
+            <button type="button" class="btn btn-sm" onclick="confirmWarehouseDispatchSupplierReturn('${r._id}', '${escapeHtml(r.returnCode)}', '${escapeHtml(supName)}', ${r.totalQuantity || 0})" style="font-weight:700; font-size:11.5px; padding:5px 10px; background:#D97706; color:#fff; border-color:#D97706; white-space:nowrap;" title="Thủ kho ấn OK để xác nhận xuất gửi hàng lại cho NCC">
+              ✓ Xuất gửi NCC (OK)
+            </button>
+            <button type="button" class="btn btn-sm" onclick="printSupplierReturnReceipt('${r._id}')" title="In phiếu trả hàng NCC chuẩn A4" style="background:#FFF; font-weight:600; font-size:11.5px; padding:5px 8px; white-space:nowrap;">
+              🖨️
+            </button>
+          </div>
+        `;
+      } else {
+        actionCol = `
+          <button type="button" class="btn btn-sm" onclick="printSupplierReturnReceipt('${r._id}')" title="In phiếu trả hàng NCC chuẩn A4" style="background:#FFF; font-weight:600; font-size:12px; white-space:nowrap;">
+            🖨️ In phiếu
+          </button>
+        `;
+      }
 
       return `
         <tr>
           <td class="mono-id" style="font-weight:700; color:var(--navy-900); white-space:nowrap;">${r.returnCode}</td>
           <td class="mono" style="font-size:12.5px; color:var(--muted); white-space:nowrap;">${dateStr}</td>
           <td style="white-space:nowrap;">
-            <span style="font-weight:700; color:var(--navy-900);">${supName}</span>
-            <span style="font-size:11.5px; color:var(--muted); margin-left:6px;">(${r.warehouseName || 'Kho trung tâm'})</span>
+            <span style="font-weight:700; color:var(--navy-900);">${escapeHtml(supName)}</span>
+            <span style="font-size:11.5px; color:var(--muted); margin-left:6px;">(${escapeHtml(r.warehouseName || 'Kho trung tâm')})</span>
           </td>
-          <td style="font-size:12.5px; white-space:nowrap;">${r.reason || 'Sách lỗi/thừa'}</td>
+          <td style="font-size:12.5px; white-space:nowrap;">${escapeHtml(r.reason || 'Sách lỗi/thừa')}</td>
           <td style="text-align:center; white-space:nowrap;" class="mono">
             <span class="badge" style="background:var(--navy-100); color:var(--navy-900); font-weight:700; white-space:nowrap;">${r.totalQuantity || 0} cuốn</span>
           </td>
@@ -11036,17 +11109,13 @@
             ${(r.totalAmount || 0).toLocaleString('vi-VN')}₫
           </td>
           <td style="text-align:center; white-space:nowrap;">
-            <span class="badge" style="background:#DCFCE7; color:#15803D; border:1px solid #BBF7D0; font-size:11px; font-weight:700; white-space:nowrap;">
-              ✓ Đã thu quỹ
-            </span>
+            ${statusBadge}
           </td>
-          <td class="mono" style="font-size:11.5px; color:var(--navy-700); font-weight:600; white-space:nowrap;">
-            ${transCode}
+          <td class="mono" style="white-space:nowrap;">
+            ${transCol}
           </td>
           <td style="text-align:right; white-space:nowrap;">
-            <button type="button" class="btn btn-sm" onclick="printSupplierReturnReceipt('${r._id}')" title="In phiếu trả hàng NCC chuẩn A4" style="background:#FFF; font-weight:600; font-size:12px; white-space:nowrap;">
-              🖨️ In phiếu
-            </button>
+            ${actionCol}
           </td>
         </tr>
       `;
@@ -11267,6 +11336,7 @@
   window.selectAllReturnBooks = selectAllReturnBooks;
   window.calculateReturnTotals = calculateReturnTotals;
   window.submitSupplierReturnForm = submitSupplierReturnForm;
+  window.confirmWarehouseDispatchSupplierReturn = confirmWarehouseDispatchSupplierReturn;
   window.filterReturnHistoryTable = filterReturnHistoryTable;
   window.printSupplierReturnReceipt = printSupplierReturnReceipt;
   window.populateReturnSupplierSelect = populateReturnSupplierSelect;

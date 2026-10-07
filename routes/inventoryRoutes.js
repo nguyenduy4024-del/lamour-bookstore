@@ -34,6 +34,9 @@ const {
   getInventoryLookup,
   updateBookShelfLocation,
   createSupplierReturn,
+  adminApproveSupplierReturn,
+  adminRejectSupplierReturn,
+  warehouseDispatchSupplierReturn,
   getAllSupplierReturns,
   getSupplierReturnById,
   getCustomerReturnsPendingWarehouse,
@@ -225,6 +228,9 @@ router
   .post(protect, authorizeRoles('stock', 'admin'), createSupplierReturn);
 
 router.get('/supplier-returns/:id', protect, authorizeRoles('stock', 'admin', 'staff'), getSupplierReturnById);
+router.put('/supplier-returns/:id/admin-approve', protect, authorizeRoles('admin'), adminApproveSupplierReturn);
+router.put('/supplier-returns/:id/admin-reject', protect, authorizeRoles('admin'), adminRejectSupplierReturn);
+router.put('/supplier-returns/:id/warehouse-dispatch', protect, authorizeRoles('stock', 'admin'), warehouseDispatchSupplierReturn);
 
 // Routes Sách hoàn từ Khách hàng chờ Kho xử lý & Phân loại
 router.get('/customer-returns', protect, authorizeRoles('stock', 'admin', 'staff'), getCustomerReturnsPendingWarehouse);

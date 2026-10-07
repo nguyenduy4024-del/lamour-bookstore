@@ -7410,23 +7410,306 @@
     function switchSupplierViewMode(mode) {
       const listView = document.getElementById('supplierListViewContainer');
       const suspendView = document.getElementById('supplierSuspendRequestsViewContainer');
+      const returnView = document.getElementById('supplierReturnRequestsViewContainer');
       const btnList = document.getElementById('btnViewSupplierList');
       const btnSuspend = document.getElementById('btnViewSupplierSuspendRequests');
+      const btnReturn = document.getElementById('btnViewSupplierReturnRequests');
+
+      if (btnList) { btnList.classList.remove('btn-primary'); btnList.classList.add('btn-secondary'); }
+      if (btnSuspend) { btnSuspend.classList.remove('btn-primary'); btnSuspend.classList.add('btn-secondary'); }
+      if (btnReturn) { btnReturn.classList.remove('btn-primary'); btnReturn.classList.add('btn-secondary'); }
+      if (listView) listView.style.display = 'none';
+      if (suspendView) suspendView.style.display = 'none';
+      if (returnView) returnView.style.display = 'none';
 
       if (mode === 'list') {
         if (listView) listView.style.display = 'block';
-        if (suspendView) suspendView.style.display = 'none';
         if (btnList) { btnList.classList.add('btn-primary'); btnList.classList.remove('btn-secondary'); }
-        if (btnSuspend) { btnSuspend.classList.add('btn-secondary'); btnSuspend.classList.remove('btn-primary'); }
         loadSuppliers();
       } else if (mode === 'suspend-requests') {
-        if (listView) listView.style.display = 'none';
         if (suspendView) suspendView.style.display = 'block';
-        if (btnList) { btnList.classList.add('btn-secondary'); btnList.classList.remove('btn-primary'); }
         if (btnSuspend) { btnSuspend.classList.add('btn-primary'); btnSuspend.classList.remove('btn-secondary'); }
         loadAdminSupplierSuspendRequests();
+      } else if (mode === 'return-requests') {
+        if (returnView) returnView.style.display = 'block';
+        if (btnReturn) { btnReturn.classList.add('btn-primary'); btnReturn.classList.remove('btn-secondary'); }
+        loadAdminSupplierReturns();
       }
     }
+
+    // ==========================================
+    // QUẢN LÝ YÊU CẦU TRẢ HÀNG NCC TỪ THỦ KHO (ADMIN PHÊ DUYỆT)
+    // ==========================================
+    let _adminSupRetCurrentTab = 'pending_admin';
+    window._cachedAdminSupplierReturns = [];
+
+    function filterAdminSupplierReturnTab(status) {
+      _adminSupRetCurrentTab = status;
+      const btns = document.querySelectorAll('.admin-sup-ret-tab-btn');
+      btns.forEach(b => {
+        b.classList.remove('btn-primary');
+        b.classList.add('btn-secondary');
+      });
+
+      const tabMap = {
+        'pending_admin': 'adminSupRetTabPending',
+        'admin_approved': 'adminSupRetTabApproved',
+        'pending_accountant': 'adminSupRetTabAccountant',
+        'completed': 'adminSupRetTabCompleted',
+        'rejected': 'adminSupRetTabRejected',
+        'all': 'adminSupRetTabAll'
+      };
+      const activeBtn = document.getElementById(tabMap[status] || 'adminSupRetTabAll');
+      if (activeBtn) {
+        activeBtn.classList.remove('btn-secondary');
+        activeBtn.classList.add('btn-primary');
+      }
+
+      loadAdminSupplierReturns();
+    }
+
+    async function loadAdminSupplierReturns() {
+      const tbody = document.getElementById('adminSupplierReturnTableBody');
+      const infoEl = document.getElementById('supplierReturnCountInfo');
+      if (tbody) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-cell" style="white-space:nowrap;"><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách yêu cầu trả hàng NCC...</td></tr>';
+      }
+
+      try {
+        const kw = (document.getElementById('adminSupRetSearch')?.value || '').trim();
+        const params = new URLSearchParams({
+          status: _adminSupRetCurrentTab,
+          keyword: kw
+        });
+
+        const res = await fetch('/api/inventory/supplier-returns?' + params.toString(), { headers: getAuthHeaders() });
+        if (!res.ok) throw new Error('Không thể tải danh sách phiếu trả hàng');
+        const data = await res.json();
+
+        window._cachedAdminSupplierReturns = data.data || [];
+        const s = data.summary || {};
+
+        // Cập nhật KPI
+        const elPending = document.getElementById('adminCountSupReturnPending');
+        if (elPending) elPending.textContent = s.pendingAdminCount || 0;
+        const elApproved = document.getElementById('adminCountSupReturnApproved');
+        if (elApproved) elApproved.textContent = s.adminApprovedCount || 0;
+        const elAcc = document.getElementById('adminCountSupReturnAccountant');
+        if (elAcc) elAcc.textContent = s.pendingAccountantCount || 0;
+        const elComp = document.getElementById('adminCountSupReturnCompleted');
+        if (elComp) elComp.textContent = s.completedCount || 0;
+
+        // Cập nhật Tab badges
+        const tPending = document.getElementById('adminTabCountSupRetPending');
+        if (tPending) tPending.textContent = s.pendingAdminCount || 0;
+        const tAppr = document.getElementById('adminTabCountSupRetApproved');
+        if (tAppr) tAppr.textContent = s.adminApprovedCount || 0;
+        const tAcc = document.getElementById('adminTabCountSupRetAccountant');
+        if (tAcc) tAcc.textContent = s.pendingAccountantCount || 0;
+        const tComp = document.getElementById('adminTabCountSupRetCompleted');
+        if (tComp) tComp.textContent = s.completedCount || 0;
+        const tRej = document.getElementById('adminTabCountSupRetRejected');
+        if (tRej) tRej.textContent = s.rejectedCount || 0;
+        const tAll = document.getElementById('adminTabCountSupRetAll');
+        if (tAll) tAll.textContent = s.allCount || 0;
+
+        // Cập nhật subnav badge
+        const badgePending = document.getElementById('adminSupplierReturnRequestsBadge');
+        if (badgePending) {
+          const pCount = s.pendingAdminCount || 0;
+          badgePending.textContent = pCount;
+          badgePending.style.display = pCount > 0 ? 'inline-flex' : 'none';
+        }
+
+        renderAdminSupplierReturnsTable(window._cachedAdminSupplierReturns);
+      } catch (err) {
+        console.error(err);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="empty-cell" style="color:var(--danger); white-space:nowrap;">Lỗi khi tải dữ liệu phiếu trả hàng NCC</td></tr>';
+      }
+    }
+
+    function renderAdminSupplierReturnsTable(list) {
+      const tbody = document.getElementById('adminSupplierReturnTableBody');
+      const infoEl = document.getElementById('supplierReturnCountInfo');
+      if (!tbody) return;
+
+      if (!list || list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-cell" style="padding:30px; text-align:center; color:var(--muted);"><i class="fas fa-inbox" style="font-size:24px; opacity:0.4; display:block; margin-bottom:8px;"></i>Không có yêu cầu trả hàng NCC nào trong danh mục này</td></tr>';
+        if (infoEl) infoEl.innerHTML = '<i class="fas fa-undo-alt" style="margin-right:6px; color:var(--navy-700);"></i>Không có phiếu trả hàng nào';
+        return;
+      }
+
+      if (infoEl) {
+        infoEl.innerHTML = `<i class="fas fa-undo-alt" style="margin-right:6px; color:var(--navy-700);"></i>Hiển thị <strong>${list.length.toLocaleString('vi-VN')}</strong> phiếu trả hàng NCC`;
+      }
+
+      tbody.innerHTML = list.map(r => {
+        const d = r.returnDate || r.createdAt;
+        const dateStr = d ? new Date(d).toLocaleDateString('vi-VN') : '--';
+        const supName = (r.supplier && r.supplier.name) || r.supplierName || 'Nhà cung cấp';
+        const itemsCount = (r.items && r.items.length) || 0;
+        const totalQty = r.totalQuantity || 0;
+        const totalAmt = Number(r.totalAmount || 0).toLocaleString('vi-VN') + '₫';
+
+        let stBadge = '';
+        let stepText = '';
+        const st = r.status;
+        if (st === 'pending_admin' || st === 'pending') {
+          stBadge = '<span class="badge" style="background:#FEF3C7; color:#92400E; border:1px solid #FCD34D; font-weight:700;"><span class="badge-dot" style="background:#F59E0B;"></span> B1: Chờ Admin duyệt</span>';
+          stepText = 'Kho đã gửi yêu cầu &bull; Chờ duyệt';
+        } else if (st === 'admin_approved') {
+          stBadge = '<span class="badge" style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; font-weight:700;"><span class="badge-dot" style="background:#2563EB;"></span> B2: Admin đã duyệt</span>';
+          stepText = 'Đã duyệt &bull; Chờ Kho xuất gửi hàng NCC (OK)';
+        } else if (st === 'pending_accountant') {
+          stBadge = '<span class="badge" style="background:#FAF5FF; color:#7E22CE; border:1px solid #E9D5FF; font-weight:700;"><span class="badge-dot" style="background:#A855F7;"></span> B3: Đã xuất gửi hàng</span>';
+          stepText = `Chờ Kế toán duyệt thu tiền (${r.refundTransactionCode || 'PT-THNCC'})`;
+        } else if (st === 'completed') {
+          stBadge = '<span class="badge" style="background:#DCFCE7; color:#15803D; border:1px solid #BBF7D0; font-weight:700;"><span class="badge-dot" style="background:#16A34A;"></span> B4: Hoàn thành</span>';
+          stepText = 'Kế toán đã duyệt tiền hoàn vào sổ quỹ';
+        } else if (st === 'rejected') {
+          stBadge = `<span class="badge" style="background:#FEE2E2; color:#DC2626; border:1px solid #FECACA; font-weight:700;" title="${r.adminRejectReason || ''}"><span class="badge-dot" style="background:#EF4444;"></span> Đã từ chối</span>`;
+          stepText = r.adminRejectReason || 'Admin từ chối yêu cầu';
+        } else {
+          stBadge = `<span class="badge" style="background:#F1F5F9; color:#475569;">${st}</span>`;
+          stepText = '--';
+        }
+
+        let actionBtns = '';
+        if (st === 'pending_admin' || st === 'pending') {
+          actionBtns = `
+            <div style="display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+              <button type="button" class="btn btn-sm btn-primary" onclick="adminApproveSupplierReturn('${r._id}', '${r.returnCode}')" style="background:#059669; border-color:#059669; font-size:11.5px; padding:4px 10px; display:inline-flex; align-items:center; gap:4px; font-weight:700;">
+                <i class="fas fa-check"></i> Duyệt
+              </button>
+              <button type="button" class="btn btn-sm btn-danger" onclick="adminRejectSupplierReturn('${r._id}', '${r.returnCode}')" style="font-size:11.5px; padding:4px 10px; display:inline-flex; align-items:center; gap:4px; font-weight:700;">
+                <i class="fas fa-times"></i> Từ chối
+              </button>
+            </div>
+          `;
+        } else {
+          actionBtns = `
+            <button type="button" class="btn btn-sm btn-secondary" onclick="viewSupplierReturnDetailAdmin('${r._id}')" style="font-size:11.5px; padding:4px 10px;">
+              <i class="fas fa-eye"></i> Chi tiết
+            </button>
+          `;
+        }
+
+        return `
+          <tr>
+            <td class="mono-id" style="font-weight:700; color:var(--navy-900); white-space:nowrap;">
+              ${r.returnCode}
+              <div style="font-size:11px; color:var(--muted); font-weight:normal;">${dateStr}</div>
+            </td>
+            <td>
+              <div style="font-weight:700; color:var(--navy-900);">${escapeHtml(supName)}</div>
+              <div style="font-size:11px; color:var(--muted);">${escapeHtml(r.warehouseName || 'Kho trung tâm')}</div>
+            </td>
+            <td>
+              <div style="font-weight:600; color:var(--navy-900);">${itemsCount} đầu sách &bull; <strong>${totalQty}</strong> cuốn</div>
+              <div style="font-size:11.5px; color:var(--muted); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${(r.items || []).map(i => i.title).join(', ')}">
+                ${(r.items || []).map(i => i.title).slice(0, 2).join(', ')}${itemsCount > 2 ? '...' : ''}
+              </div>
+            </td>
+            <td style="text-align:right; font-weight:700; color:var(--emerald); white-space:nowrap; font-family:'IBM Plex Mono', monospace;">
+              ${totalAmt}
+            </td>
+            <td>
+              <div style="font-size:12px; color:var(--navy-900); font-weight:600;">${escapeHtml(r.reason || 'Sách lỗi')}</div>
+              <div style="font-size:11px; color:var(--muted);">Lập bởi: ${escapeHtml(r.staffName || (r.createdBy && r.createdBy.name) || 'Thủ kho')}</div>
+            </td>
+            <td style="text-align:center;">
+              ${stBadge}
+              <div style="font-size:10.5px; color:var(--muted); margin-top:3px;">${stepText}</div>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              ${actionBtns}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterAdminSupplierReturnsTable() {
+      const q = (document.getElementById('adminSupRetSearch')?.value || '').toLowerCase().trim();
+      if (!q) {
+        renderAdminSupplierReturnsTable(window._cachedAdminSupplierReturns);
+        return;
+      }
+      const filtered = (window._cachedAdminSupplierReturns || []).filter(r => {
+        return (r.returnCode && r.returnCode.toLowerCase().includes(q)) ||
+          (r.supplierName && r.supplierName.toLowerCase().includes(q)) ||
+          (r.reason && r.reason.toLowerCase().includes(q)) ||
+          ((r.items || []).some(it => it.title && it.title.toLowerCase().includes(q)));
+      });
+      renderAdminSupplierReturnsTable(filtered);
+    }
+
+    window.adminApproveSupplierReturn = async function(id, code) {
+      if (confirm(`Bạn có chắc chắn muốn PHÊ DUYỆT yêu cầu trả hàng NCC "${code}"?\nSau khi duyệt, yêu cầu sẽ được chuyển lại cho Kho để xuất gửi hàng thực tế cho NCC.`)) {
+        try {
+          const res = await fetch(`/api/inventory/supplier-returns/${id}/admin-approve`, {
+            method: 'PUT',
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' })
+          });
+          const d = await res.json();
+          if (res.ok && d.success) {
+            showCustomToast(d.message || 'Đã phê duyệt yêu cầu thành công!', 'success');
+            loadAdminSupplierReturns();
+          } else {
+            showCustomToast(d.message || 'Không thể phê duyệt yêu cầu', 'error');
+          }
+        } catch (err) {
+          showCustomToast('Lỗi kết nối máy chủ', 'error');
+        }
+      }
+    };
+
+    window.adminRejectSupplierReturn = async function(id, code) {
+      const reason = prompt(`Nhập lý do từ chối yêu cầu trả hàng NCC "${code}":`, 'Không đủ điều kiện trả hàng theo hợp đồng');
+      if (reason === null) return;
+      try {
+        const res = await fetch(`/api/inventory/supplier-returns/${id}/admin-reject`, {
+          method: 'PUT',
+          headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ reason: reason.trim() })
+        });
+        const d = await res.json();
+        if (res.ok && d.success) {
+          showCustomToast(d.message || 'Đã từ chối yêu cầu trả hàng', 'info');
+          loadAdminSupplierReturns();
+        } else {
+          showCustomToast(d.message || 'Không thể từ chối yêu cầu', 'error');
+        }
+      } catch (err) {
+        showCustomToast('Lỗi kết nối máy chủ', 'error');
+      }
+    };
+
+    window.viewSupplierReturnDetailAdmin = function(id) {
+      const r = (window._cachedAdminSupplierReturns || []).find(it => it._id === id);
+      if (!r) return;
+      let msg = `CHI TIẾT PHIẾU TRẢ HÀNG NCC #${r.returnCode}\n`;
+      msg += `--------------------------------------\n`;
+      msg += `Nhà cung cấp: ${r.supplierName || 'NCC'}\n`;
+      msg += `Kho xuất: ${r.warehouseName || 'Kho trung tâm'}\n`;
+      msg += `Trạng thái: ${r.status}\n`;
+      msg += `Tổng số lượng: ${r.totalQuantity} cuốn\n`;
+      msg += `Tổng tiền hoàn: ${Number(r.totalAmount || 0).toLocaleString('vi-VN')}₫\n`;
+      msg += `Lý do: ${r.reason || '--'}\n\n`;
+      msg += `DANH SÁCH SÁCH TRẢ:\n`;
+      (r.items || []).forEach((it, idx) => {
+        msg += `${idx + 1}. ${it.title} - SL: ${it.quantity} - Đơn giá: ${Number(it.price || 0).toLocaleString('vi-VN')}₫ (Thành tiền: ${Number(it.totalPrice || 0).toLocaleString('vi-VN')}₫)\n`;
+      });
+      if (r.refundTransactionCode) {
+        msg += `\nMã phiếu thu kế toán: ${r.refundTransactionCode}\n`;
+      }
+      alert(msg);
+    };
+
+    window.switchSupplierViewMode = switchSupplierViewMode;
+    window.loadAdminSupplierReturns = loadAdminSupplierReturns;
+    window.filterAdminSupplierReturnTab = filterAdminSupplierReturnTab;
+    window.filterAdminSupplierReturnsTable = filterAdminSupplierReturnsTable;
 
     async function updateAdminSupplierSuspendBadge(optCount) {
       let count = optCount;
@@ -7453,6 +7736,26 @@
         tabBadge.textContent = count;
         tabBadge.style.display = count > 0 ? 'inline-flex' : 'none';
       }
+
+      // Cập nhật số lượng yêu cầu trả hàng NCC chờ duyệt
+      try {
+        const retRes = await fetch('/api/inventory/supplier-returns?status=pending_admin', { headers: getAuthHeaders() });
+        if (retRes.ok) {
+          const retData = await retRes.json();
+          const retCount = retData.summary?.pendingAdminCount || (retData.data || []).length || 0;
+          const tabRetBadge = document.getElementById('adminSupplierReturnRequestsBadge');
+          if (tabRetBadge) {
+            tabRetBadge.textContent = retCount;
+            tabRetBadge.style.display = retCount > 0 ? 'inline-flex' : 'none';
+          }
+          const totalSupPending = (Number(count) || 0) + (Number(retCount) || 0);
+          if (sidebarBadge) {
+            sidebarBadge.textContent = totalSupPending;
+            sidebarBadge.style.display = totalSupPending > 0 ? 'inline-block' : 'none';
+            sidebarBadge.title = `Có ${totalSupPending} yêu cầu từ kho chờ duyệt (${count} tạm ngưng, ${retCount} trả hàng)`;
+          }
+        }
+      } catch (e2) {}
     }
 
     function filterAdminSupplierSuspendTab(status) {

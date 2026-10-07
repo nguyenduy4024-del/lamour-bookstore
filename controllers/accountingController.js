@@ -811,6 +811,23 @@ const approveTransaction = async (req, res) => {
 
     await transaction.save();
 
+    // Nếu phiếu này liên kết với Phiếu trả hàng Nhà cung cấp: cập nhật trạng thái SupplierReturn sang completed & refundStatus sang received
+    if (transaction.referenceSupplierReturn) {
+      try {
+        const SupplierReturn = require('../models/SupplierReturn');
+        await SupplierReturn.findByIdAndUpdate(transaction.referenceSupplierReturn, {
+          status: 'completed',
+          refundStatus: 'received',
+          accountantApprovedBy: req.user ? req.user._id : null,
+          accountantApprovedAt: new Date(),
+          refundTransaction: transaction._id,
+          refundTransactionCode: transaction.transactionCode
+        });
+      } catch (errSupp) {
+        console.error('Lỗi khi cập nhật SupplierReturn liên kết trong approveTransaction:', errSupp);
+      }
+    }
+
     const populated = await Transaction.findById(transaction._id)
       .populate('performedBy', 'name email role')
       .populate('approvedBy', 'name email role');

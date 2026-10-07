@@ -3371,47 +3371,19 @@ const createSupplierReturn = async (req, res) => {
       }
     }
 
-    // Xử lý danh sách items & tính toán
+    // Xử lý danh sách items & tính toán (Lưu ý: Chưa trừ kho tại bước này; kho chỉ trừ khi Admin duyệt & Kho ấn OK xuất hàng)
     let totalQty = 0;
     let totalAmt = 0;
     const processedItems = [];
-    const returnAffectedShelves = [];
 
     for (const it of items) {
       const book = await Book.findById(it.bookId || it.book);
       const q = Math.max(1, Number(it.quantity) || 1);
-      // Đơn giá hoàn: ưu tiên đơn giá truyền vào, nếu không lấy costPrice hoặc 65% price
       const p = Number(it.price) >= 0 ? Number(it.price) : (Number(book.costPrice) || Math.round((book.price || 0) * 0.65));
       const lineTotal = q * p;
 
       totalQty += q;
       totalAmt += lineTotal;
-
-      // 1. GIẢM TỒN KHO SÁCH & GHI NHẬN KỆ (nếu sách xuất từ kho bán thông thường)
-      const isFromUnrestockedCustomerReturn = Boolean(it.isFromCustomerReturn);
-      if (!isFromUnrestockedCustomerReturn) {
-        const updatedBook = await Book.findByIdAndUpdate(
-          book._id,
-          { $inc: { stock: -q } },
-          { new: true }
-        );
-
-        if (updatedBook && updatedBook.shelf) {
-          returnAffectedShelves.push(updatedBook.shelf);
-        }
-
-        // Ghi nhận lịch sử điều chỉnh kho
-        await StockAdjustment.create({
-          book: book._id,
-          bookCode: book.bookCode || '',
-          title: book.title,
-          previousStock: book.stock,
-          adjustmentQty: -q,
-          newStock: Math.max(0, (book.stock || 0) - q),
-          reason: `Xuất trả Nhà cung cấp ${supplier.name} (Phiếu: ${finalCode}, Lý do: ${it.reason || reason || 'Lỗi/Thừa'})`,
-          adjustedBy: req.user ? req.user._id : null
-        });
-      }
 
       processedItems.push({
         book: book._id,
@@ -3426,12 +3398,7 @@ const createSupplierReturn = async (req, res) => {
       });
     }
 
-    // Đồng bộ trạng thái các kệ sách liên quan
-    if (returnAffectedShelves.length > 0) {
-      await updateMultipleShelves(returnAffectedShelves);
-    }
-
-    // 2. TẠO BẢN GHI PHIẾU TRẢ HÀNG (TÁCH BIỆT TIỀN THU: Chờ Kế toán đối soát và thu hồi)
+    // 2. TẠO BẢN GHI PHIẾU TRẢ HÀNG Ở TRẠNG THÁI CHỜ ADMIN PHÊ DUYỆT (pending_admin)
     const staffName = req.user ? req.user.name : 'Nhân viên Kho';
 
     const supplierReturn = await SupplierReturn.create({
@@ -3448,8 +3415,8 @@ const createSupplierReturn = async (req, res) => {
       items: processedItems,
       totalQuantity: totalQty,
       totalAmount: totalAmt,
-      status: 'completed',
-      refundStatus: 'pending', // Chờ kế toán xác nhận nhận tiền hoàn hoặc cấn trừ công nợ với NCC
+      status: 'pending_admin', // Bước 1: Chờ Admin phê duyệt
+      refundStatus: 'pending',
       refundTransaction: null,
       refundTransactionCode: '',
       sourceInvoice: sourceInvoiceId || null,
@@ -3464,24 +3431,10 @@ const createSupplierReturn = async (req, res) => {
       }
     });
 
-    // 3. NẾU XUẤT PHÁT TỪ ĐƠN HÀNG HOÀN CỦA KHÁCH: CẬP NHẬT TRẠNG THÁI TRÊN ĐƠN HÀNG
-    if (sourceInvoiceId) {
-      const inv = await Invoice.findById(sourceInvoiceId);
-      if (inv && inv.returnRequest) {
-        inv.returnRequest.status = 'warehouse_returned_supplier';
-        inv.returnRequest.warehouseAction = 'return_supplier';
-        inv.returnRequest.warehouseProcessedAt = new Date();
-        inv.returnRequest.warehouseProcessedBy = req.user ? req.user._id : null;
-        inv.returnRequest.warehouseNote = `Đã xuất trả Nhà cung cấp ${supplier.name} theo phiếu trả ${finalCode}`;
-        inv.returnRequest.supplierReturnCode = finalCode;
-        inv.paymentNote = (inv.paymentNote ? inv.paymentNote + ' | ' : '') + `[Kho]: Đã lập phiếu trả NCC ${finalCode} (Chờ đối soát hoàn tiền)`;
-        await inv.save();
-      }
-    }
-
     const populatedReturn = await SupplierReturn.findById(supplierReturn._id)
       .populate('supplier', 'name code phone email contactPerson')
-      .populate('items.book', 'title bookCode price category coverImage');
+      .populate('items.book', 'title bookCode price category coverImage')
+      .populate('createdBy', 'name email role');
 
     logActivity(req, {
       module: 'INVENTORY',
@@ -3490,7 +3443,7 @@ const createSupplierReturn = async (req, res) => {
       targetId: String(supplierReturn._id),
       targetModel: 'SupplierReturn',
       targetLabel: `Phiếu trả NCC #${supplierReturn.returnCode}`,
-      description: `Lập phiếu xuất trả sách lỗi #${supplierReturn.returnCode} cho NCC "${supplier.name}" (${processedItems.length} đầu sách, ${totalQty} cuốn, tổng giá trị: ${Number(totalAmt).toLocaleString('vi-VN')} đ). Lý do: ${supplierReturn.reason}`,
+      description: `Nhân viên kho ${staffName} lập phiếu yêu cầu trả hàng sách lỗi #${supplierReturn.returnCode} cho NCC "${supplier.name}" (${processedItems.length} đầu sách, ${totalQty} cuốn, tổng giá trị: ${Number(totalAmt).toLocaleString('vi-VN')} đ). Chờ Admin phê duyệt.`,
       metadata: {
         supplierName: supplier.name,
         returnCode: supplierReturn.returnCode,
@@ -3502,7 +3455,7 @@ const createSupplierReturn = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `Lập phiếu trả hàng NCC "${finalCode}" thành công! Đã giảm tồn kho và đồng bộ dung lượng kệ sách. Trạng thái tiền hoàn: Chờ Kế toán đối soát và nhận hoàn tiền từ Nhà cung cấp.`,
+      message: `Đã lập phiếu trả hàng NCC "${finalCode}" và gửi yêu cầu tới Quản trị viên (Admin) phê duyệt! Tồn kho sẽ được giữ nguyên cho tới khi Admin duyệt và Kho xác nhận xuất hàng thực tế.`,
       data: populatedReturn
     });
   } catch (error) {
@@ -3514,7 +3467,244 @@ const createSupplierReturn = async (req, res) => {
   }
 };
 
-// @desc    Lấy danh sách tất cả phiếu trả hàng Nhà cung cấp
+// @desc    Admin phê duyệt yêu cầu trả hàng Nhà cung cấp -> Chuyển lại cho Kho xuất hàng thực tế
+// @route   PUT /api/inventory/supplier-returns/:id/admin-approve
+// @access  Private (Admin)
+const adminApproveSupplierReturn = async (req, res) => {
+  try {
+    const returnReceipt = await SupplierReturn.findById(req.params.id);
+    if (!returnReceipt) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy phiếu trả hàng Nhà cung cấp' });
+    }
+
+    if (returnReceipt.status !== 'pending_admin' && returnReceipt.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Phiếu trả hàng không ở trạng thái chờ duyệt (Hiện tại: ${returnReceipt.status})`
+      });
+    }
+
+    returnReceipt.status = 'admin_approved';
+    returnReceipt.adminApprovedBy = req.user ? req.user._id : null;
+    returnReceipt.adminApprovedAt = new Date();
+    returnReceipt.adminRejectReason = '';
+    await returnReceipt.save();
+
+    const populated = await SupplierReturn.findById(returnReceipt._id)
+      .populate('supplier', 'name code phone')
+      .populate('items.book', 'title bookCode price coverImage')
+      .populate('adminApprovedBy', 'name email role')
+      .populate('createdBy', 'name email role');
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SUPPLIER_RETURN_ADMIN_APPROVE',
+      severity: 'INFO',
+      targetId: String(returnReceipt._id),
+      targetModel: 'SupplierReturn',
+      targetLabel: `Phiếu trả NCC #${returnReceipt.returnCode}`,
+      description: `Quản trị viên ${req.user ? req.user.name : 'Admin'} đã phê duyệt yêu cầu trả hàng NCC #${returnReceipt.returnCode} (${returnReceipt.totalQuantity} cuốn, ${Number(returnReceipt.totalAmount).toLocaleString('vi-VN')} đ). Chuyển lại cho Kho để xuất hàng thực tế.`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã phê duyệt yêu cầu trả hàng NCC #${returnReceipt.returnCode}! Yêu cầu đã được chuyển lại cho Kho để tiến hành đóng gói & xuất hàng.`,
+      data: populated
+    });
+  } catch (error) {
+    console.error('Lỗi khi Admin duyệt yêu cầu trả hàng NCC:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi hệ thống khi duyệt yêu cầu trả hàng NCC' });
+  }
+};
+
+// @desc    Admin từ chối yêu cầu trả hàng Nhà cung cấp
+// @route   PUT /api/inventory/supplier-returns/:id/admin-reject
+// @access  Private (Admin)
+const adminRejectSupplierReturn = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const returnReceipt = await SupplierReturn.findById(req.params.id);
+    if (!returnReceipt) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy phiếu trả hàng Nhà cung cấp' });
+    }
+
+    if (returnReceipt.status !== 'pending_admin' && returnReceipt.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Phiếu trả hàng không ở trạng thái chờ duyệt (Hiện tại: ${returnReceipt.status})`
+      });
+    }
+
+    const rejectReason = (reason && reason.trim()) ? reason.trim() : 'Admin từ chối yêu cầu trả hàng';
+    returnReceipt.status = 'rejected';
+    returnReceipt.adminApprovedBy = req.user ? req.user._id : null;
+    returnReceipt.adminApprovedAt = new Date();
+    returnReceipt.adminRejectReason = rejectReason;
+    await returnReceipt.save();
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SUPPLIER_RETURN_ADMIN_REJECT',
+      severity: 'WARNING',
+      targetId: String(returnReceipt._id),
+      targetModel: 'SupplierReturn',
+      targetLabel: `Phiếu trả NCC #${returnReceipt.returnCode}`,
+      description: `Quản trị viên ${req.user ? req.user.name : 'Admin'} từ chối yêu cầu trả hàng NCC #${returnReceipt.returnCode}. Lý do: ${rejectReason}`
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Đã từ chối yêu cầu trả hàng NCC #${returnReceipt.returnCode}.`,
+      data: returnReceipt
+    });
+  } catch (error) {
+    console.error('Lỗi khi Admin từ chối yêu cầu trả hàng NCC:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi hệ thống khi từ chối yêu cầu trả hàng NCC' });
+  }
+};
+
+// @desc    Thủ kho xác nhận xuất gửi hàng lại cho Nhà cung cấp (Ấn OK) -> Tự động sinh Phiếu Thu gửi sang Kế toán
+// @route   PUT /api/inventory/supplier-returns/:id/warehouse-dispatch
+// @access  Private (Stock, Admin)
+const warehouseDispatchSupplierReturn = async (req, res) => {
+  try {
+    const { note } = req.body;
+    const returnReceipt = await SupplierReturn.findById(req.params.id).populate('supplier');
+    if (!returnReceipt) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy phiếu trả hàng Nhà cung cấp' });
+    }
+
+    if (returnReceipt.status !== 'admin_approved') {
+      return res.status(400).json({
+        success: false,
+        message: `Phiếu trả hàng cần được Admin phê duyệt trước khi Kho có thể xuất hàng! (Trạng thái hiện tại: ${returnReceipt.status})`
+      });
+    }
+
+    // 1. Kiểm tra tồn kho sách trước khi xuất
+    for (const it of returnReceipt.items) {
+      const isFromUnrestockedCustomerReturn = Boolean(it.isFromCustomerReturn);
+      if (!isFromUnrestockedCustomerReturn) {
+        const book = await Book.findById(it.book);
+        if (book) {
+          const q = Math.max(1, Number(it.quantity) || 1);
+          if (book.stock < q) {
+            return res.status(400).json({
+              success: false,
+              message: `Sách "${book.title}" hiện chỉ còn tồn ${book.stock} quyển, không đủ số lượng ${q} quyển để xuất trả cho NCC!`
+            });
+          }
+        }
+      }
+    }
+
+    // 2. Giảm tồn kho, cập nhật kệ sách & ghi nhận lịch sử điều chỉnh kho
+    const returnAffectedShelves = [];
+    for (const it of returnReceipt.items) {
+      const isFromUnrestockedCustomerReturn = Boolean(it.isFromCustomerReturn);
+      if (!isFromUnrestockedCustomerReturn) {
+        const book = await Book.findById(it.book);
+        if (book) {
+          const q = Math.max(1, Number(it.quantity) || 1);
+          const updatedBook = await Book.findByIdAndUpdate(
+            book._id,
+            { $inc: { stock: -q } },
+            { new: true }
+          );
+
+          if (updatedBook && updatedBook.shelf) {
+            returnAffectedShelves.push(updatedBook.shelf);
+          }
+
+          await StockAdjustment.create({
+            book: book._id,
+            bookCode: book.bookCode || '',
+            title: book.title,
+            previousStock: book.stock,
+            adjustmentQty: -q,
+            newStock: Math.max(0, (book.stock || 0) - q),
+            reason: `Xuất gửi trả Nhà cung cấp ${returnReceipt.supplierName} (Phiếu: ${returnReceipt.returnCode})`,
+            adjustedBy: req.user ? req.user._id : null
+          });
+        }
+      }
+    }
+
+    if (returnAffectedShelves.length > 0) {
+      await updateMultipleShelves(returnAffectedShelves);
+    }
+
+    // 3. Nếu xuất phát từ đơn hàng hoàn của khách: cập nhật trạng thái đơn hàng
+    if (returnReceipt.sourceInvoice) {
+      const inv = await Invoice.findById(returnReceipt.sourceInvoice);
+      if (inv && inv.returnRequest) {
+        inv.returnRequest.status = 'warehouse_returned_supplier';
+        inv.returnRequest.warehouseAction = 'return_supplier';
+        inv.returnRequest.warehouseProcessedAt = new Date();
+        inv.returnRequest.warehouseProcessedBy = req.user ? req.user._id : null;
+        inv.returnRequest.warehouseNote = `Kho đã xuất gửi trả NCC ${returnReceipt.supplierName} theo phiếu ${returnReceipt.returnCode}`;
+        inv.returnRequest.supplierReturnCode = returnReceipt.returnCode;
+        inv.paymentNote = (inv.paymentNote ? inv.paymentNote + ' | ' : '') + `[Kho]: Đã xuất trả NCC ${returnReceipt.returnCode} (Chờ Kế toán duyệt thu tiền)`;
+        await inv.save();
+      }
+    }
+
+    // 4. Tự động sinh Phiếu Thu gửi tới Quản lý Giao Dịch Thu / Chi của Kế toán (Trạng thái: pending)
+    const transactionCode = `PT-THNCC-${Date.now().toString().slice(-6)}`;
+    const newTransaction = await Transaction.create({
+      transactionCode,
+      type: 'thu',
+      category: 'Thu tiền hoàn từ Nhà cung cấp',
+      amount: returnReceipt.totalAmount,
+      description: `Thu tiền hoàn trả hàng sách lỗi từ NCC ${returnReceipt.supplierName} (Phiếu #${returnReceipt.returnCode})`,
+      recipient: returnReceipt.supplierName,
+      personName: returnReceipt.supplierName,
+      payerName: returnReceipt.supplierName,
+      payerAddress: returnReceipt.supplierAddress || '',
+      paymentMethod: 'bank_transfer',
+      referenceSupplierReturn: returnReceipt._id,
+      status: 'pending', // Chờ kế toán duyệt
+      performedBy: req.user ? req.user._id : null,
+      note: note || returnReceipt.note || `Kho đã xuất trả hàng theo phiếu #${returnReceipt.returnCode}, gửi Kế toán duyệt thu tiền.`
+    });
+
+    // 5. Cập nhật phiếu trả hàng sang pending_accountant
+    returnReceipt.status = 'pending_accountant';
+    returnReceipt.warehouseDispatchedBy = req.user ? req.user._id : null;
+    returnReceipt.warehouseDispatchedAt = new Date();
+    returnReceipt.warehouseDispatchNote = note || '';
+    returnReceipt.refundTransaction = newTransaction._id;
+    returnReceipt.refundTransactionCode = transactionCode;
+    await returnReceipt.save();
+
+    logActivity(req, {
+      module: 'INVENTORY',
+      action: 'SUPPLIER_RETURN_WAREHOUSE_DISPATCH',
+      severity: 'INFO',
+      targetId: String(returnReceipt._id),
+      targetModel: 'SupplierReturn',
+      targetLabel: `Phiếu trả NCC #${returnReceipt.returnCode}`,
+      description: `Thủ kho ${req.user ? req.user.name : 'Kho'} xác nhận xuất gửi hàng lại cho NCC "${returnReceipt.supplierName}" (${returnReceipt.totalQuantity} cuốn, ${Number(returnReceipt.totalAmount).toLocaleString('vi-VN')} đ). Đã tạo phiếu thu #${transactionCode} chuyển sang Kế toán duyệt.`
+    });
+
+    const populated = await SupplierReturn.findById(returnReceipt._id)
+      .populate('supplier', 'name code phone')
+      .populate('items.book', 'title bookCode price coverImage')
+      .populate('warehouseDispatchedBy', 'name email role')
+      .populate('refundTransaction');
+
+    res.status(200).json({
+      success: true,
+      message: `Kho đã xác nhận xuất gửi hàng lại cho Nhà cung cấp thành công! Đã tạo phiếu thu tiền #${transactionCode} chuyển tới Quản lý Giao Dịch Thu / Chi của Kế toán.`,
+      data: populated
+    });
+  } catch (error) {
+    console.error('Lỗi khi Kho xuất hàng trả NCC:', error);
+    res.status(500).json({ success: false, message: error.message || 'Lỗi hệ thống khi xác nhận xuất hàng trả NCC' });
+  }
+};
+
+// @desc    Lấy danh sách tất cả phiếu trả hàng Nhà cung cấp kèm bộ đếm các trạng thái
 // @route   GET /api/inventory/supplier-returns
 // @access  Private (Stock, Admin, Staff)
 const getAllSupplierReturns = async (req, res) => {
@@ -3526,7 +3716,11 @@ const getAllSupplierReturns = async (req, res) => {
       filter.supplier = supplierId;
     }
     if (status && status !== 'all') {
-      filter.status = status;
+      if (status === 'pending_admin') {
+        filter.status = { $in: ['pending_admin', 'pending'] };
+      } else {
+        filter.status = status;
+      }
     }
     if (keyword) {
       const kw = keyword.trim();
@@ -3548,11 +3742,29 @@ const getAllSupplierReturns = async (req, res) => {
       }
     }
 
-    const returns = await SupplierReturn.find(filter)
-      .sort({ returnDate: -1, createdAt: -1 })
-      .populate('supplier', 'name code phone contactPerson')
-      .populate('items.book', 'title bookCode price coverImage')
-      .lean();
+    const [
+      returns,
+      pendingAdminCount,
+      adminApprovedCount,
+      pendingAccountantCount,
+      completedCount,
+      rejectedCount
+    ] = await Promise.all([
+      SupplierReturn.find(filter)
+        .sort({ returnDate: -1, createdAt: -1 })
+        .populate('supplier', 'name code phone contactPerson')
+        .populate('items.book', 'title bookCode price coverImage')
+        .populate('adminApprovedBy', 'name email role')
+        .populate('warehouseDispatchedBy', 'name email role')
+        .populate('accountantApprovedBy', 'name email role')
+        .populate('refundTransaction')
+        .lean(),
+      SupplierReturn.countDocuments({ status: { $in: ['pending_admin', 'pending'] } }),
+      SupplierReturn.countDocuments({ status: 'admin_approved' }),
+      SupplierReturn.countDocuments({ status: 'pending_accountant' }),
+      SupplierReturn.countDocuments({ status: 'completed' }),
+      SupplierReturn.countDocuments({ status: 'rejected' })
+    ]);
 
     const totalReturnsCount = returns.length;
     const totalReturnedQty = returns.reduce((sum, r) => sum + (Number(r.totalQuantity) || 0), 0);
@@ -3563,7 +3775,13 @@ const getAllSupplierReturns = async (req, res) => {
       summary: {
         totalReturnsCount,
         totalReturnedQty,
-        totalRefundedAmount
+        totalRefundedAmount,
+        pendingAdminCount,
+        adminApprovedCount,
+        pendingAccountantCount,
+        completedCount,
+        rejectedCount,
+        allCount: pendingAdminCount + adminApprovedCount + pendingAccountantCount + completedCount + rejectedCount
       },
       count: returns.length,
       data: returns
@@ -5260,6 +5478,9 @@ module.exports = {
   getInventoryLookup,
   updateBookShelfLocation,
   createSupplierReturn,
+  adminApproveSupplierReturn,
+  adminRejectSupplierReturn,
+  warehouseDispatchSupplierReturn,
   getAllSupplierReturns,
   getSupplierReturnById,
   getCustomerReturnsPendingWarehouse,

@@ -56,11 +56,11 @@ router
   .get(getCashbook)
   .post(createCashbookEntry);
 
-// Phê duyệt phiếu Thu / Chi (Quyền cao nhất: Chỉ Admin)
-router.put('/transactions/:id/approve', authorizeRoles('admin'), approveTransaction);
-router.put('/transactions/:id/reject', authorizeRoles('admin'), rejectTransaction);
-router.put('/cashbook/:id/approve', authorizeRoles('admin'), approveTransaction);
-router.put('/cashbook/:id/reject', authorizeRoles('admin'), rejectTransaction);
+// Phê duyệt phiếu Thu / Chi (Kế toán & Quản trị viên Admin)
+router.put('/transactions/:id/approve', authorizeRoles('accountant', 'admin'), approveTransaction);
+router.put('/transactions/:id/reject', authorizeRoles('accountant', 'admin'), rejectTransaction);
+router.put('/cashbook/:id/approve', authorizeRoles('accountant', 'admin'), approveTransaction);
+router.put('/cashbook/:id/reject', authorizeRoles('accountant', 'admin'), rejectTransaction);
 
 router
   .route('/transactions/:id')

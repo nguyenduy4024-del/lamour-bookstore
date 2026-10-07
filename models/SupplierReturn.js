@@ -110,17 +110,62 @@ const supplierReturnSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    // Quy trình 4 bước chuẩn doanh nghiệp:
+    // 1. pending_admin: Kho lập phiếu -> Chờ Admin phê duyệt
+    // 2. admin_approved: Admin đã duyệt -> Chuyển về Kho chờ xuất hàng thực tế
+    // 3. pending_accountant: Kho đã xuất hàng (OK) -> Tự động sinh Phiếu Thu chờ Kế toán duyệt
+    // 4. completed: Kế toán duyệt Phiếu Thu -> Hoàn tất toàn bộ quy trình
     status: {
       type: String,
-      enum: ['pending', 'completed', 'cancelled'],
-      default: 'completed',
+      enum: ['pending_admin', 'admin_approved', 'pending_accountant', 'completed', 'rejected', 'cancelled', 'pending'],
+      default: 'pending_admin',
       index: true
+    },
+    // Phê duyệt từ Admin
+    adminApprovedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    adminApprovedAt: {
+      type: Date,
+      default: null
+    },
+    adminRejectReason: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    // Xuất kho gửi hàng cho NCC từ Thủ kho
+    warehouseDispatchedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    warehouseDispatchedAt: {
+      type: Date,
+      default: null
+    },
+    warehouseDispatchNote: {
+      type: String,
+      default: '',
+      trim: true
+    },
+    // Phê duyệt tiền từ Kế toán
+    accountantApprovedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    accountantApprovedAt: {
+      type: Date,
+      default: null
     },
     // Trạng thái hoàn tiền từ Nhà cung cấp cho Kế toán
     refundStatus: {
       type: String,
       enum: ['received', 'pending', 'deducted_debt'],
-      default: 'received'
+      default: 'pending'
     },
     // Giao dịch kế toán phiếu thu tương ứng
     refundTransaction: {

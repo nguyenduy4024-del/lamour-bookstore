@@ -118,6 +118,12 @@ const transactionSchema = new mongoose.Schema(
       default: null,
       index: true
     },
+    referenceSupplierReturn: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'SupplierReturn',
+      default: null,
+      index: true
+    },
     performedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
