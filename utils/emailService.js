@@ -72,7 +72,8 @@ async function sendViaHttpApi(mailOptions) {
 
   // 1. Resend API (Khuyên dùng nhất trên Render - 100 mail/ngày miễn phí, cực nhanh qua HTTPS)
   if (resendApiKey) {
-    const fromAddr = process.env.RESEND_FROM || process.env.EMAIL_FROM || "L'Amour Bookstore <onboarding@resend.dev>";
+    // Lưu ý: Resend chỉ chấp nhận domain đã xác minh hoặc domain thử nghiệm mặc định 'onboarding@resend.dev'
+    const fromAddr = process.env.RESEND_FROM || "L'Amour Bookstore <onboarding@resend.dev>";
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
