@@ -7,11 +7,11 @@ const Book = require('../models/Book');
 const { logActivity } = require('../utils/auditLogger');
 
 let isTransactionsSeeded = false;
-let financialReportCache = { data: null, timestamp: 0 };
+let financialReportCache = new Map();
 let cashbookKpiCache = { data: null, timestamp: 0 };
 
 const invalidateAccountingCache = () => {
-  financialReportCache = { data: null, timestamp: 0 };
+  financialReportCache.clear();
   cashbookKpiCache = { data: null, timestamp: 0 };
 };
 
@@ -1027,71 +1027,109 @@ const rejectTransaction = async (req, res) => {
 // @access  Private (Accountant, Admin)
 const getFinancialReport = async (req, res) => {
   try {
+    const { startDate, endDate, force } = req.query;
     const now = Date.now();
-    // Cache 60 giây: khi reload trang hay đổi tab, phản hồi ngay lập tức dưới 5ms
-    if (!req.query.force && financialReportCache.data && (now - financialReportCache.timestamp < 60000)) {
-      return res.status(200).json({
-        success: true,
-        data: financialReportCache.data,
-        cached: true
-      });
+    const cacheKey = `${startDate || ''}_${endDate || ''}`;
+
+    // Cache 60 giây theo bộ lọc ngày để đổi tab / chuyển giao diện phản hồi tức thì
+    if (!force && financialReportCache.has(cacheKey)) {
+      const cached = financialReportCache.get(cacheKey);
+      if (now - cached.timestamp < 60000) {
+        return res.status(200).json({
+          success: true,
+          data: cached.data,
+          cached: true
+        });
+      }
     }
 
-    // 1. Chạy song song các truy vấn aggregation trực tiếp trên MongoDB engine thay vì kéo 8.000+ hóa đơn về RAM
+    // 1. Xử lý khoảng thời gian lọc (chuẩn múi giờ GMT+7)
+    const invoiceDateMatch = {};
+    const transDateMatch = {};
+    if (startDate || endDate) {
+      invoiceDateMatch.createdAt = {};
+      transDateMatch.createdAt = {};
+      if (startDate) {
+        const start = new Date(`${startDate}T00:00:00.000+07:00`);
+        if (!isNaN(start.getTime())) {
+          invoiceDateMatch.createdAt.$gte = start;
+          transDateMatch.createdAt.$gte = start;
+        }
+      }
+      if (endDate) {
+        const end = new Date(`${endDate}T23:59:59.999+07:00`);
+        if (!isNaN(end.getTime())) {
+          invoiceDateMatch.createdAt.$lte = end;
+          transDateMatch.createdAt.$lte = end;
+        }
+      }
+    }
+
+    const baseInvoiceMatch = {
+      ...invoiceDateMatch,
+      status: { $in: ['completed', 'paid'] }
+    };
+
+    const returnInvoiceMatch = {
+      ...invoiceDateMatch,
+      'returnRequest.status': {
+        $in: [
+          'inspected_ok',
+          'approved_transferred_to_warehouse',
+          'warehouse_restocked',
+          'warehouse_returned_supplier',
+          'warehouse_discarded'
+        ]
+      }
+    };
+
+    const approvedPaymentMatch = {
+      ...transDateMatch,
+      status: { $in: ['approved', null, ''] }
+    };
+
+    const approvedReceiptMatch = {
+      ...transDateMatch,
+      status: { $in: ['approved', null, ''] },
+      referenceOrder: null
+    };
+
+    // 2. Chạy song song các truy vấn aggregation trực tiếp trên MongoDB engine
     const [
-      financialTotals,
+      completedRevAgg,
+      refundAgg,
       itemSalesAgg,
       topCustomersAgg,
+      operatingExpenseAgg,
+      expenseCategoryAgg,
+      otherIncomeReceipts,
       allBooks,
       importReceipts,
-      otherIncomeReceipts
+      monthlyRevAgg,
+      monthlyExpAgg
     ] = await Promise.all([
-      // 1.1 Tổng Gross Sales, Giảm trừ & Số lượng đơn
+      // 2.1 Doanh thu bán hàng từ hóa đơn hoàn thành & đã TT (khớp tuyệt đối với Admin Dashboard)
       Invoice.aggregate([
-        { $match: { status: { $in: ['completed', 'paid', 'returned'] } } },
+        { $match: baseInvoiceMatch },
         {
           $group: {
             _id: null,
-            grossSales: {
-              $sum: {
-                $cond: [
-                  { $in: ['$status', ['completed', 'paid']] },
-                  { $ifNull: ['$finalAmount', '$totalAmount'] },
-                  0
-                ]
-              }
-            },
-            salesReturns: {
-              $sum: {
-                $cond: [
-                  { $eq: ['$status', 'returned'] },
-                  {
-                    $ifNull: [
-                      '$returnRequest.refundAmount',
-                      { $ifNull: ['$finalAmount', '$totalAmount'] }
-                    ]
-                  },
-                  0
-                ]
-              }
-            },
-            completedCount: {
-              $sum: {
-                $cond: [{ $in: ['$status', ['completed', 'paid']] }, 1, 0]
-              }
-            },
-            returnedCount: {
-              $sum: {
-                $cond: [{ $eq: ['$status', 'returned'] }, 1, 0]
-              }
-            }
+            total: { $sum: '$totalAmount' },
+            finalTotal: { $sum: { $ifNull: ['$finalAmount', '$totalAmount'] } },
+            count: { $sum: 1 }
           }
         }
       ]),
 
-      // 1.2 Doanh số & Giá vốn từng đầu sách (Top selling & Profit)
+      // 2.2 Doanh thu hoàn trả (đơn hàng trả lại được duyệt)
       Invoice.aggregate([
-        { $match: { status: { $in: ['completed', 'paid'] } } },
+        { $match: returnInvoiceMatch },
+        { $group: { _id: null, total: { $sum: '$totalAmount' }, count: { $sum: 1 } } }
+      ]),
+
+      // 2.3 Doanh số & Giá vốn từng đầu sách (Top selling & Profit)
+      Invoice.aggregate([
+        { $match: baseInvoiceMatch },
         { $unwind: '$items' },
         {
           $group: {
@@ -1117,9 +1155,9 @@ const getFinancialReport = async (req, res) => {
         }
       ]),
 
-      // 1.3 Top khách hàng chi tiêu
+      // 2.4 Top khách hàng chi tiêu
       Invoice.aggregate([
-        { $match: { status: { $in: ['completed', 'paid'] } } },
+        { $match: baseInvoiceMatch },
         {
           $group: {
             _id: {
@@ -1127,7 +1165,7 @@ const getFinancialReport = async (req, res) => {
             },
             name: { $first: { $ifNull: ['$customerName', 'Khách lẻ'] } },
             phone: { $first: { $ifNull: ['$customerPhone', ''] } },
-            totalSpent: { $sum: { $ifNull: ['$finalAmount', '$totalAmount'] } },
+            totalSpent: { $sum: { $ifNull: ['$totalAmount', '$finalAmount'] } },
             totalProducts: { $sum: { $size: { $ifNull: ['$items', []] } } },
             orderCount: { $sum: 1 }
           }
@@ -1136,22 +1174,55 @@ const getFinancialReport = async (req, res) => {
         { $limit: 20 }
       ]),
 
-      // 1.4 Danh sách sách
+      // 2.5 Tổng Chi phí vận hành & nhập hàng từ các phiếu Chi đã duyệt trong Sổ Quỹ
+      Transaction.Payment.aggregate([
+        { $match: approvedPaymentMatch },
+        { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+      ]),
+
+      // 2.6 Cơ cấu chi phí theo danh mục
+      Transaction.Payment.aggregate([
+        { $match: approvedPaymentMatch },
+        { $group: { _id: { $ifNull: ['$category', 'Chi khác'] }, amount: { $sum: '$amount' }, count: { $sum: 1 } } },
+        { $sort: { amount: -1 } }
+      ]),
+
+      // 2.7 Thu nhập khác đã duyệt (không gắn đơn hàng)
+      Transaction.Receipt.find(approvedReceiptMatch).select('amount category description').lean(),
+
+      // 2.8 Danh sách sách để tính tồn kho & đối soát tác giả
       Book.find()
         .select('title author category price costPrice stock')
         .lean(),
 
-      // 1.5 Công nợ NCC chưa thanh toán
+      // 2.9 Công nợ NCC chưa thanh toán
       ImportReceipt.find({ paymentStatus: { $ne: 'paid' } })
         .select('totalAmount paidAmount paymentStatus')
         .lean(),
 
-      // 1.6 Thu nhập khác đã duyệt
-      Transaction.find({
-        status: 'approved',
-        type: { $in: ['thu', 'income'] },
-        referenceOrder: null
-      }).select('amount').lean()
+      // 2.10 Doanh thu theo 12 tháng năm 2026
+      Invoice.aggregate([
+        {
+          $match: {
+            status: { $in: ['completed', 'paid'] },
+            createdAt: { $gte: new Date('2026-01-01T00:00:00.000Z'), $lte: new Date('2026-12-31T23:59:59.999Z') }
+          }
+        },
+        { $group: { _id: { $month: { date: '$createdAt', timezone: '+07:00' } }, revenue: { $sum: '$totalAmount' }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // 2.11 Chi phí theo 12 tháng năm 2026
+      Transaction.Payment.aggregate([
+        {
+          $match: {
+            status: { $in: ['approved', null, ''] },
+            createdAt: { $gte: new Date('2026-01-01T00:00:00.000Z'), $lte: new Date('2026-12-31T23:59:59.999Z') }
+          }
+        },
+        { $group: { _id: { $month: { date: '$createdAt', timezone: '+07:00' } }, expenses: { $sum: '$amount' }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } }
+      ])
     ]);
 
     // Tạo Map chi phí sách và khởi tạo bookSalesMap để tra cứu O(1)
@@ -1176,27 +1247,29 @@ const getFinancialReport = async (req, res) => {
       };
     }
 
-    // 1. DOANH THU BÁN HÀNG GỘP (Gross Sales): Các hóa đơn hoàn tất hoặc đã thanh toán (POS & Web)
-    const totals = financialTotals[0] || { grossSales: 0, salesReturns: 0, completedCount: 0, returnedCount: 0 };
-    let grossSales = totals.grossSales || 0;
+    // 1. DOANH THU BÁN SÁCH: Đồng bộ chuẩn công thức Admin
+    const completedRevenue = completedRevAgg[0]?.total || 0;
+    const completedOrdersCount = completedRevAgg[0]?.count || 0;
+    const refundAmount = refundAgg[0]?.total || 0;
+    const grossSales = completedRevenue;
+    const salesReturns = refundAmount;
+    const netRevenue = Math.max(0, grossSales - salesReturns);
 
-    // Thu nhập khác từ các phiếu thu đã duyệt vào quỹ (ví dụ: tiền hoàn từ NCC, thanh lý...)
+    // Thu nhập khác từ các phiếu thu ngoài đơn hàng
     let otherIncome = 0;
     if (Array.isArray(otherIncomeReceipts)) {
       for (const r of otherIncomeReceipts) {
         otherIncome += Number(r.amount) || 0;
       }
     }
-    grossSales += otherIncome;
 
-    // 2. CÁC KHOẢN GIẢM TRỪ DOANH THU (Sales Returns): Đơn hàng khách trả lại
-    const salesReturns = totals.salesReturns || 0;
+    // 2. CHI PHÍ VẬN HÀNH & NHẬP HÀNG: Từ phiếu Chi đã duyệt
+    const operatingExpenses = operatingExpenseAgg[0]?.total || 0;
+    const expensesCount = operatingExpenseAgg[0]?.count || 0;
 
-    // 3. DOANH THU THUẦN (Net Revenue = Doanh thu gộp - Giảm trừ)
-    const netRevenue = Math.max(0, grossSales - salesReturns);
-
-    // 4. GIÁ VỐN HÀNG BÁN THỰC TẾ (COGS) & HIỆU SUẤT SẢN PHẨM / KHÁCH HÀNG
+    // 3. GIÁ VỐN HÀNG BÁN THỰC TẾ (COGS) & HIỆU SUẤT SẢN PHẨM / TÁC GIẢ
     let cogs = 0;
+    const authorSalesMap = {};
     for (const item of itemSalesAgg) {
       const bId = item._id;
       const qty = item.quantity || 0;
@@ -1211,14 +1284,21 @@ const getFinancialReport = async (req, res) => {
         bookSalesMap[bId].quantity = qty;
         bookSalesMap[bId].revenue = rev;
         bookSalesMap[bId].grossProfit = rev - itemCost;
+
+        const auth = bookSalesMap[bId].author;
+        if (!authorSalesMap[auth]) {
+          authorSalesMap[auth] = { author: auth, quantity: 0, revenue: 0 };
+        }
+        authorSalesMap[auth].quantity += qty;
+        authorSalesMap[auth].revenue += rev;
       }
     }
 
-    // 5. LỢI NHUẬN THỰC TẾ (Profit = Doanh thu thuần - Giá vốn COGS)
-    const profit = netRevenue - cogs;
-    const profitMarginPercent = netRevenue > 0 ? Number(((profit / netRevenue) * 100).toFixed(1)) : 0;
+    // 4. LỢI NHUẬN RÒNG & TỶ SUẤT LỢI NHUẬN
+    const netProfit = (netRevenue + otherIncome) - operatingExpenses;
+    const profitMarginPercent = netRevenue > 0 ? Number(((netProfit / netRevenue) * 100).toFixed(1)) : 0;
 
-    // 6. TỒN KHO HIỆN TẠI (Current Inventory): Tính trực tiếp từ kho sách thực tế (số lượng cuốn & giá trị vốn)
+    // 5. TỒN KHO HIỆN TẠI
     let currentInventoryUnits = 0;
     let currentInventoryCostValue = 0;
     let currentInventoryRetailValue = 0;
@@ -1249,6 +1329,10 @@ const getFinancialReport = async (req, res) => {
       })
       .slice(0, 10);
 
+    const topSellingAuthors = Object.values(authorSalesMap)
+      .sort((a, b) => b.revenue - a.revenue || b.quantity - a.quantity)
+      .slice(0, 10);
+
     const topSpenderCustomers = [...topCustomersAgg]
       .sort((a, b) => b.totalSpent - a.totalSpent)
       .slice(0, 10);
@@ -1257,36 +1341,82 @@ const getFinancialReport = async (req, res) => {
       .sort((a, b) => (b.totalProducts || 0) - (a.totalProducts || 0) || b.totalSpent - a.totalSpent)
       .slice(0, 10);
 
+    // 6. BIỂU ĐỒ 12 THÁNG NĂM 2026
+    const monthlyTimeline = [];
+    for (let m = 1; m <= 12; m++) {
+      const revItem = monthlyRevAgg.find(x => x._id === m);
+      const expItem = monthlyExpAgg.find(x => x._id === m);
+      const mRev = revItem ? revItem.revenue : 0;
+      const mExp = expItem ? expItem.expenses : 0;
+      monthlyTimeline.push({
+        month: m,
+        revenue: mRev,
+        expenses: mExp,
+        profit: mRev - mExp
+      });
+    }
+
+    // 7. CƠ CẤU THU CHI
+    const expenseBreakdown = expenseCategoryAgg.map(cat => ({
+      category: cat._id,
+      amount: cat.amount,
+      percent: operatingExpenses > 0 ? Number(((cat.amount / operatingExpenses) * 100).toFixed(1)) : 0
+    }));
+
+    const incomeBreakdown = [
+      {
+        category: 'Doanh thu bán sách',
+        amount: netRevenue,
+        percent: (netRevenue + otherIncome) > 0 ? Number(((netRevenue / (netRevenue + otherIncome)) * 100).toFixed(1)) : 100
+      }
+    ];
+    if (otherIncome > 0) {
+      incomeBreakdown.push({
+        category: 'Thu nhập phụ trợ / Khác',
+        amount: otherIncome,
+        percent: (netRevenue + otherIncome) > 0 ? Number(((otherIncome / (netRevenue + otherIncome)) * 100).toFixed(1)) : 0
+      });
+    }
+
     const reportData = {
       grossSales,
       salesReturns,
       netRevenue,
+      salesRevenue: netRevenue,
+      otherIncome,
+      operatingExpenses,
+      expensesCount,
       cogs,
-      profit,
-      grossProfit: profit,
-      netProfit: profit,
+      profit: netProfit,
+      grossProfit: netRevenue - cogs,
+      netProfit,
       profitMarginPercent,
-      grossMarginPercent: profitMarginPercent,
+      grossMarginPercent: netRevenue > 0 ? Number((((netRevenue - cogs) / netRevenue) * 100).toFixed(1)) : 0,
       netMarginPercent: profitMarginPercent,
       currentInventoryUnits,
       currentInventoryCostValue,
       currentInventoryRetailValue,
       totalSupplierDebt,
       totalCustomerDebt: 0,
-      completedInvoicesCount: totals.completedCount || 0,
-      returnedInvoicesCount: totals.returnedCount || 0,
+      completedInvoicesCount: completedOrdersCount,
+      completedOrdersCount,
+      returnedInvoicesCount: refundAgg[0]?.count || 0,
       totalBooksCount: allBooks.length,
       topSellingBooks,
       slowSellingBooks,
+      topSellingAuthors,
       topSpenderCustomers,
       topVolumeCustomers,
+      monthlyTimeline,
+      expenseBreakdown,
+      incomeBreakdown,
       chart: {
-        labels: ['Doanh thu thuần', 'Giá vốn (COGS)', 'Lợi nhuận thực tế', 'Tồn kho (Giá vốn)'],
-        data: [netRevenue, cogs, Math.max(0, profit), currentInventoryCostValue]
+        labels: ['Doanh thu thuần', 'Tổng Chi phí', 'Giá vốn (COGS)', 'Tồn kho (Giá vốn)'],
+        data: [netRevenue, operatingExpenses, cogs, currentInventoryCostValue]
       }
     };
 
-    financialReportCache = { data: reportData, timestamp: now };
+    financialReportCache.set(cacheKey, { data: reportData, timestamp: now });
 
     res.status(200).json({
       success: true,
@@ -1300,13 +1430,13 @@ const getFinancialReport = async (req, res) => {
       severity: isExport ? 'WARNING' : 'INFO',
       targetLabel: 'Báo Cáo Tài Chính & P&L',
       description: isExport
-        ? `Xuất báo cáo tài chính P&L: Doanh thu thuần ${netRevenue.toLocaleString('vi-VN')} đ, Giá vốn ${cogs.toLocaleString('vi-VN')} đ, Lợi nhuận ${profit.toLocaleString('vi-VN')} đ`
-        : `Truy cập tổng hợp báo cáo tài chính & kết quả kinh doanh P&L (Doanh thu thuần: ${netRevenue.toLocaleString('vi-VN')} đ, Lợi nhuận: ${profit.toLocaleString('vi-VN')} đ)`,
+        ? `Xuất báo cáo tài chính P&L: Doanh thu thuần ${netRevenue.toLocaleString('vi-VN')} đ, Chi phí ${operatingExpenses.toLocaleString('vi-VN')} đ, Lợi nhuận ${netProfit.toLocaleString('vi-VN')} đ`
+        : `Truy cập tổng hợp báo cáo tài chính & kết quả kinh doanh P&L (Doanh thu thuần: ${netRevenue.toLocaleString('vi-VN')} đ, Chi phí: ${operatingExpenses.toLocaleString('vi-VN')} đ, Lợi nhuận: ${netProfit.toLocaleString('vi-VN')} đ)`,
       metadata: {
         grossSales,
         netRevenue,
-        cogs,
-        profit,
+        operatingExpenses,
+        netProfit,
         profitMarginPercent
       }
     });
