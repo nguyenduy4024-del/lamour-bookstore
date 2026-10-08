@@ -11615,143 +11615,530 @@
   }
 
   function openShiftHandoverModal() {
+    calculateDrawerReconciliation();
+
+    const currentStaff = (currentUser && currentUser.name)
+      ? currentUser.name
+      : (document.getElementById('staffProfileName')?.textContent || 'Nhân viên Thu Ngân');
+    if (document.getElementById('handoverFromStaff')) {
+      document.getElementById('handoverFromStaff').value = currentStaff;
+    }
+
     const totalRev = shiftInvoices.reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
     const actualCash = Number(document.getElementById('drawerActualCash')?.value) || 0;
-    const varianceText = document.getElementById('drawerVarianceAmt')?.textContent || '0₫';
+    const varianceText = document.getElementById('drawerVarianceAmt')?.textContent || '0₫ (Khớp 100%)';
 
     if (document.getElementById('hoSummaryRev')) document.getElementById('hoSummaryRev').textContent = fmt(totalRev);
     if (document.getElementById('hoSummaryCash')) document.getElementById('hoSummaryCash').textContent = fmt(actualCash);
-    if (document.getElementById('hoSummaryVariance')) document.getElementById('hoSummaryVariance').textContent = varianceText;
+    if (document.getElementById('hoSummaryVariance')) {
+      document.getElementById('hoSummaryVariance').textContent = varianceText;
+      const expectedCash = Number(document.getElementById('drawerExpectedTotal')?.textContent.replace(/[^0-9]/g, '')) || 0;
+      const variance = actualCash - expectedCash;
+      document.getElementById('hoSummaryVariance').style.color = variance === 0 ? 'var(--emerald-dark)' : 'var(--danger)';
+    }
 
     document.getElementById('shiftHandoverModal')?.classList.add('active');
   }
+
   function closeShiftHandoverModal() {
     document.getElementById('shiftHandoverModal')?.classList.remove('active');
   }
 
   function printShiftHandoverDoc() {
-    const printWin = window.open('', '_blank', 'width=800,height=700');
-    if (!printWin) return;
+    const fromStaff = (document.getElementById('handoverFromStaff')?.value || '').trim() || ((currentUser && currentUser.name) ? currentUser.name : 'Thu ngân giao ca');
+    const toStaff = (document.getElementById('handoverToStaff')?.value || '').trim() || 'Thu ngân nhận ca';
+    const manager = (document.getElementById('handoverManager')?.value || '').trim() || 'Phạm Thị Mai (Cửa hàng trưởng)';
+    const note = (document.getElementById('handoverNote')?.value || '').trim() || 'Ca làm việc kết thúc bình thường, két tiền và sổ sách chứng từ đã đối soát đầy đủ.';
 
-    const fromStaff = document.getElementById('handoverFromStaff')?.value || 'Thu ngân giao ca';
-    const toStaff = document.getElementById('handoverToStaff')?.value || 'Thu ngân nhận ca';
-    const manager = document.getElementById('handoverManager')?.value || 'Phạm Thị Mai';
-    const note = document.getElementById('handoverNote')?.value || 'Ca làm việc kết thúc bình thường, két tiền và sổ sách đã đối soát.';
-    
+    // Thống kê doanh thu ca
     const totalRev = shiftInvoices.reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
-    const cashTotal = shiftInvoices.filter(i => i.paymentMethod === 'cash').reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
-    const qrTotal = shiftInvoices.filter(i => i.paymentMethod === 'transfer').reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
+    const cashInvs = shiftInvoices.filter(i => i.paymentMethod === 'cash');
+    const cashTotal = cashInvs.reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
+
+    const qrInvs = shiftInvoices.filter(i => i.paymentMethod === 'transfer');
+    const qrTotal = qrInvs.reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
+
+    const cardInvs = shiftInvoices.filter(i => i.paymentMethod === 'card');
+    const cardTotal = cardInvs.reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
+
+    const momoInvs = shiftInvoices.filter(i => i.paymentMethod === 'momo');
+    const momoTotal = momoInvs.reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
+
+    const totalBooksSold = shiftInvoices.reduce((sum, inv) => {
+      const items = inv.items || [];
+      return sum + items.reduce((s, it) => s + (it.quantity || 1), 0);
+    }, 0);
+
+    // Két tiền
+    const openingCash = Number(document.getElementById('drawerOpeningCash')?.value) || 2000000;
+    const pettyExpense = Number(document.getElementById('drawerPettyExpense')?.value) || 0;
+    const expectedCash = openingCash + cashTotal - pettyExpense;
     const actualCash = Number(document.getElementById('drawerActualCash')?.value) || 0;
-    const expectedCash = Number(document.getElementById('drawerExpectedTotal')?.textContent.replace(/[^0-9]/g, '')) || 0;
     const variance = actualCash - expectedCash;
 
-    const dateStr = new Date().toLocaleString('vi-VN');
+    // Chi tiết kiểm đếm mệnh giá (nếu có đếm)
+    const denomItems = [];
+    document.querySelectorAll('.denom-input').forEach(inp => {
+      const count = Number(inp.value) || 0;
+      if (count > 0) {
+        const val = Number(inp.dataset.val) || 0;
+        denomItems.push({
+          val: val,
+          count: count,
+          subtotal: val * count
+        });
+      }
+    });
+
+    // Top sách bán chạy trong ca (lấy top 5)
+    const bookMap = {};
+    shiftInvoices.forEach(inv => {
+      (inv.items || []).forEach(it => {
+        const title = it.book?.title || it.title || 'Sách';
+        if (!bookMap[title]) bookMap[title] = { title, qty: 0, amount: 0 };
+        bookMap[title].qty += (it.quantity || 1);
+        bookMap[title].amount += (it.price || 0) * (it.quantity || 1);
+      });
+    });
+    const topBooks = Object.values(bookMap).sort((a, b) => b.qty - a.qty).slice(0, 5);
+
+    const now = new Date();
+    const dateFormatted = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeFormatted = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const shiftCode = 'BBBG-CA01-' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '-' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+
+    const printWin = window.open('', '_blank', 'width=950,height=900');
+    if (!printWin) {
+      showCustomToast('warning', 'Chặn Pop-up', 'Trình duyệt đang chặn cửa sổ in. Vui lòng cho phép mở pop-up.');
+      return;
+    }
+
+    let denomHtml = '';
+    if (denomItems.length > 0) {
+      denomHtml = `
+        <div style="margin-top:14px;">
+          <div style="font-weight:700; font-size:11.5px; color:#0A1930; text-transform:uppercase; margin-bottom:5px; display:flex; justify-content:space-between;">
+            <span>★ Bảng Kê Chi Tiết Mệnh Giá Tiền Đếm Trong Két:</span>
+            <span style="color:#059669;">Tổng tiền đếm: ${fmt(actualCash)}</span>
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:10px;">
+            <thead>
+              <tr style="background:#F1F5F9; color:#334155;">
+                <th style="border:1px solid #CBD5E1; padding:4px 8px; text-align:left;">Mệnh giá</th>
+                <th style="border:1px solid #CBD5E1; padding:4px 8px; text-align:center;">Số lượng (Tờ)</th>
+                <th style="border:1px solid #CBD5E1; padding:4px 8px; text-align:right;">Thành tiền (VNĐ)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${denomItems.map(d => `
+                <tr>
+                  <td style="border:1px solid #CBD5E1; padding:3px 8px; font-weight:600;">${fmt(d.val)}</td>
+                  <td style="border:1px solid #CBD5E1; padding:3px 8px; text-align:center; font-family:'IBM Plex Mono',monospace;">${d.count.toLocaleString('vi-VN')}</td>
+                  <td style="border:1px solid #CBD5E1; padding:3px 8px; text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:600;">${fmt(d.subtotal)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    let topBooksHtml = '';
+    if (topBooks.length > 0) {
+      topBooksHtml = `
+        <div style="margin-top:14px;">
+          <div style="font-weight:700; font-size:11.5px; color:#0A1930; text-transform:uppercase; margin-bottom:5px;">
+            ★ Top Đầu Sách Bán Chạy Trong Ca:
+          </div>
+          <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:10px;">
+            <thead>
+              <tr style="background:#F1F5F9; color:#334155;">
+                <th style="border:1px solid #CBD5E1; padding:4px 8px; text-align:center; width:35px;">STT</th>
+                <th style="border:1px solid #CBD5E1; padding:4px 8px; text-align:left;">Tên sách</th>
+                <th style="border:1px solid #CBD5E1; padding:4px 8px; text-align:center; width:70px;">Số lượng</th>
+                <th style="border:1px solid #CBD5E1; padding:4px 8px; text-align:right; width:100px;">Doanh số</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${topBooks.map((b, idx) => `
+                <tr>
+                  <td style="border:1px solid #CBD5E1; padding:3px 8px; text-align:center;">${idx + 1}</td>
+                  <td style="border:1px solid #CBD5E1; padding:3px 8px; font-weight:600;">${escapeHtml(b.title)}</td>
+                  <td style="border:1px solid #CBD5E1; padding:3px 8px; text-align:center; font-family:'IBM Plex Mono',monospace;">${b.qty} cuốn</td>
+                  <td style="border:1px solid #CBD5E1; padding:3px 8px; text-align:right; font-family:'IBM Plex Mono',monospace;">${fmt(b.amount)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    let varianceBadge = '';
+    if (variance === 0) {
+      varianceBadge = `<span style="color:#059669; font-weight:bold;">0₫ (Khớp 100% - Quỹ tiền cân bằng)</span>`;
+    } else if (variance > 0) {
+      varianceBadge = `<span style="color:#D97706; font-weight:bold;">+${fmt(variance)} (Thừa tiền quỹ - Đã nộp bổ sung)</span>`;
+    } else {
+      varianceBadge = `<span style="color:#DC2626; font-weight:bold;">-${fmt(Math.abs(variance))} (Thiếu tiền két - Thu ngân giải trình)</span>`;
+    }
 
     const html = `
       <!DOCTYPE html>
-      <html>
+      <html lang="vi">
       <head>
         <meta charset="UTF-8">
-        <title>Biên Bản Bàn Giao Ca Bán Hàng</title>
+        <title>Biên Bản Bàn Giao Ca Bán Hàng — ${shiftCode}</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif; font-size: 13px; padding: 24px; color: #111; }
-          .card { border: 2px solid #0E365C; border-radius: 10px; padding: 24px; max-width: 760px; margin: 0 auto; }
-          .header { text-align: center; border-bottom: 2px solid #0E365C; padding-bottom: 16px; margin-bottom: 20px; }
-          .title { font-size: 22px; font-weight: 800; color: #0E365C; text-transform: uppercase; margin: 6px 0; }
-          .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; font-size: 13px; }
-          table { width: 100%; border-collapse: collapse; margin: 16px 0; }
-          table th, table td { border: 1px solid #94A3B8; padding: 8px 10px; }
-          table th { background: #0E365C; color: #FFF; text-transform: uppercase; font-size: 11.5px; }
-          .sig-grid { display: flex; justify-content: space-between; margin-top: 40px; text-align: center; }
-          .sig-box { width: 30%; }
+          @page { size: A4 portrait; margin: 12mm 15mm; }
+          * { box-sizing: border-box; }
+          body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+            font-size: 11.5px;
+            line-height: 1.4;
+            color: #0F172A;
+            background: #F8FAFC;
+            margin: 0;
+            padding: 18px;
+          }
+          .print-wrapper {
+            max-width: 820px;
+            margin: 0 auto;
+            background: #FFF;
+            padding: 26px 32px;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+            border-radius: 6px;
+          }
+          .no-print {
+            max-width: 820px;
+            margin: 0 auto 14px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0A1930;
+            color: #FFF;
+            padding: 10px 18px;
+            border-radius: 6px;
+          }
+          .btn-print {
+            background: #C7A15A;
+            color: #0A1930;
+            border: none;
+            font-weight: 700;
+            padding: 7px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12.5px;
+          }
+          .btn-close {
+            background: rgba(255,255,255,0.15);
+            color: #FFF;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 7px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12.5px;
+          }
+          .header-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 2px solid #0A1930;
+            padding-bottom: 12px;
+            margin-bottom: 14px;
+          }
+          .brand-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #0A1930;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .brand-sub {
+            font-size: 10.5px;
+            color: #475569;
+            margin-top: 2px;
+          }
+          .doc-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 800;
+            color: #0A1930;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 12px 0 4px 0;
+          }
+          .doc-meta {
+            text-align: center;
+            font-size: 11px;
+            color: #475569;
+            margin-bottom: 14px;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 20px;
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+            font-size: 11.5px;
+          }
+          table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11.5px;
+            margin-bottom: 12px;
+          }
+          table.data-table th, table.data-table td {
+            border: 1px solid #CBD5E1;
+            padding: 6px 9px;
+          }
+          table.data-table th {
+            background: #0A1930;
+            color: #FFF;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.3px;
+          }
+          .section-heading {
+            font-weight: 700;
+            font-size: 12px;
+            color: #0A1930;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+          }
+          .sig-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 35px;
+            text-align: center;
+          }
+          .sig-item {
+            width: 30%;
+          }
+          .sig-label {
+            font-weight: 700;
+            font-size: 11px;
+            color: #0A1930;
+            text-transform: uppercase;
+          }
+          .sig-hint {
+            font-size: 10px;
+            color: #64748B;
+            font-style: italic;
+            margin-top: 2px;
+          }
+          .sig-name {
+            margin-top: 55px;
+            font-weight: 700;
+            font-size: 12px;
+            color: #0A1930;
+          }
+          @media print {
+            body { background: #FFF; padding: 0; font-size: 11px; }
+            .no-print { display: none !important; }
+            .print-wrapper {
+              border: none;
+              box-shadow: none;
+              padding: 0;
+              max-width: 100%;
+            }
+          }
         </style>
       </head>
       <body>
-        <div class="card">
-          <div class="header">
-            <h3 style="margin:0;">NHÀ SÁCH L'AMOUR</h3>
-            <div style="font-size:12px; color:#555;">123 Đường Sách, P. Nguyễn Cư Trinh, Quận 1, TP. Hồ Chí Minh</div>
-            <div class="title">BIÊN BẢN KẾT THÚC & BÀN GIAO CA BÁN HÀNG</div>
-            <div style="font-size:12.5px;">Mã ca: <strong>CA-01-20260818</strong> · Thời gian: ${dateStr}</div>
+        <div class="no-print">
+          <div>
+            <strong>📄 CHẾ ĐỘ XEM TRƯỚC BIÊN BẢN BÀN GIAO CA (A4)</strong>
+            <span style="font-size:11px; color:#94A3B8; margin-left:10px;">Nhà sách L'Amour — Quầy Thu Ngân 01</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-print" onclick="window.print()">🖨️ In Biên Bản (Print / PDF)</button>
+            <button class="btn-close" onclick="window.close()">✕ Đóng</button>
+          </div>
+        </div>
+
+        <div class="print-wrapper">
+          <div class="header-box">
+            <div>
+              <div class="brand-title">NHÀ SÁCH L'AMOUR (L'AMOUR BOOKSTORE)</div>
+              <div class="brand-sub">📍 123 Đường Sách, P. Nguyễn Cư Trinh, Quận 1, TP. Hồ Chí Minh</div>
+              <div class="brand-sub">☎ Hotline: 1900 6868 · MST: 0312345678 · Email: sales@lamour.vn</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px; color:#0A1930;">${shiftCode}</div>
+              <div style="font-size:10.5px; color:#64748B; margin-top:2px;">Mẫu biểu: BBBG-POS-01/TC</div>
+              <div style="font-size:10.5px; color:#059669; font-weight:600; margin-top:2px;">● Đã hoàn tất đối soát két</div>
+            </div>
           </div>
 
-          <div class="grid-2">
+          <div class="doc-title">BIÊN BẢN KẾT THÚC & BÀN GIAO CA BÁN HÀNG</div>
+          <div class="doc-meta">
+            Thời điểm lập biên bản: <strong>${dateFormatted} lúc ${timeFormatted}</strong> · Điểm bán: <strong>Quầy Thu Ngân 01 (POS Trực Tiếp)</strong>
+          </div>
+
+          <div class="info-grid">
             <div>
-              <div><strong>Thu ngân giao ca:</strong> ${fromStaff}</div>
-              <div><strong>Điểm bán lẻ:</strong> Quầy Thu Ngân 01</div>
+              <div>• <strong>Thu ngân bàn giao ca:</strong> <span style="font-weight:700; color:#0A1930;">${escapeHtml(fromStaff)}</span></div>
+              <div style="margin-top:4px;">• <strong>Điểm bán lẻ / Quầy:</strong> Quầy Thu Ngân 01 (Bán trực tiếp)</div>
+              <div style="margin-top:4px;">• <strong>Thời gian mở ca:</strong> 08:00 — <strong>Thời gian chốt ca:</strong> ${timeFormatted}</div>
             </div>
             <div>
-              <div><strong>Thu ngân nhận ca:</strong> ${toStaff}</div>
-              <div><strong>Quản lý ca / CHT:</strong> ${manager}</div>
+              <div>• <strong>Thu ngân nhận ca:</strong> <span style="font-weight:700; color:#0A1930;">${escapeHtml(toStaff)}</span></div>
+              <div style="margin-top:4px;">• <strong>Quản lý ca / Cửa hàng trưởng:</strong> <span style="font-weight:700;">${escapeHtml(manager)}</span></div>
+              <div style="margin-top:4px;">• <strong>Trạng thái ca:</strong> <span style="color:#059669; font-weight:700;">Đã chốt sổ & bàn giao</span></div>
             </div>
           </div>
 
-          <table>
+          <!-- BẢNG 1: DOANH THU & ĐƠN HÀNG TRONG CA -->
+          <div class="section-heading">I. Báo Cáo Doanh Thu & Cơ Cấu Đơn Hàng Trong Ca:</div>
+          <table class="data-table">
             <thead>
               <tr>
-                <th>Hạng mục thu / chi ca</th>
-                <th style="text-align:right;">Số lượng / Đơn</th>
-                <th style="text-align:right;">Số tiền (VNĐ)</th>
+                <th style="width:40%;">Phương thức thanh toán</th>
+                <th style="text-align:center; width:25%;">Số lượng đơn hàng</th>
+                <th style="text-align:right; width:35%;">Doanh số (VNĐ)</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>1. Tổng doanh thu bán sách trong ca</td>
-                <td style="text-align:right;">${shiftInvoices.length} đơn</td>
-                <td style="text-align:right; font-weight:bold;">${fmt(totalRev)}</td>
+                <td>1. Thu tiền mặt tại quầy (Cash)</td>
+                <td style="text-align:center; font-family:'IBM Plex Mono',monospace;">${cashInvs.length} đơn</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:600;">${fmt(cashTotal)}</td>
               </tr>
               <tr>
-                <td>- Thu tiền mặt bán sách</td>
-                <td style="text-align:right;">${shiftInvoices.filter(i => i.paymentMethod === 'cash').length} đơn</td>
-                <td style="text-align:right;">${fmt(cashTotal)}</td>
+                <td>2. Thu chuyển khoản ngân hàng (VietQR)</td>
+                <td style="text-align:center; font-family:'IBM Plex Mono',monospace;">${qrInvs.length} đơn</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:600;">${fmt(qrTotal)}</td>
               </tr>
               <tr>
-                <td>- Thu chuyển khoản VietQR</td>
-                <td style="text-align:right;">${shiftInvoices.filter(i => i.paymentMethod === 'transfer').length} đơn</td>
-                <td style="text-align:right;">${fmt(qrTotal)}</td>
+                <td>3. Thu quẹt thẻ ngân hàng (Thẻ POS)</td>
+                <td style="text-align:center; font-family:'IBM Plex Mono',monospace;">${cardInvs.length} đơn</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:600;">${fmt(cardTotal)}</td>
               </tr>
               <tr>
-                <td>- Thu quẹt thẻ POS</td>
-                <td style="text-align:right;">${shiftInvoices.filter(i => i.paymentMethod === 'card').length} đơn</td>
-                <td style="text-align:right;">${fmt(cardTotal)}</td>
+                <td>4. Thu ví điện tử (MoMo / Khác)</td>
+                <td style="text-align:center; font-family:'IBM Plex Mono',monospace;">${momoInvs.length} đơn</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:600;">${fmt(momoTotal)}</td>
               </tr>
-              <tr style="background:#F1F5F9; font-weight:bold;">
-                <td>3. Tiền mặt thực tế bàn giao trong két</td>
-                <td style="text-align:right;">Tiền đếm két</td>
-                <td style="text-align:right; color:#059669; font-size:14px;">${fmt(actualCash)}</td>
-              </tr>
-              <tr>
-                <td>4. Chênh lệch két (Thực tế vs Lý thuyết)</td>
-                <td style="text-align:right;">—</td>
-                <td style="text-align:right; font-weight:bold; color:${variance === 0 ? '#059669' : '#DC2626'};">${fmt(variance)} (${variance === 0 ? 'Khớp 100%' : (variance > 0 ? 'Thừa' : 'Thiếu')})</td>
+              <tr style="background:#F8FAFC; font-weight:700; border-top:2px solid #0A1930;">
+                <td style="color:#0A1930;">TỔNG DOANH THU CA BÁN HÀNG:</td>
+                <td style="text-align:center; font-family:'IBM Plex Mono',monospace; color:#0A1930;">${shiftInvoices.length} đơn (${totalBooksSold} cuốn sách)</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace; color:#0A1930; font-size:13px;">${fmt(totalRev)}</td>
               </tr>
             </tbody>
           </table>
+          <div style="font-size:11px; color:#475569; font-style:italic; margin-bottom:14px;">
+            * Bằng chữ: <strong>${numberToWords(totalRev)}</strong>.
+          </div>
 
-          <div><strong>Ghi chú bàn giao:</strong> <em>${note}</em></div>
+          <!-- BẢNG 2: ĐỐI SOÁT KÉT TIỀN MẶT -->
+          <div class="section-heading">II. Đối Soát Két Tiền Mặt Cuối Ca (Drawer Reconciliation):</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width:40%;">Chỉ số kiểm đếm két</th>
+                <th style="text-align:center; width:25%;">Diễn giải</th>
+                <th style="text-align:right; width:35%;">Số tiền (VNĐ)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1. Tiền mặt ban đầu trong két (Floating Cash)</td>
+                <td style="text-align:center; color:#64748B;">Quỹ tiền thối đầu ca</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace;">${fmt(openingCash)}</td>
+              </tr>
+              <tr>
+                <td>2. (+) Tiền mặt thu được từ bán sách trong ca</td>
+                <td style="text-align:center; color:#64748B;">Thu từ ${cashInvs.length} đơn tiền mặt</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace; font-weight:600; color:#059669;">+${fmt(cashTotal)}</td>
+              </tr>
+              <tr>
+                <td>3. (-) Chi quỹ tạm ứng / Mua vật dụng quầy</td>
+                <td style="text-align:center; color:#64748B;">Chi tiền mặt có phiếu</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace; color:#DC2626;">-${fmt(pettyExpense)}</td>
+              </tr>
+              <tr style="background:#F1F5F9; font-weight:700;">
+                <td>4. (=) Tiền mặt lý thuyết phải có trong két:</td>
+                <td style="text-align:center; color:#64748B;">(1) + (2) - (3)</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace; font-size:12px;">${fmt(expectedCash)}</td>
+              </tr>
+              <tr style="background:#ECFDF5; font-weight:700;">
+                <td style="color:#065F46;">5. (★) TIỀN MẶT THỰC TẾ BÀN GIAO TRONG KÉT:</td>
+                <td style="text-align:center; color:#065F46;">Kiểm đếm thực tế lúc kết ca</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace; color:#065F46; font-size:13px;">${fmt(actualCash)}</td>
+              </tr>
+              <tr>
+                <td>6. Chênh lệch két (Thực tế - Lý thuyết):</td>
+                <td style="text-align:center;">Đánh giá cân đối quỹ</td>
+                <td style="text-align:right; font-family:'IBM Plex Mono',monospace;">${varianceBadge}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="font-size:11px; color:#475569; font-style:italic; margin-bottom:14px;">
+            * Bằng chữ tiền mặt bàn giao: <strong>${numberToWords(actualCash)}</strong>.
+          </div>
 
-          <div class="sig-grid">
-            <div class="sig-box">
-              <strong>THU NGÂN GIAO CA</strong><br><br><br><br>
-              ${fromStaff}
+          <!-- BẢNG MỆNH GIÁ (NẾU CÓ) -->
+          ${denomHtml}
+
+          <!-- TOP SÁCH BÁN CHẠY (NẾU CÓ) -->
+          ${topBooksHtml}
+
+          <!-- BÀN GIAO THIẾT BỊ & GHI CHÚ -->
+          <div class="section-heading" style="margin-top:14px;">III. Bàn Giao Hiện Trạng Thiết Bị & Ghi Chú:</div>
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; padding:9px 12px; font-size:11px; line-height:1.5; margin-bottom:14px;">
+            <div>• <strong>Hiện trạng thiết bị quầy POS:</strong> Máy quét mã vạch (Hoạt động tốt) · Máy in hóa đơn K80 (Hoạt động tốt, sẵn sàng giấy in) · Ngăn kéo đựng tiền tự động (Khóa két và hoạt động trơn tru) · Màn hình phụ hiển thị khách hàng (Bình thường).</div>
+            <div>• <strong>Hàng hóa & Quầy sách:</strong> Sách trưng bày ngăn nắp, kiểm kê đúng số lượng tồn, không có đầu sách nào bị rách bìa hay hư hỏng trong ca.</div>
+            <div>• <strong>Ghi chú bổ sung từ thu ngân:</strong> <em>${escapeHtml(note)}</em></div>
+          </div>
+
+          <!-- LỜI CAM ĐOAN & CHỮ KÝ 3 BÊN -->
+          <div style="font-size:11px; text-align:justify; color:#475569; font-style:italic; margin-bottom:18px;">
+            Hai bên đã tiến hành kiểm đếm đầy đủ số tiền mặt, đối soát toàn bộ chứng từ hóa đơn và bàn giao hiện trạng quầy thu ngân đúng như nội dung biên bản này. Biên bản được lập thành 02 bản có giá trị pháp lý như nhau, mỗi bên giữ 01 bản để làm căn cứ hạch toán kế toán.
+          </div>
+
+          <div style="text-align:right; font-size:11px; margin-bottom:14px;">
+            <em>TP. Hồ Chí Minh, ngày ${now.getDate()} tháng ${now.getMonth() + 1} năm ${now.getFullYear()}</em>
+          </div>
+
+          <div class="sig-container">
+            <div class="sig-item">
+              <div class="sig-label">THU NGÂN GIAO CA</div>
+              <div class="sig-hint">(Ký, ghi rõ họ tên)</div>
+              <div class="sig-name">${escapeHtml(fromStaff)}</div>
             </div>
-            <div class="sig-box">
-              <strong>THU NGÂN NHẬN CA</strong><br><br><br><br>
-              ${toStaff}
+            <div class="sig-item">
+              <div class="sig-label">THU NGÂN NHẬN CA</div>
+              <div class="sig-hint">(Ký, ghi rõ họ tên)</div>
+              <div class="sig-name">${escapeHtml(toStaff)}</div>
             </div>
-            <div class="sig-box">
-              <strong>CỬA HÀNG TRƯỞNG</strong><br><br><br><br>
-              ${manager}
+            <div class="sig-item">
+              <div class="sig-label">QUẢN LÝ / CỬA HÀNG TRƯỞNG</div>
+              <div class="sig-hint">(Ký, đóng dấu hoặc ghi rõ họ tên)</div>
+              <div class="sig-name">${escapeHtml(manager)}</div>
             </div>
           </div>
         </div>
-        <script>window.onload = function() { window.print(); };<\/script>
       </body>
       </html>
     `;
+
     printWin.document.open();
     printWin.document.write(html);
     printWin.document.close();
+
+    setTimeout(() => {
+      try {
+        printWin.focus();
+        printWin.print();
+      } catch (e) {
+        console.warn('Không thể tự trigger print:', e);
+      }
+    }, 450);
   }
 
   // ============ KEYBOARD SHORTCUTS ============
