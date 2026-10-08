@@ -203,10 +203,16 @@ class UnifiedTransactionQuery {
   constructor(query = {}) {
     this._query = { ...query };
     this._populates = [];
+    this._select = null;
     this._sort = { createdAt: -1, _id: -1 };
     this._limit = null;
     this._skip = null;
     this._isLean = false;
+  }
+
+  select(fields) {
+    this._select = fields;
+    return this;
   }
 
   populate(...args) {
@@ -251,6 +257,7 @@ class UnifiedTransactionQuery {
     if (searchReceipts) {
       let rq = ReceiptModel.find(q);
       for (const p of this._populates) rq = rq.populate(...p);
+      if (this._select) rq = rq.select(this._select);
       if (this._sort) rq = rq.sort(this._sort);
       if (this._isLean) rq = rq.lean();
       promises.push(rq.exec());
@@ -261,6 +268,7 @@ class UnifiedTransactionQuery {
     if (searchPayments) {
       let pq = PaymentModel.find(q);
       for (const p of this._populates) pq = pq.populate(...p);
+      if (this._select) pq = pq.select(this._select);
       if (this._sort) pq = pq.sort(this._sort);
       if (this._isLean) pq = pq.lean();
       promises.push(pq.exec());
@@ -308,18 +316,22 @@ const Transaction = {
     }
     return {
       _populates: [],
+      _select: null,
       _isLean: false,
       populate(...args) { this._populates.push(args); return this; },
+      select(fields) { this._select = fields; return this; },
       lean() { this._isLean = true; return this; },
       async exec() {
         let rq = ReceiptModel.findOne(q);
         for (const p of this._populates) rq = rq.populate(...p);
+        if (this._select) rq = rq.select(this._select);
         if (this._isLean) rq = rq.lean();
         const r = await rq.exec();
         if (r) return r;
 
         let pq = PaymentModel.findOne(q);
         for (const p of this._populates) pq = pq.populate(...p);
+        if (this._select) pq = pq.select(this._select);
         if (this._isLean) pq = pq.lean();
         return await pq.exec();
       },

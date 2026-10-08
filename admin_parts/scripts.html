@@ -9301,9 +9301,14 @@
     // --- MODULE: FINANCIAL REPORT ---
     async function loadFinancialReport() {
       try {
-        const res = await fetch('/api/accounting/financial-report', { headers: getAuthHeaders() });
-        if (!res.ok) throw new Error('Không thể tải báo cáo tài chính');
-        const d = await res.json();
+        const res = await fetch('/api/accounting/financial-report', { headers: getAuthHeaders(), credentials: 'include' });
+        let d;
+        try {
+          d = await res.json();
+        } catch (jsonErr) {
+          throw new Error(`Máy chủ phản hồi mã HTTP ${res.status}. Vui lòng thử lại.`);
+        }
+        if (!res.ok || !d.success) throw new Error(d?.message || 'Không thể tải báo cáo tài chính');
         const r = d.data || {};
 
         const grossRev = Number(r.grossSales) || 0;
