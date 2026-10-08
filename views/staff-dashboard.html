@@ -3407,6 +3407,16 @@
                 </tbody>
               </table>
             </div>
+
+            <!-- THANH PHÂN TRANG ĐƠN HÀNG -->
+            <div id="custOrderPagination" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-top:1px solid var(--line); font-size:12.5px; flex-wrap:wrap; gap:10px; background:#FAFAFA; border-bottom-left-radius:8px; border-bottom-right-radius:8px;">
+              <div id="custOrderPaginationInfo" style="color:var(--muted); font-size:12.5px;">
+                Đang hiển thị đơn hàng...
+              </div>
+              <div id="custOrderPaginationControls" style="display:flex; align-items:center; gap:6px;">
+                <!-- Rendered via JS -->
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -10280,8 +10290,13 @@
   let currentCustOrders = [];
   let activeOrderTab = 'all';
   let selectedAdminOrder = null;
+  let custOrderCurrentPage = 1;
+  let custOrderTotalPages = 1;
+  let custOrderTotalItems = 0;
+  const CUST_ORDER_LIMIT = 50;
 
-  async function loadCustomerOrders() {
+  async function loadCustomerOrders(page = custOrderCurrentPage) {
+    custOrderCurrentPage = typeof page === 'number' ? page : 1;
     const tbody = document.getElementById('customerOrdersTableBody');
     if (!tbody) return;
 
@@ -10289,7 +10304,7 @@
     const fromDate = document.getElementById('custOrderFromDate')?.value || '';
     const toDate = document.getElementById('custOrderToDate')?.value || '';
 
-    let url = `/api/admin/customer-orders?status=${activeOrderTab}`;
+    let url = `/api/admin/customer-orders?status=${activeOrderTab}&page=${custOrderCurrentPage}&limit=${CUST_ORDER_LIMIT}`;
     if (q) url += `&q=${encodeURIComponent(q)}`;
     if (fromDate) url += `&fromDate=${encodeURIComponent(fromDate)}`;
     if (toDate) url += `&toDate=${encodeURIComponent(toDate)}`;
@@ -10297,28 +10312,38 @@
     tbody.innerHTML = `
       <tr>
         <td colspan="8" style="text-align:center; padding:32px; color:var(--muted);">
-          <div style="font-size:14px; font-weight:600;">Đang tải danh sách đơn hàng...</div>
+          <div style="font-size:14px; font-weight:600;"><i class="fas fa-spinner fa-spin" style="margin-right:6px;"></i>Đang tải danh sách đơn hàng...</div>
         </td>
       </tr>
     `;
 
     try {
-      const res = await fetch(url, { headers: getAuthHeaders() });
-      const result = await res.json();
+      const res = await fetch(url, { headers: getAuthHeaders(), credentials: 'include' });
+      let result;
+      try {
+        result = await res.json();
+      } catch (jsonErr) {
+        throw new Error(`Máy chủ phản hồi mã HTTP ${res.status}. Vui lòng thử lại.`);
+      }
 
       if (!res.ok || !result.success) {
         tbody.innerHTML = `
           <tr>
             <td colspan="8" style="text-align:center; padding:32px; color:var(--danger);">
               <div style="font-size:14px; font-weight:700;">Lỗi khi tải dữ liệu đơn mua</div>
-              <div style="font-size:12px; margin-top:4px;">${result.message || 'Vui lòng kiểm tra lại kết nối.'}</div>
+              <div style="font-size:12px; margin-top:4px;">${result?.message || 'Vui lòng kiểm tra lại kết nối.'}</div>
+              <button type="button" class="btn-action" style="margin-top:12px; padding:6px 14px; font-size:12px; background:var(--navy-900); color:#FFF;" onclick="loadCustomerOrders(${custOrderCurrentPage})">🔄 Thử lại</button>
             </td>
           </tr>
         `;
+        renderCustOrderPagination();
         return;
       }
 
       currentCustOrders = result.data || [];
+      custOrderTotalItems = result.totalCount !== undefined ? result.totalCount : currentCustOrders.length;
+      custOrderTotalPages = result.totalPages || Math.ceil(custOrderTotalItems / CUST_ORDER_LIMIT) || 1;
+
       const counts = result.counts || {
         all: 0, pending_payment: 0, delivering: 0, shipping: 0, completed: 0, cancelled: 0, returned: 0
       };
@@ -10545,6 +10570,7 @@
           </tr>
         `;
       }).join('');
+      renderCustOrderPagination();
 
     } catch (e) {
       console.error('Lỗi khi fetch đơn mua khách hàng:', e);
@@ -10552,10 +10578,65 @@
         <tr>
           <td colspan="8" style="text-align:center; padding:32px; color:var(--danger);">
             <div style="font-size:14px; font-weight:700;">Lỗi kết nối máy chủ khi lấy danh sách đơn hàng</div>
+            <div style="font-size:12px; margin-top:4px; color:var(--muted);">${e.message || 'Vui lòng kiểm tra lại kết nối.'}</div>
+            <button type="button" class="btn-action" style="margin-top:12px; padding:6px 14px; font-size:12px; background:var(--navy-900); color:#FFF;" onclick="loadCustomerOrders(${custOrderCurrentPage})">🔄 Thử lại</button>
           </td>
         </tr>
       `;
+      renderCustOrderPagination();
     }
+  }
+
+  // ============ PHÂN TRANG CHO DANH SÁCH ĐƠN HÀNG ============
+  function renderCustOrderPagination() {
+    const infoEl = document.getElementById('custOrderPaginationInfo');
+    const controlsEl = document.getElementById('custOrderPaginationControls');
+    if (!infoEl || !controlsEl) return;
+
+    if (custOrderTotalItems === 0 || currentCustOrders.length === 0) {
+      infoEl.innerHTML = 'Không có dữ liệu đơn hàng';
+      controlsEl.innerHTML = '';
+      return;
+    }
+
+    const startItem = (custOrderCurrentPage - 1) * CUST_ORDER_LIMIT + 1;
+    const endItem = Math.min(custOrderCurrentPage * CUST_ORDER_LIMIT, custOrderTotalItems);
+    infoEl.innerHTML = `Hiển thị <strong>${startItem} - ${endItem}</strong> trên <strong>${custOrderTotalItems.toLocaleString('vi-VN')}</strong> đơn (Trang <strong>${custOrderCurrentPage}</strong>/<strong>${custOrderTotalPages}</strong>)`;
+
+    if (custOrderTotalPages <= 1) {
+      controlsEl.innerHTML = '';
+      return;
+    }
+
+    let buttonsHtml = '';
+    buttonsHtml += `
+      <button type="button" class="btn-action" style="padding:4px 10px; font-size:12px; font-weight:600;" ${custOrderCurrentPage <= 1 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : `onclick="loadCustomerOrders(${custOrderCurrentPage - 1})"`}>
+        &laquo; Trước
+      </button>
+    `;
+
+    let startPage = Math.max(1, custOrderCurrentPage - 2);
+    let endPage = Math.min(custOrderTotalPages, startPage + 4);
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+      const isActive = (p === custOrderCurrentPage);
+      buttonsHtml += `
+        <button type="button" class="btn-action ${isActive ? 'active' : ''}" style="padding:4px 9px; font-size:12px; font-weight:700; ${isActive ? 'background:var(--navy-900); color:#FFF; border-color:var(--navy-900);' : ''}" onclick="loadCustomerOrders(${p})">
+          ${p}
+        </button>
+      `;
+    }
+
+    buttonsHtml += `
+      <button type="button" class="btn-action" style="padding:4px 10px; font-size:12px; font-weight:600;" ${custOrderCurrentPage >= custOrderTotalPages ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : `onclick="loadCustomerOrders(${custOrderCurrentPage + 1})"`}>
+        Sau &raquo;
+      </button>
+    `;
+
+    controlsEl.innerHTML = buttonsHtml;
   }
 
   // ============ MODAL CHI TIẾT & CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG ============
@@ -11159,9 +11240,10 @@
     if (document.getElementById('custOrderFromDate')) document.getElementById('custOrderFromDate').value = '';
     if (document.getElementById('custOrderToDate')) document.getElementById('custOrderToDate').value = '';
     activeOrderTab = 'all';
+    custOrderCurrentPage = 1;
     document.querySelectorAll('#custOrderFilterTabs .filter-chip').forEach(c => c.classList.remove('active'));
     document.querySelector('#custOrderFilterTabs .filter-chip[data-status="all"]')?.classList.add('active');
-    loadCustomerOrders();
+    loadCustomerOrders(1);
   }
 
   // Event listener for Status Filter Chips
@@ -11171,12 +11253,16 @@
     document.querySelectorAll('#custOrderFilterTabs .filter-chip').forEach(c => c.classList.remove('active'));
     chip.classList.add('active');
     activeOrderTab = chip.dataset.status || 'all';
-    loadCustomerOrders();
+    custOrderCurrentPage = 1;
+    loadCustomerOrders(1);
   });
 
   document.getElementById('custOrderSearchInput')?.addEventListener('input', () => {
     clearTimeout(window._custOrderSearchTimer);
-    window._custOrderSearchTimer = setTimeout(loadCustomerOrders, 300);
+    window._custOrderSearchTimer = setTimeout(() => {
+      custOrderCurrentPage = 1;
+      loadCustomerOrders(1);
+    }, 300);
   });
 
 

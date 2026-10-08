@@ -1440,44 +1440,136 @@ const rejectReturnOrder = async (req, res) => {
 // @access  Private (Staff, Admin, Accountant)
 const getCustomerOrders = async (req, res) => {
   try {
-    const { status, q, fromDate, toDate } = req.query;
+    const { status, q, fromDate, toDate, onlyCounts } = req.query;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
 
-    let filter = {};
+    // Pipeline gom nhóm đếm trạng thái cực nhanh trên Database engine
+    const countsAggPromise = Invoice.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalAll: { $sum: 1 },
+          pending_payment: {
+            $sum: {
+              $cond: [
+                { $in: ['$status', ['pending_confirmation', 'pending_payment', 'unpaid', 'pending']] },
+                1,
+                0
+              ]
+            }
+          },
+          delivering: {
+            $sum: {
+              $cond: [
+                { $in: ['$status', ['delivering', 'processing']] },
+                1,
+                0
+              ]
+            }
+          },
+          shipping: {
+            $sum: {
+              $cond: [
+                { $in: ['$status', ['shipping', 'shipped']] },
+                1,
+                0
+              ]
+            }
+          },
+          completed: {
+            $sum: {
+              $cond: [
+                { $in: ['$status', ['completed', 'paid', 'delivered']] },
+                1,
+                0
+              ]
+            }
+          },
+          cancelled: {
+            $sum: {
+              $cond: [
+                { $in: ['$status', ['cancelled', 'canceled']] },
+                1,
+                0
+              ]
+            }
+          },
+          returned: {
+            $sum: {
+              $cond: [
+                {
+                  $or: [
+                    { $in: ['$status', ['returned', 'return_requested', 'return_received', 'return_rejected']] },
+                    { $ifNull: ['$returnRequest.status', false] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    // Nếu client chỉ cần lấy số lượng counts để cập nhật badge thông báo
+    if (onlyCounts === 'true') {
+      const countsResult = await countsAggPromise;
+      const rawCounts = (countsResult && countsResult[0]) || {};
+      const counts = {
+        all: rawCounts.totalAll || 0,
+        pending_payment: rawCounts.pending_payment || 0,
+        pending_confirmation: rawCounts.pending_payment || 0,
+        delivering: rawCounts.delivering || 0,
+        shipping: rawCounts.shipping || 0,
+        completed: rawCounts.completed || 0,
+        cancelled: rawCounts.cancelled || 0,
+        returned: rawCounts.returned || 0,
+        return_process: rawCounts.returned || 0
+      };
+      return res.status(200).json({ success: true, counts });
+    }
+
+    // Xây dựng bộ lọc an toàn tránh xung đột $or
+    const andClauses = [];
 
     // 1. Lọc theo trạng thái
     if (status && status !== 'all') {
       const st = status.toLowerCase().trim();
       if (st === 'pending_payment' || st === 'pending_confirmation' || st === 'pending') {
-        filter.status = { $in: ['pending_confirmation', 'pending_payment', 'unpaid', 'pending'] };
+        andClauses.push({ status: { $in: ['pending_confirmation', 'pending_payment', 'unpaid', 'pending'] } });
       } else if (st === 'delivering' || st === 'processing') {
-        filter.status = { $in: ['delivering', 'processing'] };
+        andClauses.push({ status: { $in: ['delivering', 'processing'] } });
       } else if (st === 'shipping' || st === 'shipped') {
-        filter.status = { $in: ['shipping', 'shipped'] };
+        andClauses.push({ status: { $in: ['shipping', 'shipped'] } });
       } else if (st === 'completed' || st === 'delivered' || st === 'paid') {
-        filter.status = { $in: ['completed', 'paid', 'delivered'] };
+        andClauses.push({ status: { $in: ['completed', 'paid', 'delivered'] } });
       } else if (st === 'cancelled' || st === 'canceled') {
-        filter.status = { $in: ['cancelled', 'canceled'] };
+        andClauses.push({ status: { $in: ['cancelled', 'canceled'] } });
       } else if (st === 'returned' || st === 'return_process') {
-        filter.$or = [
-          { status: { $in: ['returned', 'return_requested', 'return_received', 'return_rejected'] } },
-          { 'returnRequest.status': { $exists: true, $ne: null } }
-        ];
+        andClauses.push({
+          $or: [
+            { status: { $in: ['returned', 'return_requested', 'return_received', 'return_rejected'] } },
+            { 'returnRequest.status': { $exists: true, $ne: null } }
+          ]
+        });
       } else {
-        filter.status = st;
+        andClauses.push({ status: st });
       }
     }
 
     // 2. Lọc theo khoảng ngày
     if (fromDate || toDate) {
-      filter.createdAt = {};
-      if (fromDate) {
-        filter.createdAt.$gte = new Date(fromDate);
-      }
+      const dateRange = {};
+      if (fromDate) dateRange.$gte = new Date(fromDate);
       if (toDate) {
         const end = new Date(toDate);
         end.setHours(23, 59, 59, 999);
-        filter.createdAt.$lte = end;
+        dateRange.$lte = end;
       }
+      andClauses.push({ createdAt: dateRange });
     }
 
     // 3. Tìm kiếm theo từ khóa (Mã đơn, Tên khách hàng, SĐT)
@@ -1485,37 +1577,41 @@ const getCustomerOrders = async (req, res) => {
       const cleanQ = q.trim();
       const escapedQ = cleanQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(escapedQ, 'i');
-      filter.$or = [
-        { invoiceCode: regex },
-        { customerName: regex },
-        { customerPhone: regex }
-      ];
+      andClauses.push({
+        $or: [
+          { invoiceCode: regex },
+          { customerName: regex },
+          { customerPhone: regex }
+        ]
+      });
     }
 
-    const orders = await Invoice.find(filter)
-      .populate('user', 'name email phone avatar')
-      .populate('items.book', 'title bookCode price category author coverImage')
-      .sort({ createdAt: -1 });
+    const filter = andClauses.length > 0 ? { $and: andClauses } : {};
 
-    // Tính tổng số lượng cho từng tab trạng thái
-    const allInvoices = await Invoice.find({});
-    const returnProcessCount = allInvoices.filter(i => {
-      const s = (i.status || '').toLowerCase().trim();
-      return ['returned', 'return_requested', 'return_received', 'return_rejected'].includes(s) || (i.returnRequest && i.returnRequest.status);
-    }).length;
+    const [countsResult, totalMatched, orders] = await Promise.all([
+      countsAggPromise,
+      Invoice.countDocuments(filter),
+      Invoice.find(filter)
+        .select('invoiceCode user customerName customerPhone customerAddress customerEmail orderType paymentMethod paymentStatus status returnRequest totalAmount discount coupon couponCode couponDiscount finalAmount items emailSent emailSentAt createdAt updatedAt')
+        .populate('user', 'name email phone avatar')
+        .populate('items.book', 'title bookCode price category author coverImage')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean()
+    ]);
 
-    const pendingConfirmationCount = allInvoices.filter(i => ['pending_confirmation', 'pending_payment', 'unpaid', 'pending'].includes(i.status)).length;
-
+    const rawCounts = (countsResult && countsResult[0]) || {};
     const counts = {
-      all: allInvoices.length,
-      pending_payment: pendingConfirmationCount,
-      pending_confirmation: pendingConfirmationCount,
-      delivering: allInvoices.filter(i => ['delivering', 'processing'].includes(i.status)).length,
-      shipping: allInvoices.filter(i => ['shipping', 'shipped'].includes(i.status)).length,
-      completed: allInvoices.filter(i => ['completed', 'paid', 'delivered'].includes(i.status)).length,
-      cancelled: allInvoices.filter(i => ['cancelled', 'canceled'].includes(i.status)).length,
-      returned: returnProcessCount,
-      return_process: returnProcessCount
+      all: rawCounts.totalAll || 0,
+      pending_payment: rawCounts.pending_payment || 0,
+      pending_confirmation: rawCounts.pending_payment || 0,
+      delivering: rawCounts.delivering || 0,
+      shipping: rawCounts.shipping || 0,
+      completed: rawCounts.completed || 0,
+      cancelled: rawCounts.cancelled || 0,
+      returned: rawCounts.returned || 0,
+      return_process: rawCounts.returned || 0
     };
 
     // Chuẩn hóa: nếu trạng thái là hoàn thành thì tiền phải luôn là 'paid'
@@ -1528,6 +1624,10 @@ const getCustomerOrders = async (req, res) => {
     res.status(200).json({
       success: true,
       count: orders.length,
+      totalCount: totalMatched,
+      page,
+      totalPages: Math.ceil(totalMatched / limit) || 1,
+      limit,
       counts,
       data: orders
     });
