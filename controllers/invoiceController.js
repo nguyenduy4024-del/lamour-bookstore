@@ -1805,7 +1805,7 @@ const getCustomerOrderDetail = async (req, res) => {
 const updateCustomerOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, note } = req.body;
+    const { status, note, paymentStatus, isPaidByCustomer } = req.body;
 
     const allowedStatuses = ['pending_confirmation', 'pending_payment', 'delivering', 'shipping', 'completed', 'cancelled', 'returned'];
     if (!status || !allowedStatuses.includes(status)) {
@@ -1824,36 +1824,52 @@ const updateCustomerOrderStatus = async (req, res) => {
     }
 
     const prevStatus = order.status;
+    const prevPaymentStatus = order.paymentStatus;
     order.status = (status === 'paid') ? 'completed' : status;
 
     if (note && note.trim()) {
       order.paymentNote = (order.paymentNote ? order.paymentNote + ' | ' : '') + `[${new Date().toLocaleDateString('vi-VN')}]: ${note.trim()}`;
     }
 
+    const pMethod = (order.paymentMethod || '').toLowerCase();
+
     // RÀNG BUỘC NGHIỆP VỤ:
-    // 1. Khi trạng thái là completed -> BẮT BUỘC paymentStatus là 'paid'
-    // 2. Khi trạng thái là pending_payment / pending_confirmation:
+    // 1. Khi trạng thái là completed HOẶC khi nhân viên chủ động duyệt thanh toán (paymentStatus = 'paid' / isPaidByCustomer = true):
+    //    -> BẮT BUỘC paymentStatus là 'paid', isPaidByCustomer = true
+    // 2. Khi trạng thái là delivering / shipping:
+    //    - Nếu khách thanh toán online (chuyển khoản, MoMo, thẻ, POS) hoặc đã được xác nhận thanh toán:
+    //      order.paymentStatus = 'paid'; order.isPaidByCustomer = true;
+    // 3. Khi trạng thái là pending_payment / pending_confirmation:
     //    - Nếu khách chuyển khoản QR (isPaidByCustomer), paymentStatus giữ 'pending_verification'
     //    - Ngược lại paymentStatus là 'unpaid'
-    if (['completed', 'paid'].includes(status)) {
+    if (['completed', 'paid'].includes(status) || paymentStatus === 'paid' || isPaidByCustomer === true) {
       order.paymentStatus = 'paid';
-      order.status = 'completed';
-    } else if (status === 'pending_payment' || status === 'pending_confirmation') {
-      if (!order.isPaidByCustomer) {
-        order.paymentStatus = 'unpaid';
+      order.isPaidByCustomer = true;
+      if (status === 'paid') {
+        order.status = 'completed';
       }
     } else if (['delivering', 'shipping'].includes(status)) {
-      if (order.paymentMethod === 'transfer' || order.paymentMethod === 'card' || order.paymentMethod === 'MoMo') {
+      if (['transfer', 'banking', 'card', 'pos', 'momo'].includes(pMethod) || order.isPaidByCustomer) {
         order.paymentStatus = 'paid';
+        order.isPaidByCustomer = true;
+      }
+    } else if (status === 'pending_payment' || status === 'pending_confirmation') {
+      if (!order.isPaidByCustomer && order.paymentStatus !== 'paid') {
+        order.paymentStatus = 'unpaid';
       }
     }
 
-    // Tự động ghi nhận Phiếu Thu vào Sổ Quỹ nếu đơn hàng hoàn tất hoặc đã thanh toán
-    if (['completed', 'paid'].includes(status) || (['delivering', 'shipping'].includes(status) && order.paymentStatus === 'paid')) {
+    // Tự động ghi nhận Phiếu Thu vào Sổ Quỹ nếu đơn hàng hoàn tất hoặc đã thanh toán thành công
+    if (order.paymentStatus === 'paid' || ['completed', 'paid'].includes(order.status)) {
       await recordOrderIncomeTransaction(order, req.user);
     }
 
     await order.save();
+
+    // Tự động gửi email hóa đơn / cập nhật cho khách hàng nếu có email
+    if (['delivering', 'completed'].includes(order.status) && (order.customerEmail || order.user)) {
+      sendInvoiceEmailAsync(order._id);
+    }
 
     // Tự động hoàn trả lại tồn kho nếu đơn hàng chuyển sang trạng thái hủy (cancelled)
     if (order.status === 'cancelled' && prevStatus !== 'cancelled') {
@@ -1875,7 +1891,8 @@ const updateCustomerOrderStatus = async (req, res) => {
       targetLabel: `Đơn #${order.invoiceCode}`,
       description: `Cập nhật trạng thái đơn #${order.invoiceCode} từ [${prevStatus}] sang [${order.status}] (${Number(order.finalAmount || order.totalAmount || 0).toLocaleString('vi-VN')} đ)${note ? ` - Ghi chú: ${note}` : ''}`,
       diff: [
-        { field: 'status', fieldLabel: 'Trạng thái đơn hàng', oldValue: prevStatus, newValue: order.status }
+        { field: 'status', fieldLabel: 'Trạng thái đơn hàng', oldValue: prevStatus, newValue: order.status },
+        { field: 'paymentStatus', fieldLabel: 'Trạng thái thanh toán', oldValue: prevPaymentStatus, newValue: order.paymentStatus }
       ]
     });
 
@@ -1885,7 +1902,7 @@ const updateCustomerOrderStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: `Đã cập nhật trạng thái đơn hàng sang "${status}" thành công!`,
+      message: `Đã cập nhật trạng thái đơn hàng sang "${order.status}" thành công!`,
       data: populatedOrder
     });
   } catch (error) {

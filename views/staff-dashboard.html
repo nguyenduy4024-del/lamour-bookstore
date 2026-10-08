@@ -10991,10 +10991,17 @@
     }
 
     try {
+      const payload = { status: newStatus, note };
+      if (newStatus === 'completed') {
+        payload.paymentStatus = 'paid';
+        payload.isPaidByCustomer = true;
+      }
+
       const res = await fetch(`/api/admin/customer-orders/${selectedAdminOrder._id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus, note })
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify(payload)
       });
 
       const result = await res.json();
@@ -11012,11 +11019,23 @@
   }
 
   async function quickVerifyPayment(orderId) {
+    const confirmOk = await showCustomConfirm(
+      'Xác nhận đơn hàng đã nhận đủ tiền thanh toán và chuyển sang trạng thái "Chờ giao hàng"?',
+      'Xác nhận duyệt thanh toán'
+    );
+    if (!confirmOk) return;
+
     try {
       const res = await fetch(`/api/admin/customer-orders/${orderId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'delivering', note: 'Nhân viên thu ngân duyệt thanh toán đơn hàng' })
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({
+          status: 'delivering',
+          paymentStatus: 'paid',
+          isPaidByCustomer: true,
+          note: 'Nhân viên thu ngân duyệt thanh toán đơn hàng'
+        })
       });
 
       const result = await res.json();
@@ -11033,16 +11052,35 @@
   }
 
   async function quickUpdateStatus(orderId, nextStatus) {
+    if (nextStatus === 'completed') {
+      const confirmOk = await showCustomConfirm(
+        'Xác nhận đơn hàng ĐÃ GIAO THÀNH CÔNG cho khách hàng? Hệ thống sẽ chuyển trạng thái HOÀN THÀNH và chốt doanh thu vào Sổ Quỹ.',
+        'Xác nhận đã giao hàng'
+      );
+      if (!confirmOk) return;
+    }
+
     try {
+      const payload = {
+        status: nextStatus,
+        note: nextStatus === 'completed' ? 'Nhân viên xác nhận đơn hàng đã giao thành công' : 'Chuyển trạng thái đơn hàng'
+      };
+      if (nextStatus === 'completed') {
+        payload.paymentStatus = 'paid';
+        payload.isPaidByCustomer = true;
+      }
+
       const res = await fetch(`/api/admin/customer-orders/${orderId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: nextStatus })
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
+        body: JSON.stringify(payload)
       });
 
       const result = await res.json();
       if (res.ok && result.success) {
-        showCustomToast('success', 'Đã chuyển trạng thái', `Đơn hàng đã được chuyển sang trạng thái "${nextStatus}".`);
+        const statusLabel = nextStatus === 'completed' ? 'Đã giao thành công' : (nextStatus === 'shipping' ? 'Đang giao hàng' : nextStatus);
+        showCustomToast('success', 'Đã chuyển trạng thái', `Đơn hàng đã được chuyển sang "${statusLabel}".`);
         loadCustomerOrders();
       } else {
         showCustomToast('error', 'Lỗi cập nhật', result.message || 'Không thể chuyển trạng thái.');
@@ -11128,7 +11166,8 @@
     try {
       const res = await fetch(`/api/orders/${selectedInspectOrderId}/return-inspect-approve`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
         body: JSON.stringify({ inspectionNote: note })
       });
       const result = await res.json();
@@ -11162,7 +11201,8 @@
     try {
       const res = await fetch(`/api/orders/${selectedInspectOrderId}/return-reject`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
         body: JSON.stringify({ reason: note })
       });
       const result = await res.json();
@@ -11189,7 +11229,8 @@
     try {
       const res = await fetch(`/api/orders/${orderId}/return-receive`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include'
       });
       const result = await res.json();
       if (res.ok && result.success) {
@@ -11219,7 +11260,8 @@
     try {
       const res = await fetch(`/api/orders/${orderId}/return-reject`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
         body: JSON.stringify({ reason: reason.trim() })
       });
       const result = await res.json();
