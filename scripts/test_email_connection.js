@@ -18,9 +18,13 @@ async function main() {
   console.log('Tài khoản gửi (SMTP_USER):', report.smtpUser);
   console.log('Máy chủ gửi (SMTP_HOST):', report.smtpHost);
   console.log('Mật khẩu ứng dụng hợp lệ:', report.hasPassword ? `Đã cấu hình (${report.passwordLength} ký tự)` : 'Chưa cấu hình!');
-  console.log('Môi trường Render Cloud:', report.isRender ? 'Có (Cần chú ý chính sách chặn cổng SMTP của Render)' : 'Không (Local/VPS)');
+  console.log('Môi trường Render Cloud:', report.isRender ? 'Có (Render Free Tier chặn các cổng SMTP)' : 'Không (Localhost / VPS)');
+  console.log('Kênh gửi ưu tiên:', report.activeHttpProvider ? `🚀 ${report.activeHttpProvider} (HTTPS Port 443)` : '📡 SMTP Direct');
   console.log('Cấu hình Resend API:', report.hasResendApiKey ? 'Đã kích hoạt' : 'Chưa cấu hình');
   console.log('Cấu hình Brevo API:', report.hasBrevoApiKey ? 'Đã kích hoạt' : 'Chưa cấu hình');
+  console.log('Cấu hình SendGrid API:', report.hasSendGridApiKey ? 'Đã kích hoạt' : 'Chưa cấu hình');
+  console.log('Cấu hình Mailgun API:', report.hasMailgunApiKey ? 'Đã kích hoạt' : 'Chưa cấu hình');
+  console.log('💡 Khuyến nghị:', report.recommendation);
   console.log('----------------------------------------------------');
 
   console.log('\n2. Kết quả kiểm tra kết nối các cổng SMTP:');

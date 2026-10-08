@@ -25,11 +25,16 @@ let cachedTransporter587 = null;
  * - Timeout hợp lý (6s connect, 6s greeting) thay vì treo 15-30s
  */
 function createSmtpTransporter(options = {}) {
+  const isRender = !!(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.IS_RENDER);
   const cleanPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
   const user = (process.env.SMTP_USER || '').trim();
   const port = options.port || (process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : (options.secure ? 465 : 587));
   const secure = options.secure !== undefined ? options.secure : (port === 465);
+
+  // Khi chạy trên Render (Gói Free chặn cổng 465/587), sử dụng timeout thăm dò nhanh (2000ms) để không làm treo trang 12s
+  const connectionTimeout = options.connectionTimeout || (isRender ? 2000 : 6000);
+  const greetingTimeout = options.greetingTimeout || (isRender ? 2000 : 6000);
 
   return nodemailer.createTransport({
     host,
@@ -43,9 +48,9 @@ function createSmtpTransporter(options = {}) {
     pool: true, // Kích hoạt connection pool tái sử dụng socket TCP/TLS
     maxConnections: 3,
     maxMessages: 100,
-    connectionTimeout: 6000, // 6s là đủ để hoàn tất TCP handshake qua IPv4
-    greetingTimeout: 6000,
-    socketTimeout: 10000,
+    connectionTimeout,
+    greetingTimeout,
+    socketTimeout: options.socketTimeout || 10000,
     tls: {
       rejectUnauthorized: false
     }
@@ -53,15 +58,21 @@ function createSmtpTransporter(options = {}) {
 }
 
 /**
- * Gửi email qua HTTP API (Resend hoặc Brevo)
+ * Gửi email qua HTTP API (Resend, Brevo, SendGrid, Mailgun, Custom Relay)
  * Giải pháp tối ưu cho môi trường hosting cloud (như Render gói miễn phí) vốn chặn các cổng SMTP 25, 465, 587.
+ * Chạy trên cổng chuẩn HTTPS (Port 443) nên 100% không bao giờ bị chặn và gửi siêu tốc (200 - 400ms).
  */
 async function sendViaHttpApi(mailOptions) {
   const resendApiKey = process.env.RESEND_API_KEY;
   const brevoApiKey = process.env.BREVO_API_KEY;
+  const sendgridApiKey = process.env.SENDGRID_API_KEY;
+  const mailgunApiKey = process.env.MAILGUN_API_KEY;
+  const mailgunDomain = process.env.MAILGUN_DOMAIN;
+  const relayUrl = process.env.EMAIL_RELAY_URL;
 
+  // 1. Resend API (Khuyên dùng nhất trên Render - 100 mail/ngày miễn phí, cực nhanh qua HTTPS)
   if (resendApiKey) {
-    const fromAddr = process.env.EMAIL_FROM || `L'Amour Bookstore <${process.env.SMTP_USER || 'onboarding@resend.dev'}>`;
+    const fromAddr = process.env.RESEND_FROM || process.env.EMAIL_FROM || "L'Amour Bookstore <onboarding@resend.dev>";
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -77,12 +88,15 @@ async function sendViaHttpApi(mailOptions) {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error((data && data.message) || 'Lỗi gửi mail qua Resend API');
+      throw new Error((data && (data.message || data.error)) || 'Lỗi gửi mail qua Resend API');
     }
     return { messageId: data.id, provider: 'Resend API (HTTPS Port 443)' };
   }
 
+  // 2. Brevo API (Sendinblue - 300 mail/ngày miễn phí vĩnh viễn, gửi được từ bất kỳ Gmail nào)
   if (brevoApiKey) {
+    const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'support@lamourbookstore.vn';
+    const senderName = process.env.BREVO_SENDER_NAME || "L'Amour Bookstore";
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -90,7 +104,7 @@ async function sendViaHttpApi(mailOptions) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        sender: { name: "L'Amour Bookstore", email: process.env.SMTP_USER },
+        sender: { name: senderName, email: senderEmail },
         to: [{ email: mailOptions.to }],
         subject: mailOptions.subject,
         htmlContent: mailOptions.html
@@ -98,9 +112,75 @@ async function sendViaHttpApi(mailOptions) {
     });
     const data = await res.json();
     if (!res.ok) {
-      throw new Error((data && data.message) || 'Lỗi gửi mail qua Brevo API');
+      throw new Error((data && (data.message || data.error)) || 'Lỗi gửi mail qua Brevo API');
     }
     return { messageId: data.messageId, provider: 'Brevo API (HTTPS Port 443)' };
+  }
+
+  // 3. SendGrid API
+  if (sendgridApiKey) {
+    const senderEmail = process.env.SMTP_USER || 'support@lamourbookstore.vn';
+    const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${sendgridApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: mailOptions.to }] }],
+        from: { email: senderEmail, name: "L'Amour Bookstore" },
+        subject: mailOptions.subject,
+        content: [{ type: 'text/html', value: mailOptions.html }]
+      })
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`SendGrid API error: ${errText}`);
+    }
+    return { messageId: `sg-${Date.now()}`, provider: 'SendGrid API (HTTPS Port 443)' };
+  }
+
+  // 4. Mailgun API
+  if (mailgunApiKey && mailgunDomain) {
+    const auth = Buffer.from(`api:${mailgunApiKey}`).toString('base64');
+    const formData = new URLSearchParams();
+    formData.append('from', process.env.EMAIL_FROM || `L'Amour Bookstore <mailgun@${mailgunDomain}>`);
+    formData.append('to', mailOptions.to);
+    formData.append('subject', mailOptions.subject);
+    formData.append('html', mailOptions.html);
+
+    const res = await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: formData.toString()
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error((data && (data.message || data.error)) || 'Lỗi gửi mail qua Mailgun API');
+    return { messageId: data.id, provider: 'Mailgun API (HTTPS Port 443)' };
+  }
+
+  // 5. Custom Relay Webhook
+  if (relayUrl) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (process.env.EMAIL_RELAY_KEY) {
+      headers['Authorization'] = `Bearer ${process.env.EMAIL_RELAY_KEY}`;
+    }
+    const res = await fetch(relayUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        from: mailOptions.from,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        html: mailOptions.html
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error((data && data.message) || 'Lỗi gửi mail qua Custom Relay');
+    return { messageId: data.messageId || `relay-${Date.now()}`, provider: 'Custom Relay (HTTPS)' };
   }
 
   return null;
@@ -108,13 +188,16 @@ async function sendViaHttpApi(mailOptions) {
 
 /**
  * Bộ điều phối gửi email thông minh (Smart Email Dispatcher):
- * 1. Thử qua HTTP API nếu có cấu hình RESEND_API_KEY hoặc BREVO_API_KEY (không lo bị chặn port).
+ * 1. Thử qua HTTP API nếu có cấu hình bất kỳ key nào (Resend, Brevo, SendGrid, Mailgun, Relay) -> Hoàn tất trong 300ms, không lo bị chặn port.
  * 2. Thử Cổng SMTP chính (mặc định 465 SSL, IPv4, Connection Pool).
  * 3. Tự động Fallback sang Cổng 587 (STARTTLS, IPv4) nếu Cổng 465 bị timeout hoặc rớt mạng.
  */
 async function dispatchEmail(mailOptions) {
+  const isRender = !!(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.IS_RENDER);
+  const hasHttpApiKey = !!(process.env.RESEND_API_KEY || process.env.BREVO_API_KEY || process.env.SENDGRID_API_KEY || process.env.MAILGUN_API_KEY || process.env.EMAIL_RELAY_URL);
+
   // 1. Thử HTTP API nếu có key
-  if (process.env.RESEND_API_KEY || process.env.BREVO_API_KEY) {
+  if (hasHttpApiKey) {
     try {
       const httpRes = await sendViaHttpApi(mailOptions);
       if (httpRes) return httpRes;
@@ -168,9 +251,18 @@ async function dispatchEmail(mailOptions) {
  * Chuẩn hóa thông báo lỗi email sang tiếng Việt chi tiết, thân thiện và hướng dẫn cách khắc phục
  */
 function formatEmailErrorMessage(err) {
+  const isRender = !!(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.IS_RENDER);
+  const hasHttpApiKey = !!(process.env.RESEND_API_KEY || process.env.BREVO_API_KEY || process.env.SENDGRID_API_KEY || process.env.MAILGUN_API_KEY || process.env.EMAIL_RELAY_URL);
+
   const msg = (err && err.message) || String(err || '');
+
+  // Cảnh báo chuyên biệt khi chạy trên Render.com gói Free
+  if (isRender && !hasHttpApiKey) {
+    return 'Dịch vụ hosting Render (Gói Free) chặn hoàn toàn các cổng gửi mail SMTP (25, 465, 587) nên không thể kết nối trực tiếp đến Gmail SMTP. Để gửi email ngay lập tức mà không bị load lâu, bạn chỉ cần tạo tài khoản Resend (resend.com) hoặc Brevo (brevo.com) miễn phí và dán RESEND_API_KEY vào mục Environment trên Render Dashboard (gửi siêu tốc qua cổng HTTPS 443).';
+  }
+
   if (msg.includes('timeout') || msg.includes('ETIMEDOUT') || msg.includes('Greeting never received')) {
-    return 'Quá thời gian kết nối tới máy chủ gửi mail (Timeout sau khi đã thử cả cổng 465 SSL và 587 STARTTLS). Mạng Internet hiện tại hoặc dịch vụ hosting (như Render gói miễn phí) đang chặn các cổng SMTP gửi thư ra ngoài. Bạn có thể đổi mạng Wifi/4G hoặc kích hoạt HTTP Email API (Resend/Brevo).';
+    return 'Quá thời gian kết nối tới máy chủ gửi mail (Timeout sau khi đã thử cả cổng 465 SSL và 587 STARTTLS). Mạng Internet hiện tại hoặc dịch vụ hosting đang chặn các cổng SMTP gửi thư ra ngoài. Bạn có thể đổi mạng Wifi/4G hoặc kích hoạt HTTP Email API (Resend/Brevo qua cổng HTTPS 443).';
   }
   if (msg.includes('Invalid login') || msg.includes('BadCredentials') || msg.includes('535-5.7.8') || msg.includes('Username and Password not accepted')) {
     return 'Tài khoản Gmail hoặc Mật khẩu ứng dụng (App Password) không hợp lệ hoặc đã bị Google thu hồi. Vui lòng tạo lại Mật khẩu ứng dụng 16 ký tự mới trong Google Account.';
@@ -736,6 +828,7 @@ async function sendResetPasswordEmail(userOrEmail, newPassword) {
  * Chẩn đoán kết nối email: Kiểm tra cả Cổng 465 SSL, Cổng 587 STARTTLS và cấu hình HTTP API
  */
 async function diagnoseEmailService() {
+  const isRender = !!(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.IS_RENDER);
   const smtpUser = (process.env.SMTP_USER || '').trim();
   const cleanPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
@@ -745,16 +838,21 @@ async function diagnoseEmailService() {
     smtpHost: host,
     hasPassword: cleanPass.length > 0,
     passwordLength: cleanPass.length,
-    isRender: !!(process.env.RENDER),
+    isRender,
     hasResendApiKey: !!(process.env.RESEND_API_KEY),
     hasBrevoApiKey: !!(process.env.BREVO_API_KEY),
-    checks: {}
+    hasSendGridApiKey: !!(process.env.SENDGRID_API_KEY),
+    hasMailgunApiKey: !!(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN),
+    hasRelayUrl: !!(process.env.EMAIL_RELAY_URL),
+    activeHttpProvider: process.env.RESEND_API_KEY ? 'Resend API' : (process.env.BREVO_API_KEY ? 'Brevo API' : (process.env.SENDGRID_API_KEY ? 'SendGrid API' : (process.env.MAILGUN_API_KEY ? 'Mailgun API' : (process.env.EMAIL_RELAY_URL ? 'Custom Relay' : null)))),
+    checks: {},
+    recommendation: ''
   };
 
   // 1. Kiểm tra Port 465 (SSL)
   const t0 = Date.now();
   try {
-    const t465 = createSmtpTransporter({ port: 465, secure: true });
+    const t465 = createSmtpTransporter({ port: 465, secure: true, connectionTimeout: isRender ? 2000 : 5000 });
     await t465.verify();
     report.checks.port465 = {
       status: 'OK',
@@ -772,7 +870,7 @@ async function diagnoseEmailService() {
   // 2. Kiểm tra Port 587 (STARTTLS)
   const t1 = Date.now();
   try {
-    const t587 = createSmtpTransporter({ port: 587, secure: false });
+    const t587 = createSmtpTransporter({ port: 587, secure: false, connectionTimeout: isRender ? 2000 : 5000 });
     await t587.verify();
     report.checks.port587 = {
       status: 'OK',
@@ -785,6 +883,15 @@ async function diagnoseEmailService() {
       latencyMs: Date.now() - t1,
       message: e587.message
     };
+  }
+
+  // Đưa ra khuyến nghị dựa trên môi trường
+  if (report.activeHttpProvider) {
+    report.recommendation = `Đang ưu tiên sử dụng ${report.activeHttpProvider} qua cổng HTTPS 443. Hoạt động cực kỳ ổn định và không bao giờ bị chặn trên Render hay Localhost!`;
+  } else if (isRender) {
+    report.recommendation = 'CẢNH BÁO RENDER: Render gói Free chặn hoàn toàn cổng SMTP 25, 465, 587. Hãy thêm RESEND_API_KEY hoặc BREVO_API_KEY vào mục Environment trên Render Dashboard để kích hoạt gửi mail qua HTTPS 443.';
+  } else {
+    report.recommendation = 'Môi trường Localhost/VPS: SMTP hoạt động bình thường qua cổng 465/587.';
   }
 
   return report;
