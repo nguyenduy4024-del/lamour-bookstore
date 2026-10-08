@@ -341,20 +341,133 @@ const createInvoice = async (req, res) => {
 // @desc    Lấy tất cả hóa đơn (Admin & Staff)
 // @route   GET /api/invoices
 // @access  Private (Admin, Staff)
+// Bộ nhớ đệm tóm tắt KPI toàn bộ hóa đơn (30s)
+let invoiceSummaryCache = { data: null, timestamp: 0 };
+
 const getAllInvoices = async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = req.query.all === 'true' ? 1000 : Math.min(200, Math.max(1, parseInt(req.query.limit) || 100));
     const skip = (page - 1) * limit;
 
+    // Xây dựng điều kiện lọc linh hoạt
+    const filterConditions = [];
+
+    // 1. Lọc theo trạng thái
+    const statusParam = (req.query.status || '').trim().toLowerCase();
+    if (statusParam && statusParam !== 'all') {
+      if (statusParam === 'completed' || statusParam === 'paid') {
+        filterConditions.push({ status: { $in: ['completed', 'paid'] } });
+      } else if (statusParam === 'cancelled' || statusParam === 'canceled') {
+        filterConditions.push({ status: { $in: ['cancelled', 'canceled'] } });
+      } else if (statusParam === 'pending' || statusParam === 'pending_confirmation') {
+        filterConditions.push({ status: { $in: ['pending_confirmation', 'pending_payment', 'pending'] } });
+      } else if (statusParam === 'shipping' || statusParam === 'delivering') {
+        filterConditions.push({ status: { $in: ['shipping', 'delivering'] } });
+      } else if (statusParam === 'unpaid' || statusParam === 'debt') {
+        filterConditions.push({
+          $or: [
+            { status: { $in: ['unpaid', 'overdue', 'pending_confirmation', 'pending_payment', 'shipping'] } },
+            { paymentStatus: 'pending', status: { $ne: 'cancelled' } }
+          ]
+        });
+      } else {
+        filterConditions.push({ status: statusParam });
+      }
+    }
+
+    // 2. Tìm kiếm theo mã HĐ, tên khách hàng hoặc SĐT
+    const searchParam = (req.query.search || req.query.q || '').trim();
+    if (searchParam) {
+      const reg = new RegExp(searchParam, 'i');
+      filterConditions.push({
+        $or: [
+          { invoiceCode: reg },
+          { customerName: reg },
+          { customerPhone: reg }
+        ]
+      });
+    }
+
+    const queryMatch = filterConditions.length > 0 ? { $and: filterConditions } : {};
+
+    // 3. Tính toán hoặc lấy từ cache Summary KPI toàn hệ thống
+    const now = Date.now();
+    let summary = invoiceSummaryCache.data;
+    if (!summary || (now - invoiceSummaryCache.timestamp > 30000)) {
+      const summaryAgg = await Invoice.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalCount: { $sum: 1 },
+            totalAmount: { $sum: '$totalAmount' },
+            completedCount: {
+              $sum: { $cond: [{ $in: ['$status', ['completed', 'paid']] }, 1, 0] }
+            },
+            completedAmount: {
+              $sum: { $cond: [{ $in: ['$status', ['completed', 'paid']] }, '$totalAmount', 0] }
+            },
+            pendingCount: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $ne: ['$status', 'cancelled'] },
+                      { $in: ['$status', ['pending_confirmation', 'shipping', 'pending_payment', 'unpaid', 'delivering']] }
+                    ]
+                  },
+                  1,
+                  0
+                ]
+              }
+            },
+            pendingAmount: {
+              $sum: {
+                $cond: [
+                  {
+                    $and: [
+                      { $ne: ['$status', 'cancelled'] },
+                      { $in: ['$status', ['pending_confirmation', 'shipping', 'pending_payment', 'unpaid', 'delivering']] }
+                    ]
+                  },
+                  { $ifNull: ['$finalAmount', '$totalAmount'] },
+                  0
+                ]
+              }
+            },
+            cancelledCount: {
+              $sum: { $cond: [{ $in: ['$status', ['cancelled', 'canceled']] }, 1, 0] }
+            },
+            cancelledAmount: {
+              $sum: { $cond: [{ $in: ['$status', ['cancelled', 'canceled']] }, '$totalAmount', 0] }
+            }
+          }
+        }
+      ]);
+
+      const s = summaryAgg[0] || {};
+      summary = {
+        totalCount: s.totalCount || 0,
+        totalAmount: s.totalAmount || 0,
+        completedCount: s.completedCount || 0,
+        completedAmount: s.completedAmount || 0,
+        pendingCount: s.pendingCount || 0,
+        pendingAmount: s.pendingAmount || 0,
+        cancelledCount: s.cancelledCount || 0,
+        cancelledAmount: s.cancelledAmount || 0
+      };
+      invoiceSummaryCache = { data: summary, timestamp: now };
+    }
+
+    // 4. Lấy danh sách hóa đơn theo filter & pagination
     const [invoices, total] = await Promise.all([
-      Invoice.find()
+      Invoice.find(queryMatch)
         .select('invoiceCode customerName customerPhone customerAddress orderType paymentMethod paymentStatus status returnRequest totalAmount finalAmount createdAt')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Invoice.countDocuments()
+      Invoice.countDocuments(queryMatch)
     ]);
 
     res.status(200).json({
@@ -363,6 +476,7 @@ const getAllInvoices = async (req, res) => {
       total,
       totalPages: Math.ceil(total / limit) || 1,
       currentPage: page,
+      summary,
       data: invoices
     });
   } catch (error) {

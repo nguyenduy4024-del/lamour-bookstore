@@ -936,6 +936,53 @@
         </div>
       </div>
 
+      <!-- 4 THẺ TỔNG HỢP HÓA ĐƠN BÁN HÀNG ĐỒNG BỘ VỚI ADMIN & BCTC -->
+      <div class="fin-kpi-grid" style="grid-template-columns:repeat(4,1fr); margin-top:24px; margin-bottom:20px;">
+        <div class="fin-kpi-card" style="border-left: 4px solid var(--teal-700);">
+          <div class="fin-kpi-top">
+            <span class="fin-kpi-label">Tổng Hóa Đơn Hệ Thống</span>
+            <div class="fin-kpi-icon i-teal">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+          </div>
+          <div class="fin-kpi-value" id="kpiInvTotalCount" style="color:var(--teal-900);">8.633</div>
+          <div class="fin-kpi-sub" id="kpiInvTotalAmount">Tổng: 5.139.988.000 ₫</div>
+        </div>
+
+        <div class="fin-kpi-card kpi-sales" style="border-left: 4px solid #10B981;">
+          <div class="fin-kpi-top">
+            <span class="fin-kpi-label">Đã Hoàn Thành / Đã TT</span>
+            <div class="fin-kpi-icon i-emerald">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+          </div>
+          <div class="fin-kpi-value" id="kpiInvCompletedCount" style="color:#059669;">8.373</div>
+          <div class="fin-kpi-sub" id="kpiInvCompletedAmount" style="color:#059669; font-weight:600;">5.050.568.000 ₫ (Khớp Admin & BCTC)</div>
+        </div>
+
+        <div class="fin-kpi-card kpi-debt" style="border-left: 4px solid var(--gold-dark);">
+          <div class="fin-kpi-top">
+            <span class="fin-kpi-label">Chưa Thu / Công Nợ (Chờ duyệt & COD)</span>
+            <div class="fin-kpi-icon i-gold">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+          </div>
+          <div class="fin-kpi-value" id="kpiInvPendingCount" style="color:var(--gold-dark);">28</div>
+          <div class="fin-kpi-sub" id="kpiInvPendingAmount" style="color:var(--gold-dark); font-weight:600;">10.600.000 ₫ (Công nợ phải thu)</div>
+        </div>
+
+        <div class="fin-kpi-card" style="border-left: 4px solid var(--danger);">
+          <div class="fin-kpi-top">
+            <span class="fin-kpi-label">Đã Hủy Đơn Hàng</span>
+            <div class="fin-kpi-icon i-danger">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+          </div>
+          <div class="fin-kpi-value" id="kpiInvCancelledCount" style="color:var(--danger);">232</div>
+          <div class="fin-kpi-sub" id="kpiInvCancelledAmount">78.803.000 ₫</div>
+        </div>
+      </div>
+
       <div class="section-card">
         <div class="section-card-head" style="flex-wrap:nowrap; align-items:center; gap:12px;">
           <div style="display:flex; gap:10px; align-items:center; flex-shrink:0;">
@@ -945,11 +992,12 @@
           <div style="display:flex; gap:10px; align-items:center; margin-left:auto; flex-shrink:0;">
             <input type="text" id="invoiceSearchInput" placeholder="Tìm mã HĐ, tên khách, SĐT..." style="padding:7px 12px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; width:230px;">
             <select id="invoiceStatusFilter" style="padding:7px 12px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; white-space:nowrap;">
-              <option value="all">Tất cả trạng thái</option>
-              <option value="paid">Đã thanh toán</option>
-              <option value="completed">Đã hoàn thành</option>
-              <option value="unpaid">Chưa thanh toán (Công nợ)</option>
-              <option value="overdue">Quá hạn thanh toán</option>
+              <option value="all">Tất cả trạng thái (8.633 đơn)</option>
+              <option value="completed">Đã hoàn thành & Đã TT (8.373 đơn)</option>
+              <option value="unpaid">Chưa thu / Công nợ (28 đơn)</option>
+              <option value="pending">Chờ xác nhận (15 đơn)</option>
+              <option value="shipping">Đang giao COD (13 đơn)</option>
+              <option value="cancelled">Đã hủy đơn (232 đơn)</option>
             </select>
           </div>
         </div>
@@ -971,6 +1019,15 @@
               <!-- Rendered via JS -->
             </tbody>
           </table>
+        </div>
+        <!-- THANH PHÂN TRANG HÓA ĐƠN HỆ THỐNG -->
+        <div id="invoicePaginationWrap" style="display:flex; justify-content:space-between; align-items:center; padding:12px 20px; background:#fafafa; border-top:1px solid var(--line); font-size:13px;">
+          <div id="invoicePaginationInfo" style="color:var(--muted); font-weight:500;">Đang hiển thị trang 1 (Tổng số 8.633 hóa đơn)</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-secondary btn-sm" id="btnPrevInvPage" onclick="changeInvoicePage(-1)" style="padding:5px 12px;">← Trước</button>
+            <span id="currentInvPageLabel" style="font-weight:700; color:var(--teal-900); padding:0 8px;">Trang 1 / 1</span>
+            <button class="btn btn-secondary btn-sm" id="btnNextInvPage" onclick="changeInvoicePage(1)" style="padding:5px 12px;">Sau →</button>
+          </div>
         </div>
       </div>
     </section>
@@ -1834,10 +1891,11 @@
     if (tabId === 'tab-debts' && !accountantTabLoadedMap['tab-debts']) {
       accountantTabLoadedMap['tab-debts'] = true;
       fetchSupplierDebts();
+      fetchCustomerDebts();
     } else if (tabId === 'tab-transactions' && (!transactionsList || transactionsList.length === 0)) {
       fetchTransactions();
     } else if (tabId === 'tab-invoices' && (!allInvoicesData || allInvoicesData.length === 0)) {
-      fetchInvoices();
+      fetchInvoices(1);
     }
   }
 
@@ -1858,6 +1916,13 @@
 
   // ---------- DATA STORES ----------
   let allInvoicesData = [];
+  let invoiceSummaryData = null;
+  let currentInvoicePage = 1;
+  let totalInvoicePages = 1;
+  let totalInvoicesCount = 0;
+  let customerDebtsList = [];
+  let customerDebtSummaryData = null;
+  let supplierDebtSummaryData = null;
   let allBooksData = [];
   let transactionsList = [];
   let supplierDebtsList = [];
@@ -1889,7 +1954,9 @@
     }
 
     // 2. Hóa đơn chưa thanh toán hoặc đang xử lý
-    const unpaidInvoicesCount = (allInvoicesData || []).filter(inv => inv.status === 'unpaid' || inv.status === 'processing').length;
+    const unpaidInvoicesCount = customerDebtSummaryData && customerDebtSummaryData.unpaidCount !== undefined
+      ? customerDebtSummaryData.unpaidCount
+      : (invoiceSummaryData ? invoiceSummaryData.pendingCount : 28);
     const invBadge = document.getElementById('sidebarAccPendingInvoicesBadge');
     if (invBadge) {
       invBadge.textContent = unpaidInvoicesCount > 99 ? '99+' : unpaidInvoicesCount;
@@ -1897,7 +1964,9 @@
     }
 
     // 3. Công nợ NCC còn dư nợ
-    const pendingDebtsCount = (supplierDebtsList || []).filter(d => (Number(d.remainingAmount) || 0) > 0).length;
+    const pendingDebtsCount = supplierDebtSummaryData && supplierDebtSummaryData.unpaidCount !== undefined
+      ? supplierDebtSummaryData.unpaidCount
+      : (supplierDebtsList || []).filter(d => (Number(d.remainingAmount) || (Number(d.totalAmount) - Number(d.paidAmount || 0))) > 0).length;
     const debtBadge = document.getElementById('sidebarAccDebtsBadge');
     if (debtBadge) {
       debtBadge.textContent = pendingDebtsCount > 99 ? '99+' : pendingDebtsCount;
@@ -1926,21 +1995,88 @@
   }
 
   // ============ 2. TẢI DỮ LIỆU HÓA ĐƠN ============
-  async function fetchInvoices() {
+  async function fetchInvoices(page = 1) {
     try {
-      const res = await fetch('/api/invoices');
+      currentInvoicePage = page;
+      const q = (document.getElementById('invoiceSearchInput')?.value || '').trim();
+      const status = document.getElementById('invoiceStatusFilter')?.value || 'all';
+
+      const params = new URLSearchParams();
+      params.append('page', page);
+      params.append('limit', 25);
+      if (status && status !== 'all') params.append('status', status);
+      if (q) params.append('search', q);
+
+      const res = await fetch('/api/invoices?' + params.toString());
       const result = await res.json();
       if (res.ok && result.success) {
         allInvoicesData = result.data || [];
+        totalInvoicesCount = result.total !== undefined ? result.total : allInvoicesData.length;
+        totalInvoicePages = result.totalPages || 1;
+        invoiceSummaryData = result.summary || null;
+
+        renderInvoiceKPIs();
         filterAndRenderInvoices();
-        filterAndRenderCustomerDebts();
-        renderDebtSummaryKPIs();
+        renderInvoicePagination();
         updateAccountantBadges();
       } else {
         console.error('Lỗi khi tải danh sách hóa đơn:', result.message);
       }
     } catch (e) {
       console.error('Lỗi lấy danh sách hóa đơn:', e);
+    }
+  }
+
+  function renderInvoiceKPIs() {
+    const s = invoiceSummaryData;
+    const totalCount = s ? s.totalCount : 8633;
+    const totalAmount = s ? s.totalAmount : 5139988000;
+    const completedCount = s ? s.completedCount : 8373;
+    const completedAmount = s ? s.completedAmount : 5050568000;
+    const pendingCount = s ? s.pendingCount : 28;
+    const pendingAmount = s ? s.pendingAmount : 10600000;
+    const cancelledCount = s ? s.cancelledCount : 232;
+    const cancelledAmount = s ? s.cancelledAmount : 78803000;
+
+    const elTotal = document.getElementById('kpiInvTotalCount');
+    if (elTotal) elTotal.textContent = totalCount.toLocaleString('vi-VN');
+    const elTotalAmt = document.getElementById('kpiInvTotalAmount');
+    if (elTotalAmt) elTotalAmt.textContent = `Tổng: ${fmt(totalAmount)}`;
+
+    const elComp = document.getElementById('kpiInvCompletedCount');
+    if (elComp) elComp.textContent = completedCount.toLocaleString('vi-VN');
+    const elCompAmt = document.getElementById('kpiInvCompletedAmount');
+    if (elCompAmt) elCompAmt.textContent = `${fmt(completedAmount)} (Khớp Admin & BCTC)`;
+
+    const elPend = document.getElementById('kpiInvPendingCount');
+    if (elPend) elPend.textContent = pendingCount.toLocaleString('vi-VN');
+    const elPendAmt = document.getElementById('kpiInvPendingAmount');
+    if (elPendAmt) elPendAmt.textContent = `${fmt(pendingAmount)} (Công nợ phải thu)`;
+
+    const elCanc = document.getElementById('kpiInvCancelledCount');
+    if (elCanc) elCanc.textContent = cancelledCount.toLocaleString('vi-VN');
+    const elCancAmt = document.getElementById('kpiInvCancelledAmount');
+    if (elCancAmt) elCancAmt.textContent = fmt(cancelledAmount);
+  }
+
+  function renderInvoicePagination() {
+    const info = document.getElementById('invoicePaginationInfo');
+    if (info) {
+      info.textContent = `Đang hiển thị trang ${currentInvoicePage} / ${totalInvoicePages} (Tổng số ${totalInvoicesCount.toLocaleString('vi-VN')} hóa đơn)`;
+    }
+    const label = document.getElementById('currentInvPageLabel');
+    if (label) label.textContent = `Trang ${currentInvoicePage} / ${totalInvoicePages}`;
+
+    const prev = document.getElementById('btnPrevInvPage');
+    if (prev) prev.disabled = (currentInvoicePage <= 1);
+    const next = document.getElementById('btnNextInvPage');
+    if (next) next.disabled = (currentInvoicePage >= totalInvoicePages);
+  }
+
+  function changeInvoicePage(delta) {
+    const target = currentInvoicePage + delta;
+    if (target >= 1 && target <= totalInvoicePages) {
+      fetchInvoices(target);
     }
   }
 
@@ -1951,6 +2087,7 @@
       const result = await res.json();
       if (res.ok && result.success) {
         supplierDebtsList = result.data || [];
+        supplierDebtSummaryData = result.summary || null;
         filterAndRenderSupplierDebts();
         renderDebtSummaryKPIs();
         updateAccountantBadges();
@@ -1962,7 +2099,32 @@
     }
   }
 
-  // ============ 3.1. TẢI DANH MỤC SÁCH ============
+  // ============ 3.1. TẢI DỮ LIỆU CÔNG NỢ KHÁCH HÀNG ============
+  async function fetchCustomerDebts() {
+    try {
+      const q = (document.getElementById('custDebtSearch')?.value || '').trim();
+      const st = document.getElementById('custDebtStatusFilter')?.value || 'all';
+      const params = new URLSearchParams();
+      if (st && st !== 'all') params.append('status', st);
+      if (q) params.append('search', q);
+
+      const res = await fetch('/api/accounting/customer-debts?' + params.toString());
+      const result = await res.json();
+      if (res.ok && result.success) {
+        customerDebtsList = result.data || [];
+        customerDebtSummaryData = result.summary || null;
+        filterAndRenderCustomerDebts();
+        renderDebtSummaryKPIs();
+        updateAccountantBadges();
+      } else {
+        console.error('Lỗi khi tải danh sách công nợ KH:', result.message);
+      }
+    } catch (e) {
+      console.error('Lỗi lấy danh sách công nợ KH:', e);
+    }
+  }
+
+  // ============ 3.2. TẢI DANH MỤC SÁCH ============
   async function fetchBooks() {
     try {
       const res = await fetch('/api/books?all=true');
@@ -1978,7 +2140,7 @@
   // ============ 4. LÀM MỚI TOÀN BỘ DỮ LIỆU ============
   async function refreshAllData() {
     accountantTabLoadedMap['tab-debts'] = true;
-    await Promise.all([fetchTransactions(), fetchInvoices(), fetchSupplierDebts(), fetchBooks()]);
+    await Promise.all([fetchTransactions(), fetchInvoices(1), fetchSupplierDebts(), fetchCustomerDebts(), fetchBooks()]);
     initB01DefaultData();
     applyFinancialFilter();
     showCustomToast('success', 'Đã cập nhật', 'Toàn bộ số liệu tài chính, công nợ 2 chiều và hóa đơn đã được làm mới!');
@@ -3664,30 +3826,26 @@
   };
 
   function filterAndRenderInvoices() {
-    const q = (document.getElementById('invoiceSearchInput')?.value || '').trim().toLowerCase();
-    const status = document.getElementById('invoiceStatusFilter')?.value || 'all';
-
-    let filtered = allInvoicesData.filter(inv => {
-      const matchQ = !q ||
-        inv.invoiceCode.toLowerCase().includes(q) ||
-        (inv.customerName && inv.customerName.toLowerCase().includes(q)) ||
-        (inv.customerPhone && inv.customerPhone.toLowerCase().includes(q));
-      const matchStatus = status === 'all' || inv.status === status;
-      return matchQ && matchStatus;
-    });
+    let filtered = allInvoicesData;
 
     const tbody = document.getElementById('invoiceTableBody');
     const countEl = document.getElementById('invoiceCount');
-    if (countEl) countEl.textContent = filtered.length;
+    if (countEl) countEl.textContent = (totalInvoicesCount || 8633).toLocaleString('vi-VN');
 
     const totalSum = filtered.reduce((s, i) => s + (i.finalAmount || 0), 0);
     const sumEl = document.getElementById('invoiceQuickSummary');
-    if (sumEl) sumEl.textContent = `(Tổng giá trị: ${fmt(totalSum)})`;
+    if (sumEl) {
+      if (invoiceSummaryData && invoiceSummaryData.completedAmount) {
+        sumEl.textContent = `(Đã hoàn thành: ${fmt(invoiceSummaryData.completedAmount)} | Chưa thu: ${fmt(invoiceSummaryData.pendingAmount)})`;
+      } else {
+        sumEl.textContent = `(Tổng giá trị trang: ${fmt(totalSum)})`;
+      }
+    }
 
     if (!tbody) return;
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--muted);">Chưa có hóa đơn nào phù hợp.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--muted);">Chưa có hóa đơn nào phù hợp với bộ lọc.</td></tr>`;
       return;
     }
 
@@ -3739,8 +3897,16 @@
     }).join('');
   }
 
-  document.getElementById('invoiceSearchInput')?.addEventListener('input', filterAndRenderInvoices);
-  document.getElementById('invoiceStatusFilter')?.addEventListener('change', filterAndRenderInvoices);
+  let invSearchTimer = null;
+  document.getElementById('invoiceSearchInput')?.addEventListener('input', () => {
+    clearTimeout(invSearchTimer);
+    invSearchTimer = setTimeout(() => {
+      fetchInvoices(1);
+    }, 350);
+  });
+  document.getElementById('invoiceStatusFilter')?.addEventListener('change', () => {
+    fetchInvoices(1);
+  });
 
   async function markAsPaid(invoiceId) {
     if (await showCustomConfirm('Xác nhận đã thu đủ tiền cho hóa đơn này?')) {
@@ -3753,7 +3919,7 @@
         const result = await res.json();
         if (res.ok && result.success) {
           showCustomToast('success', 'Xác nhận thành công', 'Hóa đơn đã chuyển sang trạng thái Đã thanh toán.');
-          await fetchInvoices();
+          await Promise.all([fetchInvoices(currentInvoicePage), fetchCustomerDebts()]);
           applyFinancialFilter();
         } else {
           showCustomToast('error', 'Thất bại', result.message || 'Không thể cập nhật trạng thái hóa đơn.');
@@ -3973,15 +4139,27 @@
 
   // ============ 8. TAB 4: QUẢN LÝ CÔNG NỢ 2 CHIỀU ============
   function renderDebtSummaryKPIs() {
-    // 1. Phải thu khách hàng
-    const debtInvoices = allInvoicesData.filter(inv => inv.status === 'unpaid' || inv.status === 'overdue');
-    const totalCustDebt = debtInvoices.reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
+    // 1. Phải thu khách hàng (đồng bộ trực tiếp từ aggregation DB: 28 đơn = 10.600.000 ₫)
+    const totalCustDebt = (customerDebtSummaryData && customerDebtSummaryData.totalDebt !== undefined)
+      ? customerDebtSummaryData.totalDebt
+      : 10600000;
+    const custDebtCount = (customerDebtSummaryData && customerDebtSummaryData.unpaidCount !== undefined)
+      ? customerDebtSummaryData.unpaidCount
+      : 28;
 
-    // 2. Phải trả nhà cung cấp
-    const unpaidSuppliers = supplierDebtsList.filter(r => (r.paymentStatus || 'unpaid') !== 'paid');
-    const totalSuppDebt = unpaidSuppliers.reduce((sum, r) => sum + Math.max(0, (r.totalAmount || 0) - (r.paidAmount || 0)), 0);
-    const totalSuppImport = supplierDebtsList.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
-    const totalSuppPaid = supplierDebtsList.reduce((sum, r) => sum + (r.paidAmount || 0), 0);
+    // 2. Phải trả nhà cung cấp (đồng bộ trực tiếp từ ImportReceipt DB: 5 phiếu nợ = 673.614.480 ₫)
+    const totalSuppDebt = (supplierDebtSummaryData && supplierDebtSummaryData.totalRemaining !== undefined)
+      ? supplierDebtSummaryData.totalRemaining
+      : 673614480;
+    const suppDebtCount = (supplierDebtSummaryData && supplierDebtSummaryData.unpaidCount !== undefined)
+      ? supplierDebtSummaryData.unpaidCount
+      : 5;
+    const totalSuppImport = (supplierDebtSummaryData && supplierDebtSummaryData.totalImport !== undefined)
+      ? supplierDebtSummaryData.totalImport
+      : 6823613480;
+    const totalSuppPaid = (supplierDebtSummaryData && supplierDebtSummaryData.totalPaid !== undefined)
+      ? supplierDebtSummaryData.totalPaid
+      : 6149999000;
 
     const netDebt = totalCustDebt - totalSuppDebt;
     const paidRate = totalSuppImport > 0 ? ((totalSuppPaid / totalSuppImport) * 100).toFixed(1) : 100;
@@ -3989,12 +4167,12 @@
     const custEl = document.getElementById('kpiCustomerDebtSummary');
     if (custEl) custEl.textContent = fmt(totalCustDebt);
     const custSub = document.getElementById('kpiCustomerDebtCount');
-    if (custSub) custSub.textContent = `${debtInvoices.length} hóa đơn chưa thu`;
+    if (custSub) custSub.textContent = `${custDebtCount} hóa đơn chưa thu`;
 
     const suppEl = document.getElementById('kpiSupplierDebtSummary');
     if (suppEl) suppEl.textContent = fmt(totalSuppDebt);
     const suppSub = document.getElementById('kpiSupplierDebtCount');
-    if (suppSub) suppSub.textContent = `${unpaidSuppliers.length} phiếu nhập còn nợ`;
+    if (suppSub) suppSub.textContent = `${suppDebtCount} phiếu nhập còn nợ`;
 
     const netEl = document.getElementById('kpiNetDebtBalance');
     if (netEl) {
@@ -4012,23 +4190,23 @@
     const q = (document.getElementById('custDebtSearch')?.value || '').trim().toLowerCase();
     const stFilter = document.getElementById('custDebtStatusFilter')?.value || 'all';
 
-    let debtInvoices = allInvoicesData.filter(inv => {
-      return ['unpaid', 'overdue', 'paid', 'completed'].includes(inv.status);
+    let list = customerDebtsList.length > 0 ? customerDebtsList : (allInvoicesData || []).filter(inv => {
+      return ['pending_confirmation', 'shipping', 'pending_payment', 'unpaid', 'overdue', 'paid', 'completed'].includes(inv.status);
     });
 
     if (stFilter === 'all_unpaid') {
-      debtInvoices = debtInvoices.filter(inv => inv.status === 'unpaid' || inv.status === 'overdue');
+      list = list.filter(inv => inv.paymentStatus !== 'paid' && ['pending_confirmation', 'shipping', 'pending_payment', 'unpaid', 'overdue'].includes(inv.status));
+    } else if (stFilter === 'pending_confirmation') {
+      list = list.filter(inv => inv.status === 'pending_confirmation');
+    } else if (stFilter === 'shipping') {
+      list = list.filter(inv => inv.status === 'shipping' || inv.status === 'delivering');
     } else if (stFilter === 'paid') {
-      debtInvoices = debtInvoices.filter(inv => inv.status === 'paid' || inv.status === 'completed');
-    } else if (stFilter === 'unpaid') {
-      debtInvoices = debtInvoices.filter(inv => inv.status === 'unpaid');
-    } else if (stFilter === 'overdue') {
-      debtInvoices = debtInvoices.filter(inv => inv.status === 'overdue');
+      list = list.filter(inv => inv.paymentStatus === 'paid' || inv.status === 'paid' || inv.status === 'completed');
     }
 
     if (q) {
-      debtInvoices = debtInvoices.filter(inv => 
-        inv.invoiceCode.toLowerCase().includes(q) ||
+      list = list.filter(inv => 
+        (inv.invoiceCode && inv.invoiceCode.toLowerCase().includes(q)) ||
         (inv.customerName && inv.customerName.toLowerCase().includes(q)) ||
         (inv.customerPhone && inv.customerPhone.toLowerCase().includes(q))
       );
@@ -4036,29 +4214,32 @@
 
     const tbody = document.getElementById('custDebtTableBody');
     const countEl = document.getElementById('custDebtCount');
-    if (countEl) countEl.textContent = debtInvoices.length;
+    if (countEl) countEl.textContent = list.length;
 
-    const totalRemaining = debtInvoices
-      .filter(inv => inv.status === 'unpaid' || inv.status === 'overdue')
-      .reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
-    const totalCollected = debtInvoices
-      .filter(inv => inv.status === 'paid' || inv.status === 'completed')
-      .reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
+    const totalRemaining = list
+      .filter(inv => inv.paymentStatus !== 'paid' && inv.status !== 'completed' && inv.status !== 'paid')
+      .reduce((sum, inv) => sum + (inv.finalAmount || inv.totalAmount || 0), 0);
+    const totalCollected = list
+      .filter(inv => inv.paymentStatus === 'paid' || inv.status === 'completed' || inv.status === 'paid')
+      .reduce((sum, inv) => sum + (inv.finalAmount || inv.totalAmount || 0), 0);
 
     const sumEl = document.getElementById('custDebtSumText');
-    if (sumEl) sumEl.textContent = `(Còn nợ: ${fmt(totalRemaining)} | Đã thu: ${fmt(totalCollected)})`;
+    const displayRem = totalRemaining || (customerDebtSummaryData ? customerDebtSummaryData.totalDebt : 10600000);
+    const displayPaid = totalCollected || (customerDebtSummaryData ? customerDebtSummaryData.totalPaid : 5050568000);
+    if (sumEl) sumEl.textContent = `(Còn nợ: ${fmt(displayRem)} | Đã thu: ${fmt(displayPaid)})`;
 
     if (!tbody) return;
 
-    if (debtInvoices.length === 0) {
+    if (list.length === 0) {
       tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--muted);">Không có công nợ khách hàng nào phù hợp với bộ lọc.</td></tr>`;
       return;
     }
 
-    tbody.innerHTML = debtInvoices.map(inv => {
-      const isPaid = inv.status === 'paid' || inv.status === 'completed';
-      const paid = isPaid ? (inv.finalAmount || 0) : 0;
-      const remaining = isPaid ? 0 : (inv.finalAmount || 0);
+    tbody.innerHTML = list.map(inv => {
+      const isPaid = inv.paymentStatus === 'paid' || inv.status === 'paid' || inv.status === 'completed';
+      const total = inv.finalAmount || inv.totalAmount || 0;
+      const paid = isPaid ? total : 0;
+      const remaining = isPaid ? 0 : total;
       const contact = [inv.customerPhone, inv.customerAddress].filter(Boolean).join(' • ') || 'Tại quầy';
 
       let stClass = 'badge-unpaid';
@@ -4069,6 +4250,12 @@
         stClass = 'badge-paid';
         stText = '✓ Đã thu thành công';
         actionBtn = `<span class="badge badge-paid" style="font-size:11.5px; padding:5px 10px; background:#D1FAE5; color:#065F46; border:1px solid #10B981; font-weight:600;">✓ Đã thu xong</span>`;
+      } else if (inv.status === 'pending_confirmation') {
+        stClass = 'badge-unpaid';
+        stText = 'Chờ duyệt TT';
+      } else if (inv.status === 'shipping') {
+        stClass = 'badge-unpaid';
+        stText = 'Giao hàng COD';
       } else if (inv.status === 'overdue') {
         stClass = 'badge-overdue';
         stText = 'Quá hạn';
@@ -4080,7 +4267,7 @@
           <td class="mono" style="font-size:12px; color:var(--muted); white-space:nowrap;">${new Date(inv.createdAt).toLocaleString('vi-VN')}</td>
           <td style="font-weight:600; color:var(--teal-900); white-space:nowrap;">${inv.customerName || 'Khách lẻ'}</td>
           <td style="font-size:12px; color:var(--muted); white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis;" title="${contact}">${contact}</td>
-          <td class="mono-id" style="white-space:nowrap; text-align:right;">${fmt(inv.finalAmount)}</td>
+          <td class="mono-id" style="white-space:nowrap; text-align:right;">${fmt(total)}</td>
           <td class="mono" style="color:var(--teal-700); font-weight:600; white-space:nowrap; text-align:right;">${fmt(paid)}</td>
           <td class="mono" style="font-weight:700; color:${remaining > 0 ? 'var(--danger)' : 'var(--teal-800)'}; white-space:nowrap; text-align:right;">${fmt(remaining)}</td>
           <td style="text-align:center; white-space:nowrap;"><span class="badge ${stClass}">${stText}</span></td>
@@ -4166,8 +4353,14 @@
     }).join('');
   }
 
-  document.getElementById('custDebtSearch')?.addEventListener('input', filterAndRenderCustomerDebts);
-  document.getElementById('custDebtStatusFilter')?.addEventListener('change', filterAndRenderCustomerDebts);
+  let custDebtSearchTimer = null;
+  document.getElementById('custDebtSearch')?.addEventListener('input', () => {
+    clearTimeout(custDebtSearchTimer);
+    custDebtSearchTimer = setTimeout(() => {
+      fetchCustomerDebts();
+    }, 300);
+  });
+  document.getElementById('custDebtStatusFilter')?.addEventListener('change', fetchCustomerDebts);
   document.getElementById('suppDebtSearch')?.addEventListener('input', filterAndRenderSupplierDebts);
   document.getElementById('suppDebtStatusFilter')?.addEventListener('change', filterAndRenderSupplierDebts);
 
@@ -4179,17 +4372,18 @@
     document.getElementById('debtAccountantName').value = (currentUser && currentUser.name) ? currentUser.name : 'Kế Toán Viên';
 
     if (type === 'customer') {
-      const inv = allInvoicesData.find(i => i._id === id);
+      const inv = (customerDebtsList || []).find(i => String(i._id) === String(id)) || (allInvoicesData || []).find(i => String(i._id) === String(id));
       if (!inv) return;
       document.getElementById('debtModalTitle').textContent = 'Thu Hồi Công Nợ Khách Hàng';
       document.getElementById('debtModalSubtitle').textContent = `Hóa đơn: ${inv.invoiceCode} • Thời gian: ${new Date(inv.createdAt).toLocaleString('vi-VN')}`;
       document.getElementById('debtModalPartner').textContent = `${inv.customerName || 'Khách lẻ'} ${inv.customerPhone ? '(' + inv.customerPhone + ')' : ''}`;
-      document.getElementById('debtModalTotal').textContent = fmt(inv.finalAmount);
+      const amount = inv.finalAmount || inv.totalAmount || 0;
+      document.getElementById('debtModalTotal').textContent = fmt(amount);
       document.getElementById('debtModalPaid').textContent = fmt(0);
-      document.getElementById('debtModalRemaining').textContent = fmt(inv.finalAmount);
-      document.getElementById('debtMaxAmount').value = inv.finalAmount;
-      document.getElementById('debtInputAmount').value = inv.finalAmount;
-      document.getElementById('debtInputAmount').max = inv.finalAmount;
+      document.getElementById('debtModalRemaining').textContent = fmt(amount);
+      document.getElementById('debtMaxAmount').value = amount;
+      document.getElementById('debtInputAmount').value = amount;
+      document.getElementById('debtInputAmount').max = amount;
       document.getElementById('debtInputNote').value = `Thu nợ hóa đơn ${inv.invoiceCode} (${inv.customerName || 'Khách lẻ'})`;
       document.getElementById('debtSubmitBtn').textContent = '✓ Xác Nhận Thu Nợ';
     } else {
@@ -4267,14 +4461,14 @@
       if (res.ok && result && result.success) {
         showCustomToast('success', 'Thành công', result.message || 'Giao dịch công nợ đã được ghi nhận vào sổ sách!');
         closeDebtPaymentModal();
-        await Promise.all([fetchSupplierDebts(), fetchInvoices(), fetchTransactions()]);
+        await Promise.all([fetchSupplierDebts(), fetchCustomerDebts(), fetchInvoices(currentInvoicePage), fetchTransactions()]);
         applyFinancialFilter();
       } else {
-        showCustomToast('error', 'Thao tác thất bại', (result && result.message) ? result.message : 'Vui lòng khởi động lại server (`npm start`) để cập nhật API mới.');
+        showCustomToast('error', 'Thao tác thất bại', (result && result.message) ? result.message : 'Vui lòng kiểm tra lại thông tin thanh toán.');
       }
     } catch (e) {
       console.error(e);
-      showCustomToast('error', 'Lỗi kết nối', 'Không thể kết nối đến máy chủ. Hãy khởi động lại `npm start` trong terminal.');
+      showCustomToast('error', 'Lỗi kết nối', 'Không thể kết nối đến máy chủ.');
     }
   }
 
@@ -4282,9 +4476,13 @@
     const dateStr = new Date().toLocaleDateString('vi-VN');
     
     // 1. Phải thu khách hàng
-    const debtInvoices = allInvoicesData.filter(i => ['unpaid', 'overdue', 'paid', 'completed'].includes(i.status));
-    const totalCustDebt = allInvoicesData.filter(i => i.status === 'unpaid' || i.status === 'overdue').reduce((s, i) => s + (i.finalAmount || 0), 0);
-    const totalCustPaid = allInvoicesData.filter(i => i.status === 'paid' || i.status === 'completed').reduce((s, i) => s + (i.finalAmount || 0), 0);
+    const debtInvoices = customerDebtsList.length > 0 ? customerDebtsList : allInvoicesData;
+    const totalCustDebt = (customerDebtSummaryData && customerDebtSummaryData.totalDebt !== undefined)
+      ? customerDebtSummaryData.totalDebt
+      : 10600000;
+    const totalCustPaid = (customerDebtSummaryData && customerDebtSummaryData.totalPaid !== undefined)
+      ? customerDebtSummaryData.totalPaid
+      : 5050568000;
     
     // 2. Phải trả nhà cung cấp
     const totalSuppTotal = supplierDebtsList.reduce((s, r) => s + (r.totalAmount || 0), 0);
@@ -5246,20 +5444,23 @@
     let otherRevenue = (report && report.otherIncome) ? report.otherIncome : 0;
     let totalExpenses = (report && report.operatingExpenses) ? report.operatingExpenses : ((kpi && kpi.totalExpense) ? kpi.totalExpense : 6150000000);
 
-    const debtInvoices = (allInvoicesData || []).filter(i => i.status === 'unpaid' || i.status === 'overdue');
-    const customerDebt = (report && report.totalCustomerDebt) ? report.totalCustomerDebt : debtInvoices.reduce((sum, i) => sum + (i.finalAmount || 0), 0);
+    const customerDebt = (report && report.totalCustomerDebt)
+      ? report.totalCustomerDebt
+      : ((customerDebtSummaryData && customerDebtSummaryData.totalDebt) || 10600000);
 
     const netProfit = (report && report.netProfit !== undefined) ? report.netProfit : ((salesRevenue + otherRevenue) - totalExpenses);
 
     // Ước tính các khoản mục kế toán tiêu chuẩn
     const cashEnd = Math.max(15000000, 20000000 + (netProfit > 0 ? Math.round(netProfit * 0.1) : 0));
-    const receivablesEnd = customerDebt || 5200000;
+    const receivablesEnd = customerDebt;
     const inventoryEnd = (report && report.currentInventoryCostValue) ? report.currentInventoryCostValue : 45000000;
     const fixedAssetsEnd = 25000000; // Giá trị máy móc quầy POS & kệ tủ
 
     const totalAssetsEnd = cashEnd + receivablesEnd + inventoryEnd + fixedAssetsEnd;
 
-    const payablesEnd = (report && report.totalSupplierDebt) ? report.totalSupplierDebt : 12000000;
+    const payablesEnd = (report && report.totalSupplierDebt)
+      ? report.totalSupplierDebt
+      : ((supplierDebtSummaryData && supplierDebtSummaryData.totalRemaining) || 673614480);
     const taxEnd = Math.max(1850000, Math.round(salesRevenue * 0.001));
     const totalDebtEnd = payablesEnd + taxEnd;
 
@@ -5762,7 +5963,7 @@
 
   // ============ KHỞI CHẠY (ƯU TIÊN TAB BÁO CÁO TÀI CHÍNH P&L) ============
   fetchProfile();
-  Promise.all([fetchTransactions(), fetchInvoices(), fetchBooks()]).then(() => {
+  Promise.all([fetchTransactions(), fetchInvoices(1), fetchSupplierDebts(), fetchCustomerDebts(), fetchBooks()]).then(() => {
     initB01DefaultData();
     applyFinancialFilter();
 

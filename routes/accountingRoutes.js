@@ -14,6 +14,7 @@ const {
   rejectTransaction,
   getFinancialReport,
   getSupplierDebts,
+  getCustomerDebts,
   paySupplierDebt,
   payCustomerDebt,
   getAccountingBadgeCounts
@@ -77,6 +78,7 @@ router.get('/supplier-debts', getSupplierDebts);
 router.post('/supplier-debts/:id/pay', paySupplierDebt);
 
 // Quản lý công nợ Khách hàng
+router.get('/customer-debts', getCustomerDebts);
 router.post('/customer-debts/:id/pay', payCustomerDebt);
 
 module.exports = router;
