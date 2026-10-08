@@ -5318,10 +5318,23 @@
   let lastCompletedInvoice = null;
   let lastCompletedItems = [];
 
+  // ============ AUTH HEADERS HELPER ============
+  function getAuthHeaders(extra = {}) {
+    const headers = { ...extra };
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    if (token && token !== 'null' && token !== 'undefined') {
+      headers['Authorization'] = 'Bearer ' + token;
+    }
+    return headers;
+  }
+
   // ============ FETCH USER PROFILE ============
   async function fetchProfile() {
     try {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/auth/me', {
+        headers: getAuthHeaders(),
+        credentials: 'include'
+      });
       const data = await res.json();
       if (res.ok && data._id) {
         currentUser = data;
@@ -5336,23 +5349,13 @@
     }
   }
 
-  // ============ AUTH HEADERS HELPER ============
-  function getAuthHeaders(extra = {}) {
-    const headers = { ...extra };
-    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-    if (token && token !== 'null' && token !== 'undefined') {
-      headers['Authorization'] = 'Bearer ' + token;
-    }
-    return headers;
-  }
-
   // ============ FETCH SÁCH & KHÁCH HÀNG & HÓA ĐƠN CA ============
   async function fetchData() {
     try {
       const [bRes, cRes, iRes] = await Promise.all([
-        fetch('/api/books'),
+        fetch('/api/books', { headers: getAuthHeaders(), credentials: 'include' }),
         fetch('/api/users/customers', { headers: getAuthHeaders(), credentials: 'include' }),
-        fetch('/api/invoices')
+        fetch('/api/invoices', { headers: getAuthHeaders(), credentials: 'include' })
       ]);
 
       const [bData, cData, iData] = await Promise.all([
