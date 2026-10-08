@@ -1417,18 +1417,32 @@ const getCustomers = async (req, res) => {
     }
 
     const filter = conditions.length > 1 ? { $and: conditions } : conditions[0];
-    const customers = await User.find(filter).select('-password').sort({ createdAt: -1 });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = req.query.all === 'true' ? 500 : Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
 
-    // Aggregate purchase metrics from Invoice collection
+    const [customers, total] = await Promise.all([
+      User.find(filter)
+        .select('-password')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      User.countDocuments(filter)
+    ]);
+
+    // Aggregate purchase metrics from Invoice collection for the current page of customers
     const customerIds = customers.map(c => c._id);
     const customerPhones = customers.map(c => c.phone).filter(Boolean);
 
-    const invoices = await Invoice.find({
-      $or: [
-        { user: { $in: customerIds } },
-        { customerPhone: { $in: customerPhones } }
-      ]
-    }).select('user customerPhone finalAmount totalAmount status createdAt paymentStatus');
+    const invoices = (customerIds.length > 0 || customerPhones.length > 0)
+      ? await Invoice.find({
+          $or: [
+            ...(customerIds.length > 0 ? [{ user: { $in: customerIds } }] : []),
+            ...(customerPhones.length > 0 ? [{ customerPhone: { $in: customerPhones } }] : [])
+          ]
+        }).select('user customerPhone finalAmount totalAmount status createdAt paymentStatus').lean()
+      : [];
 
     const customerStatsMap = {};
     for (const inv of invoices) {
@@ -1494,6 +1508,9 @@ const getCustomers = async (req, res) => {
     res.status(200).json({
       success: true,
       count: result.length,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+      currentPage: page,
       data: result
     });
   } catch (error) {

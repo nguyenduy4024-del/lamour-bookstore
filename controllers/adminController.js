@@ -3,6 +3,16 @@ const Book = require('../models/Book');
 const User = require('../models/User');
 const Category = require('../models/Category');
 const AuditReceipt = require('../models/AuditReceipt');
+const ImportReceipt = require('../models/ImportReceipt');
+const ExportReceipt = require('../models/ExportReceipt');
+const Transaction = require('../models/Transaction');
+const BookHideRequest = require('../models/BookHideRequest');
+const SupplierSuspendRequest = require('../models/SupplierSuspendRequest');
+const ShelfCreateRequest = require('../models/ShelfCreateRequest');
+const ShelfMaintenanceRequest = require('../models/ShelfMaintenanceRequest');
+const ShelfTransferRequest = require('../models/ShelfTransferRequest');
+const ShelfActivityLog = require('../models/ShelfActivityLog');
+const AuditLog = require('../models/AuditLog');
 
 // Helper escape regex
 function escapeRegex(str) {
@@ -11,10 +21,12 @@ function escapeRegex(str) {
 
 // In-memory cache để tăng tốc tải trang tức thì (< 10ms) khi F5 / chuyển tab
 let overviewCache = { data: null, timestamp: 0 };
+let badgeCountsCache = { data: null, timestamp: 0 };
 const analyticsCache = new Map();
 
 function clearAdminAnalyticsCache() {
   overviewCache = { data: null, timestamp: 0 };
+  badgeCountsCache = { data: null, timestamp: 0 };
   analyticsCache.clear();
 }
 
@@ -777,8 +789,86 @@ setTimeout(async () => {
   }
 }, 3000);
 
+// @desc    Lấy tổng hợp tất cả các số thông báo / huy hiệu (Badge Counts) cho Admin trong 1 request duy nhất
+// @route   GET /api/admin/badge-counts
+// @access  Private (Admin, Staff, Accountant, Stock)
+const getAdminBadgeCounts = async (req, res) => {
+  try {
+    const now = Date.now();
+    if (!req.query.force && badgeCountsCache.data && (now - badgeCountsCache.timestamp < 15000)) {
+      return res.status(200).json({
+        success: true,
+        data: badgeCountsCache.data,
+        cached: true
+      });
+    }
+
+    const [
+      pendingImports,
+      pendingExports,
+      pendingAudits,
+      urgentOrders,
+      pendingCashbook,
+      pendingHide,
+      pendingShelfCreate,
+      pendingShelfMaintenance,
+      pendingShelfTransfer,
+      shelfLogsCount,
+      pendingSupplierSuspend,
+      unreadCriticalAudit
+    ] = await Promise.all([
+      ImportReceipt.countDocuments({ status: 'pending_approval' }).catch(() => 0),
+      ExportReceipt.countDocuments({ status: 'pending_approval' }).catch(() => 0),
+      AuditReceipt.countDocuments({ status: 'pending_approval' }).catch(() => 0),
+      Invoice.countDocuments({
+        $or: [
+          { status: { $in: ['pending_confirmation', 'pending_payment', 'unpaid', 'pending'] } },
+          { 'returnRequest.status': { $in: ['requested', 'shipping_back'] } }
+        ]
+      }).catch(() => 0),
+      Transaction.countDocuments({ status: 'pending' }).catch(() => 0),
+      BookHideRequest ? BookHideRequest.countDocuments({ status: 'pending' }).catch(() => 0) : 0,
+      ShelfCreateRequest ? ShelfCreateRequest.countDocuments({ status: 'pending' }).catch(() => 0) : 0,
+      ShelfMaintenanceRequest ? ShelfMaintenanceRequest.countDocuments({ status: 'pending' }).catch(() => 0) : 0,
+      ShelfTransferRequest ? ShelfTransferRequest.countDocuments({ status: 'pending' }).catch(() => 0) : 0,
+      ShelfActivityLog ? ShelfActivityLog.countDocuments().catch(() => 0) : 0,
+      SupplierSuspendRequest ? SupplierSuspendRequest.countDocuments({ status: 'pending' }).catch(() => 0) : 0,
+      AuditLog ? AuditLog.countDocuments({ severity: 'CRITICAL', isRead: { $ne: true } }).catch(() => 0) : 0
+    ]);
+
+    const data = {
+      pendingImports,
+      pendingExports,
+      pendingAudits,
+      urgentOrders,
+      pendingCashbook,
+      pendingHide,
+      pendingShelfCreate,
+      pendingShelfMaintenance,
+      pendingShelfTransfer,
+      shelfLogsCount,
+      pendingSupplierSuspend,
+      unreadCriticalAudit
+    };
+
+    badgeCountsCache = { data, timestamp: now };
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    console.error('Lỗi getAdminBadgeCounts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi tải số liệu thông báo'
+    });
+  }
+};
+
 module.exports = {
   getDashboardOverview,
   getAnalyticsReport,
+  getAdminBadgeCounts,
   clearAdminAnalyticsCache
 };

@@ -7025,22 +7025,103 @@
 
     async function initAllAdminNotificationBadges() {
       try {
+        const res = await fetch('/api/admin/badge-counts', { headers: getAuthHeaders() });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            const d = json.data;
+            // 1. Nhập kho
+            const impCount = d.pendingImports || 0;
+            const pImp = document.getElementById('adminPendingImportBadge');
+            if (pImp) { pImp.textContent = impCount; pImp.style.display = impCount > 0 ? 'inline-block' : 'none'; }
+            const sImp = document.getElementById('sidebarPendingImportBadge');
+            if (sImp) { sImp.textContent = impCount; sImp.style.display = impCount > 0 ? 'inline-block' : 'none'; }
+
+            // 2. Xuất kho
+            const expCount = d.pendingExports || 0;
+            const pExp = document.getElementById('adminPendingExportBadge');
+            if (pExp) { pExp.textContent = expCount; pExp.style.display = expCount > 0 ? 'inline-block' : 'none'; }
+            const sExp = document.getElementById('sidebarPendingExportBadge');
+            if (sExp) { sExp.textContent = expCount; sExp.style.display = expCount > 0 ? 'inline-block' : 'none'; }
+
+            // 3. Kiểm kê
+            const audCount = d.pendingAudits || 0;
+            const sAud = document.getElementById('sidebarPendingAuditBadge');
+            if (sAud) { sAud.textContent = audCount; sAud.style.display = audCount > 0 ? 'inline-block' : 'none'; }
+            const tAud = document.getElementById('adminPendingAuditTabBadge');
+            if (tAud) { tAud.textContent = audCount; tAud.style.display = audCount > 0 ? 'inline-block' : 'none'; }
+
+            // 4. Đơn mua cần xử lý
+            const ordCount = d.urgentOrders || 0;
+            const sOrd = document.getElementById('sidebarPendingOrdersBadge');
+            if (sOrd) { sOrd.textContent = ordCount; sOrd.style.display = ordCount > 0 ? 'inline-block' : 'none'; }
+
+            // 5. Sổ quỹ chờ duyệt
+            if (typeof checkPendingCashbookBadge === 'function') {
+              checkPendingCashbookBadge(d.pendingCashbook || 0);
+            }
+
+            // 6. Yêu cầu ẩn sách
+            const hideCount = d.pendingHide || 0;
+            const tHide = document.getElementById('adminHideRequestsBadge');
+            if (tHide) { tHide.textContent = hideCount > 99 ? '99+' : hideCount; tHide.style.display = hideCount > 0 ? 'inline-block' : 'none'; }
+            const sHide = document.getElementById('sidebarPendingHideBadge');
+            if (sHide) { sHide.textContent = hideCount > 99 ? '99+' : hideCount; sHide.style.display = hideCount > 0 ? 'inline-block' : 'none'; }
+
+            // 7. Yêu cầu thêm kệ
+            const shelfCount = d.pendingShelfCreate || 0;
+            const tShelf = document.getElementById('adminShelfRequestsBadge');
+            if (tShelf) { tShelf.textContent = shelfCount > 99 ? '99+' : shelfCount; tShelf.style.display = shelfCount > 0 ? 'inline-block' : 'none'; }
+            const bannerShelf = document.getElementById('adminPendingShelvesBanner');
+            const bannerCount = document.getElementById('adminPendingShelvesCount');
+            if (bannerShelf && bannerCount) {
+              bannerCount.textContent = shelfCount;
+              bannerShelf.style.display = shelfCount > 0 ? 'flex' : 'none';
+            }
+
+            // 8. Yêu cầu bảo trì kệ
+            const maintCount = d.pendingShelfMaintenance || 0;
+            const tMaint = document.getElementById('adminMaintenanceRequestsBadge');
+            if (tMaint) { tMaint.textContent = maintCount > 99 ? '99+' : maintCount; tMaint.style.display = maintCount > 0 ? 'inline-block' : 'none'; }
+
+            // 9. Yêu cầu điều chuyển kệ
+            const transCount = d.pendingShelfTransfer || 0;
+            const tTrans = document.getElementById('adminTransferRequestsBadge');
+            if (tTrans) { tTrans.textContent = transCount > 99 ? '99+' : transCount; tTrans.style.display = transCount > 0 ? 'inline-block' : 'none'; }
+
+            // 10. Nhật ký kệ sách
+            if (typeof updateShelfLogsNotificationBadge === 'function' && d.shelfLogsCount != null) {
+              updateShelfLogsNotificationBadge(d.shelfLogsCount);
+            }
+
+            // 11. Yêu cầu tạm ngưng NCC
+            if (typeof updateAdminSupplierSuspendBadge === 'function' && d.pendingSupplierSuspend != null) {
+              updateAdminSupplierSuspendBadge(d.pendingSupplierSuspend);
+            }
+
+            // 12. Nhật ký hệ thống cảnh báo (Critical unread)
+            const critCount = d.unreadCriticalAudit || 0;
+            const sCrit = document.getElementById('sidebarAuditCriticalBadge');
+            if (sCrit) {
+              sCrit.textContent = critCount > 99 ? '99+' : critCount;
+              sCrit.style.display = critCount > 0 ? 'inline-block' : 'none';
+            }
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('initAllAdminNotificationBadges fallback:', err);
+      }
+
+      // Fallback nếu API gộp lỗi
+      try {
         await Promise.allSettled([
           typeof updateAdminHideRequestsBadge === 'function' ? updateAdminHideRequestsBadge() : Promise.resolve(),
-          typeof updateAdminShelfRequestsBadge === 'function' ? updateAdminShelfRequestsBadge() : Promise.resolve(),
-          typeof updateAdminMaintenanceRequestsBadge === 'function' ? updateAdminMaintenanceRequestsBadge() : Promise.resolve(),
-          typeof updateAdminTransferRequestsBadge === 'function' ? updateAdminTransferRequestsBadge() : Promise.resolve(),
-          checkShelfLogsBadge(),
-          typeof updateAdminSupplierSuspendBadge === 'function' ? updateAdminSupplierSuspendBadge() : Promise.resolve(),
           updateAdminImportBadge(),
           updateAdminExportBadge(),
-          updateAdminAuditBadge(),
-          typeof checkPendingCashbookBadge === 'function' ? checkPendingCashbookBadge() : Promise.resolve(),
-          typeof loadAuditLogStats === 'function' ? loadAuditLogStats() : Promise.resolve()
+          updateAdminAuditBadge()
         ]);
-      } catch (err) {
-        console.warn('initAllAdminNotificationBadges error:', err);
-      }
+      } catch (_) {}
     }
     window.initAllAdminNotificationBadges = initAllAdminNotificationBadges;
     window.updateAdminImportBadge = updateAdminImportBadge;

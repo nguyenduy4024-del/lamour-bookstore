@@ -117,6 +117,11 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+// Indexes tối ưu hóa tìm kiếm tài khoản & khách hàng
+userSchema.index({ role: 1, status: 1 });
+userSchema.index({ phone: 1 });
+userSchema.index({ createdAt: -1 });
+
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) {
     return;

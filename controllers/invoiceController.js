@@ -343,16 +343,26 @@ const createInvoice = async (req, res) => {
 // @access  Private (Admin, Staff)
 const getAllInvoices = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || (req.query.all === 'true' ? 1000 : 500);
-    const invoices = await Invoice.find()
-      .select('invoiceCode customerName customerPhone customerAddress orderType paymentMethod paymentStatus status returnRequest totalAmount finalAmount createdAt')
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = req.query.all === 'true' ? 1000 : Math.min(200, Math.max(1, parseInt(req.query.limit) || 100));
+    const skip = (page - 1) * limit;
+
+    const [invoices, total] = await Promise.all([
+      Invoice.find()
+        .select('invoiceCode customerName customerPhone customerAddress orderType paymentMethod paymentStatus status returnRequest totalAmount finalAmount createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Invoice.countDocuments()
+    ]);
 
     res.status(200).json({
       success: true,
       count: invoices.length,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+      currentPage: page,
       data: invoices
     });
   } catch (error) {

@@ -165,4 +165,8 @@ const auditReceiptSchema = new mongoose.Schema(
   }
 );
 
+// Indexes tối ưu hóa truy vấn biên bản kiểm kê kho
+auditReceiptSchema.index({ status: 1, createdAt: -1 });
+auditReceiptSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('AuditReceipt', auditReceiptSchema);

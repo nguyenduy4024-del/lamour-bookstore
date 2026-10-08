@@ -53,23 +53,43 @@ const getAllSuppliers = async (req, res) => {
       ];
     }
 
-    const suppliers = await Supplier.find(filter).sort({ createdAt: -1, _id: -1 }).lean();
-
-    // 1. Thống kê số đầu sách và tổng tồn kho theo NCC (kết hợp cả sách gán trực tiếp và sách từng nhập hàng)
-    const directBooks = await Book.find({ isDeleted: { $ne: true }, supplier: { $ne: null } })
-      .select('_id supplier stock').lean();
-
-    const receiptBooksAgg = await ImportReceipt.aggregate([
-      { $match: { supplier: { $ne: null } } },
-      { $unwind: '$items' },
-      { $match: { 'items.book': { $ne: null } } },
-      {
-        $group: {
-          _id: { supplier: '$supplier', book: '$items.book' }
+    // Thực thi song song tất cả 5 truy vấn để giảm tối đa độ trễ
+    const [
+      suppliers,
+      directBooks,
+      receiptBooksAgg,
+      allBooks,
+      receiptStats,
+      activeRequests
+    ] = await Promise.all([
+      Supplier.find(filter).sort({ createdAt: -1, _id: -1 }).lean(),
+      Book.find({ isDeleted: { $ne: true }, supplier: { $ne: null } }).select('_id supplier stock').lean(),
+      ImportReceipt.aggregate([
+        { $match: { supplier: { $ne: null } } },
+        { $unwind: '$items' },
+        { $match: { 'items.book': { $ne: null } } },
+        {
+          $group: {
+            _id: { supplier: '$supplier', book: '$items.book' }
+          }
         }
-      }
+      ]),
+      Book.find({ isDeleted: { $ne: true } }).select('_id stock').lean(),
+      ImportReceipt.aggregate([
+        {
+          $group: {
+            _id: '$supplier',
+            totalImportAmount: { $sum: '$totalAmount' },
+            totalImportReceipts: { $sum: 1 }
+          }
+        }
+      ]),
+      SupplierSuspendRequest.find({
+        status: { $in: ['pending', 'approved'] }
+      }).sort({ createdAt: -1 }).lean()
     ]);
 
+    // 1. Thống kê số đầu sách và tổng tồn kho theo NCC (kết hợp cả sách gán trực tiếp và sách từng nhập hàng)
     const supBookIdsMap = new Map();
     directBooks.forEach(b => {
       const sId = String(b.supplier);
@@ -82,7 +102,6 @@ const getAllSuppliers = async (req, res) => {
       supBookIdsMap.get(sId).add(String(item._id.book));
     });
 
-    const allBooks = await Book.find({ isDeleted: { $ne: true } }).select('_id stock').lean();
     const bookStockMap = new Map(allBooks.map(b => [String(b._id), b.stock || 0]));
 
     const bookStatsMap = {};
@@ -98,24 +117,12 @@ const getAllSuppliers = async (req, res) => {
     }
 
     // 2. Thống kê tổng giá trị nhập hàng và số phiếu nhập theo NCC
-    const receiptStats = await ImportReceipt.aggregate([
-      {
-        $group: {
-          _id: '$supplier',
-          totalImportAmount: { $sum: '$totalAmount' },
-          totalImportReceipts: { $sum: 1 }
-        }
-      }
-    ]);
     const receiptStatsMap = {};
     receiptStats.forEach(item => {
       if (item._id) receiptStatsMap[item._id.toString()] = item;
     });
 
     // 3. Thống kê yêu cầu tạm ngưng NCC (SupplierSuspendRequest)
-    const activeRequests = await SupplierSuspendRequest.find({
-      status: { $in: ['pending', 'approved'] }
-    }).sort({ createdAt: -1 }).lean();
 
     const suspendRequestMap = {};
     let pendingSuspendCount = 0;
@@ -651,18 +658,30 @@ const getAllImportReceipts = async (req, res) => {
       ];
     }
 
-    const receipts = await ImportReceipt.find(filter)
-      .populate('supplier', 'name code phone email address')
-      .populate('createdUser', 'name email role')
-      .populate('createdBy', 'name email role')
-      .populate('approvedBy', 'name email role')
-      .populate('completedBy', 'name email role')
-      .populate('items.book', 'bookCode title author price costPrice stock shelfLocation')
-      .sort({ createdAt: -1 });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = req.query.all === 'true' ? 1000 : Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
+
+    const [receipts, total] = await Promise.all([
+      ImportReceipt.find(filter)
+        .populate('supplier', 'name code phone email address')
+        .populate('createdUser', 'name email role')
+        .populate('createdBy', 'name email role')
+        .populate('approvedBy', 'name email role')
+        .populate('completedBy', 'name email role')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      ImportReceipt.countDocuments(filter)
+    ]);
 
     res.status(200).json({
       success: true,
       count: receipts.length,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+      currentPage: page,
       data: receipts
     });
   } catch (error) {
@@ -872,17 +891,29 @@ const getAllExportReceipts = async (req, res) => {
       ];
     }
 
-    const receipts = await ExportReceipt.find(filter)
-      .populate('createdUser', 'name email role')
-      .populate('createdBy', 'name email role')
-      .populate('approvedBy', 'name email role')
-      .populate('completedBy', 'name email role')
-      .populate('items.book', 'bookCode title author price stock shelfLocation')
-      .sort({ createdAt: -1 });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = req.query.all === 'true' ? 1000 : Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
+
+    const [receipts, total] = await Promise.all([
+      ExportReceipt.find(filter)
+        .populate('createdUser', 'name email role')
+        .populate('createdBy', 'name email role')
+        .populate('approvedBy', 'name email role')
+        .populate('completedBy', 'name email role')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      ExportReceipt.countDocuments(filter)
+    ]);
 
     res.status(200).json({
       success: true,
       count: receipts.length,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+      currentPage: page,
       data: receipts
     });
   } catch (error) {
@@ -1677,16 +1708,28 @@ const getAllAuditReceipts = async (req, res) => {
       ];
     }
 
-    const receipts = await AuditReceipt.find(filter)
-      .populate('auditor', 'name email role')
-      .populate('createdUser', 'name email role')
-      .populate('adminReview.approvedBy', 'name email role')
-      .populate('items.book', 'bookCode title author price costPrice stock shelfLocation')
-      .sort({ createdAt: -1 });
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = req.query.all === 'true' ? 1000 : Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip = (page - 1) * limit;
+
+    const [receipts, total] = await Promise.all([
+      AuditReceipt.find(filter)
+        .populate('auditor', 'name email role')
+        .populate('createdUser', 'name email role')
+        .populate('adminReview.approvedBy', 'name email role')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      AuditReceipt.countDocuments(filter)
+    ]);
 
     res.status(200).json({
       success: true,
       count: receipts.length,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+      currentPage: page,
       data: receipts
     });
   } catch (error) {

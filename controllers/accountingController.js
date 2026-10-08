@@ -249,17 +249,17 @@ const getCashbook = async (req, res) => {
     await seedDefaultTransactionsIfEmpty();
 
     const { startDate, endDate, type, keyword, status } = req.query;
-    const limit = parseInt(req.query.limit) || (req.query.all === 'true' ? 1000 : 150);
+    const limit = Math.min(150, Math.max(1, parseInt(req.query.limit) || (req.query.all === 'true' ? 500 : 50)));
     const page = parseInt(req.query.page) || 1;
     const skip = (page - 1) * limit;
 
     // 1. Tính toán các thẻ KPI tổng quan toàn hệ thống bằng MongoDB Aggregation song song
     const now = Date.now();
     let kpiData;
-    if (cashbookKpiCache.data && (now - cashbookKpiCache.timestamp < 15000)) {
+    if (cashbookKpiCache.data && (now - cashbookKpiCache.timestamp < 60000)) {
       kpiData = cashbookKpiCache.data;
     } else {
-      const [incAgg, expAgg, pendIncAgg, pendExpAgg] = await Promise.all([
+      const [incAgg, expAgg, pendIncAgg, pendExpAgg, booksCostAgg] = await Promise.all([
         Transaction.Receipt.aggregate([
           { $match: { $or: [{ status: 'approved' }, { status: { $exists: false } }, { status: null }] } },
           { $group: { _id: null, total: { $sum: '$amount' } } }
@@ -275,6 +275,28 @@ const getCashbook = async (req, res) => {
         Transaction.Payment.aggregate([
           { $match: { status: 'pending' } },
           { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+        ]),
+        Book.aggregate([
+          {
+            $group: {
+              _id: null,
+              totalUnits: { $sum: '$stock' },
+              totalCostValue: {
+                $sum: {
+                  $multiply: [
+                    { $max: ['$stock', 0] },
+                    {
+                      $cond: [
+                        { $gt: ['$costPrice', 0] },
+                        '$costPrice',
+                        { $multiply: ['$price', 0.65] }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
         ])
       ]);
 
@@ -283,18 +305,8 @@ const getCashbook = async (req, res) => {
       const pendingCount = (pendIncAgg[0]?.count || 0) + (pendExpAgg[0]?.count || 0);
       const pendingIncome = pendIncAgg[0]?.total || 0;
       const pendingExpense = pendExpAgg[0]?.total || 0;
-
-      // Tính giá trị tồn kho thực tế (Giá vốn) của nhà sách để hiển thị số dương
-      const allBooks = await Book.find({}, 'stock price costPrice').lean();
-      let inventoryCostValue = 0;
-      let inventoryUnits = 0;
-      for (const b of allBooks) {
-        const s = Math.max(0, Number(b.stock) || 0);
-        inventoryUnits += s;
-        const price = Number(b.price) || 0;
-        const cost = Number(b.costPrice) > 0 ? Number(b.costPrice) : Math.round(price * 0.65);
-        inventoryCostValue += (s * cost);
-      }
+      const inventoryUnits = booksCostAgg[0]?.totalUnits || 0;
+      const inventoryCostValue = Math.round(booksCostAgg[0]?.totalCostValue || 0);
 
       kpiData = {
         totalIncome,
@@ -994,17 +1006,116 @@ const getFinancialReport = async (req, res) => {
       });
     }
 
-    // 1. Chạy song song các truy vấn tối ưu và dùng lean()
-    const [invoices, allBooks, importReceipts, otherIncomeReceipts] = await Promise.all([
-      Invoice.find({ status: { $in: ['completed', 'paid', 'returned'] } })
-        .select('status totalAmount finalAmount returnRequest items customerName customerPhone user')
-        .lean(),
+    // 1. Chạy song song các truy vấn aggregation trực tiếp trên MongoDB engine thay vì kéo 8.000+ hóa đơn về RAM
+    const [
+      financialTotals,
+      itemSalesAgg,
+      topCustomersAgg,
+      allBooks,
+      importReceipts,
+      otherIncomeReceipts
+    ] = await Promise.all([
+      // 1.1 Tổng Gross Sales, Giảm trừ & Số lượng đơn
+      Invoice.aggregate([
+        { $match: { status: { $in: ['completed', 'paid', 'returned'] } } },
+        {
+          $group: {
+            _id: null,
+            grossSales: {
+              $sum: {
+                $cond: [
+                  { $in: ['$status', ['completed', 'paid']] },
+                  { $ifNull: ['$finalAmount', '$totalAmount'] },
+                  0
+                ]
+              }
+            },
+            salesReturns: {
+              $sum: {
+                $cond: [
+                  { $eq: ['$status', 'returned'] },
+                  {
+                    $ifNull: [
+                      '$returnRequest.refundAmount',
+                      { $ifNull: ['$finalAmount', '$totalAmount'] }
+                    ]
+                  },
+                  0
+                ]
+              }
+            },
+            completedCount: {
+              $sum: {
+                $cond: [{ $in: ['$status', ['completed', 'paid']] }, 1, 0]
+              }
+            },
+            returnedCount: {
+              $sum: {
+                $cond: [{ $eq: ['$status', 'returned'] }, 1, 0]
+              }
+            }
+          }
+        }
+      ]),
+
+      // 1.2 Doanh số & Giá vốn từng đầu sách (Top selling & Profit)
+      Invoice.aggregate([
+        { $match: { status: { $in: ['completed', 'paid'] } } },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: { $toString: '$items.book' },
+            quantity: { $sum: { $ifNull: ['$items.quantity', 1] } },
+            revenue: {
+              $sum: {
+                $ifNull: [
+                  '$items.subtotal',
+                  { $multiply: [{ $ifNull: ['$items.price', 0] }, { $ifNull: ['$items.quantity', 1] }] }
+                ]
+              }
+            },
+            cogs: {
+              $sum: {
+                $multiply: [
+                  { $ifNull: ['$items.costPrice', 0] },
+                  { $ifNull: ['$items.quantity', 1] }
+                ]
+              }
+            }
+          }
+        }
+      ]),
+
+      // 1.3 Top khách hàng chi tiêu
+      Invoice.aggregate([
+        { $match: { status: { $in: ['completed', 'paid'] } } },
+        {
+          $group: {
+            _id: {
+              $ifNull: ['$customerPhone', { $ifNull: ['$customerName', { $toString: '$_id' }] }]
+            },
+            name: { $first: { $ifNull: ['$customerName', 'Khách lẻ'] } },
+            phone: { $first: { $ifNull: ['$customerPhone', ''] } },
+            totalSpent: { $sum: { $ifNull: ['$finalAmount', '$totalAmount'] } },
+            totalProducts: { $sum: { $size: { $ifNull: ['$items', []] } } },
+            orderCount: { $sum: 1 }
+          }
+        },
+        { $sort: { totalSpent: -1 } },
+        { $limit: 20 }
+      ]),
+
+      // 1.4 Danh sách sách
       Book.find()
         .select('title author category price costPrice stock')
         .lean(),
+
+      // 1.5 Công nợ NCC chưa thanh toán
       ImportReceipt.find({ paymentStatus: { $ne: 'paid' } })
         .select('totalAmount paidAmount paymentStatus')
         .lean(),
+
+      // 1.6 Thu nhập khác đã duyệt
       Transaction.find({
         status: 'approved',
         type: { $in: ['thu', 'income'] },
@@ -1035,11 +1146,8 @@ const getFinancialReport = async (req, res) => {
     }
 
     // 1. DOANH THU BÁN HÀNG GỘP (Gross Sales): Các hóa đơn hoàn tất hoặc đã thanh toán (POS & Web)
-    const completedInvoices = invoices.filter(inv => ['completed', 'paid'].includes(inv.status));
-    let grossSales = 0;
-    for (const inv of completedInvoices) {
-      grossSales += Number(inv.finalAmount !== undefined ? inv.finalAmount : inv.totalAmount) || 0;
-    }
+    const totals = financialTotals[0] || { grossSales: 0, salesReturns: 0, completedCount: 0, returnedCount: 0 };
+    let grossSales = totals.grossSales || 0;
 
     // Thu nhập khác từ các phiếu thu đã duyệt vào quỹ (ví dụ: tiền hoàn từ NCC, thanh lý...)
     let otherIncome = 0;
@@ -1051,68 +1159,28 @@ const getFinancialReport = async (req, res) => {
     grossSales += otherIncome;
 
     // 2. CÁC KHOẢN GIẢM TRỪ DOANH THU (Sales Returns): Đơn hàng khách trả lại
-    const returnedInvoices = invoices.filter(inv => inv.status === 'returned');
-    let salesReturns = 0;
-    for (const inv of returnedInvoices) {
-      const refund = (inv.returnRequest && inv.returnRequest.refundAmount) 
-        ? Number(inv.returnRequest.refundAmount) 
-        : (Number(inv.finalAmount || inv.totalAmount) || 0);
-      salesReturns += refund;
-    }
+    const salesReturns = totals.salesReturns || 0;
 
     // 3. DOANH THU THUẦN (Net Revenue = Doanh thu gộp - Giảm trừ)
     const netRevenue = Math.max(0, grossSales - salesReturns);
 
     // 4. GIÁ VỐN HÀNG BÁN THỰC TẾ (COGS) & HIỆU SUẤT SẢN PHẨM / KHÁCH HÀNG
     let cogs = 0;
-    const customerMap = {};
-
-    for (const inv of completedInvoices) {
-      const custKey = (inv.customerPhone && inv.customerPhone.trim()) 
-        ? inv.customerPhone.trim() 
-        : (inv.customerName || (inv.user ? inv.user.toString() : 'Khách lẻ'));
-      const custName = inv.customerName || 'Khách lẻ';
-      const custPhone = inv.customerPhone || '';
-      const orderAmount = Number(inv.finalAmount !== undefined ? inv.finalAmount : inv.totalAmount) || 0;
-
-      if (!customerMap[custKey]) {
-        customerMap[custKey] = {
-          key: custKey,
-          name: custName,
-          phone: custPhone,
-          totalSpent: 0,
-          totalProducts: 0,
-          orderCount: 0
-        };
+    for (const item of itemSalesAgg) {
+      const bId = item._id;
+      const qty = item.quantity || 0;
+      const rev = item.revenue || 0;
+      let itemCost = item.cogs;
+      if (!itemCost || itemCost <= 0) {
+        const fallbackCost = bookCostMap.get(bId) || 0;
+        itemCost = fallbackCost * qty;
       }
-      customerMap[custKey].totalSpent += orderAmount;
-      customerMap[custKey].orderCount += 1;
-
-      let orderItemCount = 0;
-      if (Array.isArray(inv.items)) {
-        for (const item of inv.items) {
-          const qty = Math.max(1, Number(item.quantity) || 1);
-          orderItemCount += qty;
-          const itemPrice = Number(item.price) || 0;
-          const itemSubtotal = Number(item.subtotal) || (qty * itemPrice);
-
-          const bookId = item.book ? (item.book._id ? item.book._id.toString() : item.book.toString()) : null;
-          let itemCost = Number(item.costPrice);
-          if (!itemCost || itemCost <= 0) {
-            itemCost = (bookId && bookCostMap.has(bookId)) ? bookCostMap.get(bookId) : Math.round(itemPrice * 0.65);
-          }
-
-          cogs += (itemCost * qty);
-          const itemProfit = itemSubtotal - (itemCost * qty);
-
-          if (bookId && bookSalesMap[bookId]) {
-            bookSalesMap[bookId].quantity += qty;
-            bookSalesMap[bookId].revenue += itemSubtotal;
-            bookSalesMap[bookId].grossProfit += itemProfit;
-          }
-        }
+      cogs += itemCost;
+      if (bId && bookSalesMap[bId]) {
+        bookSalesMap[bId].quantity = qty;
+        bookSalesMap[bId].revenue = rev;
+        bookSalesMap[bId].grossProfit = rev - itemCost;
       }
-      customerMap[custKey].totalProducts += orderItemCount;
     }
 
     // 5. LỢI NHUẬN THỰC TẾ (Profit = Doanh thu thuần - Giá vốn COGS)
@@ -1150,12 +1218,12 @@ const getFinancialReport = async (req, res) => {
       })
       .slice(0, 10);
 
-    const topSpenderCustomers = Object.values(customerMap)
+    const topSpenderCustomers = [...topCustomersAgg]
       .sort((a, b) => b.totalSpent - a.totalSpent)
       .slice(0, 10);
 
-    const topVolumeCustomers = Object.values(customerMap)
-      .sort((a, b) => b.totalProducts - a.totalProducts || b.totalSpent - a.totalSpent)
+    const topVolumeCustomers = [...topCustomersAgg]
+      .sort((a, b) => (b.totalProducts || 0) - (a.totalProducts || 0) || b.totalSpent - a.totalSpent)
       .slice(0, 10);
 
     const reportData = {
@@ -1174,8 +1242,8 @@ const getFinancialReport = async (req, res) => {
       currentInventoryRetailValue,
       totalSupplierDebt,
       totalCustomerDebt: 0,
-      completedInvoicesCount: completedInvoices.length,
-      returnedInvoicesCount: returnedInvoices.length,
+      completedInvoicesCount: totals.completedCount || 0,
+      returnedInvoicesCount: totals.returnedCount || 0,
       totalBooksCount: allBooks.length,
       topSellingBooks,
       slowSellingBooks,

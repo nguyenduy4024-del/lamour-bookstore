@@ -4,7 +4,8 @@ const { protect } = require('../middleware/authMiddleware');
 const { authorizeRoles } = require('../middleware/roleMiddleware');
 const {
   getDashboardOverview,
-  getAnalyticsReport
+  getAnalyticsReport,
+  getAdminBadgeCounts
 } = require('../controllers/adminController');
 const {
   restoreBook,
@@ -52,6 +53,14 @@ router.put('/export-receipts/:id/approve', protect, authorizeRoles('admin'), app
 router.put('/export-receipts/:id/reject', protect, authorizeRoles('admin'), rejectExportReceipt);
 router.put('/audit-receipts/:id/approve', protect, authorizeRoles('admin'), approveAuditReceipt);
 router.put('/audit-receipts/:id/reject', protect, authorizeRoles('admin'), rejectAuditReceipt);
+
+// Route lấy tổng hợp tất cả số huy hiệu / thông báo (All Badge Counts) siêu tốc cho Admin
+router.get(
+  '/badge-counts',
+  protect,
+  authorizeRoles('admin', 'staff', 'stock', 'accountant'),
+  getAdminBadgeCounts
+);
 
 // Route thống kê tổng quan Bàn làm việc (Dashboard Overview)
 router.get(

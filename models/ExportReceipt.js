@@ -177,6 +177,10 @@ const exportReceiptSchema = new mongoose.Schema(
   }
 );
 
+// Indexes tối ưu hóa truy vấn phiếu xuất kho
+exportReceiptSchema.index({ status: 1, createdAt: -1 });
+exportReceiptSchema.index({ createdAt: -1 });
+
 // Đồng bộ createdBy và createdUser trước khi lưu
 exportReceiptSchema.pre('save', function (next) {
   if (this.createdBy && !this.createdUser) this.createdUser = this.createdBy;

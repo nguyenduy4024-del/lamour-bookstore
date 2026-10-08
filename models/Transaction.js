@@ -157,6 +157,11 @@ const transactionSchema = new mongoose.Schema(
   }
 );
 
+// Indexes tối ưu hóa sổ quỹ thu chi
+transactionSchema.index({ type: 1, status: 1, createdAt: -1 });
+transactionSchema.index({ status: 1, createdAt: -1 });
+transactionSchema.index({ createdAt: -1 });
+
 // Đồng bộ tên người nộp/nhận và mã phiếu trước khi lưu
 transactionSchema.pre('save', function (next) {
   if (this.recipient && (!this.personName || this.personName === 'Khách hàng / Đối tác')) {
@@ -253,12 +258,14 @@ class UnifiedTransactionQuery {
       }
     }
 
+    const maxSubLimit = this._limit ? ((this._skip || 0) + this._limit) : null;
     const promises = [];
     if (searchReceipts) {
       let rq = ReceiptModel.find(q);
       for (const p of this._populates) rq = rq.populate(...p);
       if (this._select) rq = rq.select(this._select);
       if (this._sort) rq = rq.sort(this._sort);
+      if (maxSubLimit) rq = rq.limit(maxSubLimit);
       if (this._isLean) rq = rq.lean();
       promises.push(rq.exec());
     } else {
@@ -270,6 +277,7 @@ class UnifiedTransactionQuery {
       for (const p of this._populates) pq = pq.populate(...p);
       if (this._select) pq = pq.select(this._select);
       if (this._sort) pq = pq.sort(this._sort);
+      if (maxSubLimit) pq = pq.limit(maxSubLimit);
       if (this._isLean) pq = pq.lean();
       promises.push(pq.exec());
     } else {

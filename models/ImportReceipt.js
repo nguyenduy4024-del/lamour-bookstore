@@ -194,6 +194,11 @@ const importReceiptSchema = new mongoose.Schema(
   }
 );
 
+// Indexes tối ưu hóa truy vấn phiếu nhập kho
+importReceiptSchema.index({ status: 1, createdAt: -1 });
+importReceiptSchema.index({ supplier: 1, createdAt: -1 });
+importReceiptSchema.index({ createdAt: -1 });
+
 // Đồng bộ createdBy và createdUser trước khi lưu
 importReceiptSchema.pre('save', function (next) {
   if (this.createdBy && !this.createdUser) this.createdUser = this.createdBy;

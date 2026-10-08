@@ -244,6 +244,15 @@ const invoiceSchema = new mongoose.Schema(
   }
 );
 
+// Compound indexes tối ưu hóa truy vấn trên 8.600+ hóa đơn
+invoiceSchema.index({ status: 1, createdAt: -1 });
+invoiceSchema.index({ createdAt: -1 });
+invoiceSchema.index({ user: 1, createdAt: -1 });
+invoiceSchema.index({ customerPhone: 1, createdAt: -1 });
+invoiceSchema.index({ 'returnRequest.status': 1, createdAt: -1 });
+invoiceSchema.index({ paymentStatus: 1, createdAt: -1 });
+invoiceSchema.index({ orderType: 1, createdAt: -1 });
+
 // Ràng buộc nghiệp vụ:
 // 1. Khi đơn hàng ở trạng thái 'completed' hoặc 'paid', bắt buộc paymentStatus phải là 'paid'
 // 2. Nếu paymentStatus chưa thanh toán ('unpaid', 'pending_verification'), trạng thái đơn không thể hoàn thành
