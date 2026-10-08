@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const AuditLog = require('../models/AuditLog');
 
 /**
@@ -73,6 +74,11 @@ async function logActivity(req, options = {}) {
       userAgent,
       metadata: options.metadata || {}
     });
+
+    // Kiểm tra kết nối DB trước khi lưu để tránh lỗi buffer timeout nếu DB đang bận/ngắt kết nối
+    if (!mongoose.connection || mongoose.connection.readyState !== 1) {
+      return null;
+    }
 
     // Lưu bất đồng bộ, không chờ đợi block request
     await logEntry.save();

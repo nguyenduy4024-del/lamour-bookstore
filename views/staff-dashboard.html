@@ -8241,13 +8241,18 @@
       btn.textContent = '⏳ Đang gửi...';
     }
 
+    const abortCtrl = new AbortController();
+    const timeoutTimer = setTimeout(() => abortCtrl.abort(), 12000);
+
     try {
       const res = await fetch(`/api/invoices/${lastCompletedInvoice._id}/resend-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         credentials: 'include',
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
+        signal: abortCtrl.signal
       });
+      clearTimeout(timeoutTimer);
       const data = await res.json();
       if (res.ok && data.success) {
         showCustomToast('success', 'Đã gửi email', `Đã gửi hóa đơn #${lastCompletedInvoice.invoiceCode} tới ${email}!`);
@@ -8255,8 +8260,13 @@
         showCustomToast('error', 'Gửi thất bại', data.message || 'Không thể gửi email.');
       }
     } catch (e) {
+      clearTimeout(timeoutTimer);
       console.error(e);
-      showCustomToast('error', 'Lỗi kết nối', 'Không thể kết nối đến máy chủ.');
+      if (e.name === 'AbortError') {
+        showCustomToast('warning', 'Hết thời gian chờ', 'Yêu cầu gửi email quá thời gian chờ phản hồi (12s). Máy chủ có thể vẫn đang xử lý ngầm.');
+      } else {
+        showCustomToast('error', 'Lỗi kết nối', 'Không thể kết nối đến máy chủ.');
+      }
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -10929,13 +10939,18 @@
       btn.textContent = '⏳ Đang gửi...';
     }
 
+    const abortCtrl = new AbortController();
+    const timeoutTimer = setTimeout(() => abortCtrl.abort(), 12000);
+
     try {
       const res = await fetch(`/api/invoices/${selectedAdminOrder._id}/resend-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         credentials: 'include',
-        body: JSON.stringify({ email: email.trim() })
+        body: JSON.stringify({ email: email.trim() }),
+        signal: abortCtrl.signal
       });
+      clearTimeout(timeoutTimer);
       const data = await res.json();
       if (res.ok && data.success) {
         showCustomToast('success', 'Đã gửi email', data.message || 'Đã gửi hóa đơn điện tử thành công!');
@@ -10951,8 +10966,13 @@
         showCustomToast('error', 'Gửi thất bại', data.message || 'Không thể gửi email hóa đơn.');
       }
     } catch (err) {
+      clearTimeout(timeoutTimer);
       console.error(err);
-      showCustomToast('error', 'Lỗi kết nối', 'Không thể kết nối máy chủ gửi mail.');
+      if (err.name === 'AbortError') {
+        showCustomToast('warning', 'Hết thời gian chờ', 'Yêu cầu gửi email quá thời gian chờ (12s). Máy chủ có thể vẫn đang xử lý ngầm.');
+      } else {
+        showCustomToast('error', 'Lỗi kết nối', 'Không thể kết nối máy chủ gửi mail.');
+      }
     } finally {
       if (btn) {
         btn.disabled = false;

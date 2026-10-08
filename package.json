@@ -11,7 +11,8 @@
     "seed-transactions": "node utils/seedTransactions.js",
     "sync-db": "node scripts/sync_assignment_collections.js",
     "drop-old-tables": "node scripts/drop_old_collections.js",
-    "restore-old-tables": "node scripts/restore_old_tables.js"
+    "restore-old-tables": "node scripts/restore_old_tables.js",
+    "test-email": "node scripts/test_email_connection.js"
   },
   "dependencies": {
     "adm-zip": "^0.6.1",
