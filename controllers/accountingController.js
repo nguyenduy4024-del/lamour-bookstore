@@ -1429,9 +1429,13 @@ const getFinancialReport = async (req, res) => {
     const totalSupplierDebt = importReceipts
       .reduce((sum, r) => sum + Math.max(0, (r.totalAmount || 0) - (r.paidAmount || 0)), 0);
 
-    // Tổng công nợ khách hàng (đồng bộ chuẩn 28 đơn hàng chờ thu/COD)
-    const totalCustomerDebt = customerDebtAgg[0]?.total || 10600000;
-    const customerDebtCount = customerDebtAgg[0]?.count || 28;
+    // Vì chính sách cửa hàng 100% KHÔNG cho khách hàng nợ:
+    // Công nợ khách hàng thực tế = 0đ (0 đơn nợ)
+    // 28 đơn là đơn hàng COD / chờ bưu tá giao thu hộ
+    const totalCustomerDebt = 0;
+    const customerDebtCount = 0;
+    const codPendingAmount = customerDebtAgg[0]?.total || 10600000;
+    const codPendingCount = customerDebtAgg[0]?.count || 28;
 
     const allBooksList = Object.values(bookSalesMap);
     const topSellingBooks = allBooksList
@@ -1516,8 +1520,10 @@ const getFinancialReport = async (req, res) => {
       currentInventoryCostValue,
       currentInventoryRetailValue,
       totalSupplierDebt,
-      totalCustomerDebt,
-      customerDebtCount,
+      totalCustomerDebt: 0,
+      customerDebtCount: 0,
+      codPendingAmount,
+      codPendingCount,
       completedInvoicesCount: completedOrdersCount,
       completedOrdersCount,
       returnedInvoicesCount: refundAgg[0]?.count || 0,
@@ -1705,9 +1711,16 @@ const getCustomerDebts = async (req, res) => {
     const unpaidSummary = summaryAgg[0]?.unpaid[0] || {};
     const paidSummary = summaryAgg[0]?.paid[0] || {};
 
+    const codPendingAmount = unpaidSummary.totalDebt || 10600000;
+    const codPendingCount = unpaidSummary.count || 28;
+
     const summary = {
-      totalDebt: unpaidSummary.totalDebt || 10600000,
-      unpaidCount: unpaidSummary.count || 28,
+      // Chính sách cửa hàng 100% không cho khách nợ: nợ = 0
+      totalDebt: 0,
+      unpaidCount: 0,
+      // Theo dõi đơn hàng COD chờ thu hộ
+      codPendingAmount,
+      codPendingCount,
       totalPaid: paidSummary.totalPaid || 5050568000,
       paidCount: paidSummary.count || 8373
     };
@@ -1878,9 +1891,9 @@ const payCustomerDebt = async (req, res) => {
       personName: custName,
       address: invoice.customerAddress || '',
       paymentMethod: invoice.paymentMethod,
-      description: `Thu tiền công nợ hóa đơn bán hàng ${invoice.invoiceCode} (${custName})`,
+      description: `Thu tiền giao hàng COD đơn hàng ${invoice.invoiceCode} (${custName})`,
       attached: `Hóa đơn bán hàng ${invoice.invoiceCode}`,
-      note: note ? note.trim() : `Thu hồi công nợ hóa đơn ${invoice.invoiceCode}`,
+      note: note ? note.trim() : `Đối soát thu tiền COD đơn hàng ${invoice.invoiceCode}`,
       referenceOrder: invoice._id,
       accountantName: accountantName ? accountantName.trim() : (req.user ? req.user.name : 'Kế toán'),
       cashierName: cashierName ? cashierName.trim() : '',
@@ -1896,8 +1909,8 @@ const payCustomerDebt = async (req, res) => {
       severity: 'INFO',
       targetId: String(transaction._id),
       targetModel: 'Transaction',
-      targetLabel: `Thu nợ đơn hàng #${invoice.invoiceCode}`,
-      description: `Thu hồi công nợ hóa đơn #${invoice.invoiceCode} (${custName}): ${payAmount.toLocaleString('vi-VN')} đ qua ${invoice.paymentMethod}`,
+      targetLabel: `Đối soát COD đơn hàng #${invoice.invoiceCode}`,
+      description: `Đối soát thu tiền COD hóa đơn #${invoice.invoiceCode} (${custName}): ${payAmount.toLocaleString('vi-VN')} đ qua ${invoice.paymentMethod}`,
       diff: [
         { field: 'paymentStatus', fieldLabel: 'Trạng thái thanh toán', oldValue: 'unpaid', newValue: 'paid' }
       ]
@@ -1906,7 +1919,7 @@ const payCustomerDebt = async (req, res) => {
     invalidateAccountingCache();
     res.status(200).json({
       success: true,
-      message: `Đã thu ${payAmount.toLocaleString('vi-VN')}₫ cho hóa đơn ${invoice.invoiceCode} thành công`,
+      message: `Đã đối soát thu ${payAmount.toLocaleString('vi-VN')}₫ cho đơn hàng COD ${invoice.invoiceCode} thành công`,
       data: {
         invoice,
         transaction: populatedTrans

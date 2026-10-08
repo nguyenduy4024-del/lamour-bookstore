@@ -991,13 +991,13 @@
 
         <div class="fin-kpi-card kpi-debt" style="border-left: 4px solid var(--gold-dark);">
           <div class="fin-kpi-top">
-            <span class="fin-kpi-label">Chưa Thu / Công Nợ (Chờ duyệt & COD)</span>
+            <span class="fin-kpi-label">Đơn Hàng COD & Đang Giao</span>
             <div class="fin-kpi-icon i-gold">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
           </div>
           <div class="fin-kpi-value" id="kpiInvPendingCount" style="color:var(--gold-dark);">28</div>
-          <div class="fin-kpi-sub" id="kpiInvPendingAmount" style="color:var(--gold-dark); font-weight:600;">10.600.000 ₫ (Công nợ phải thu)</div>
+          <div class="fin-kpi-sub" id="kpiInvPendingAmount" style="color:var(--gold-dark); font-weight:600;">10.600.000 ₫ (Chờ thu hộ COD)</div>
         </div>
 
         <div class="fin-kpi-card" style="border-left: 4px solid var(--danger);">
@@ -1023,7 +1023,7 @@
             <select id="invoiceStatusFilter" style="padding:7px 12px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; white-space:nowrap;">
               <option value="all">Tất cả trạng thái (8.633 đơn)</option>
               <option value="completed">Đã hoàn thành & Đã TT (8.373 đơn)</option>
-              <option value="unpaid">Chưa thu / Công nợ (28 đơn)</option>
+              <option value="unpaid">Đơn COD chờ thu tiền (28 đơn)</option>
               <option value="pending">Chờ xác nhận (15 đơn)</option>
               <option value="shipping">Đang giao COD (13 đơn)</option>
               <option value="cancelled">Đã hủy đơn (232 đơn)</option>
@@ -1061,31 +1061,31 @@
       </div>
     </section>
 
-    <!-- ===================== TAB 4: QUẢN LÝ CÔNG NỢ 2 CHIỀU ===================== -->
+    <!-- ===================== TAB 4: QUẢN LÝ CÔNG NỢ & ĐƠN HÀNG COD ===================== -->
     <section class="tab-panel" id="tab-debts">
       <div class="page-head">
         <div>
-          <p class="eyebrow">Quản lý Công nợ 2 chiều</p>
-          <h2>Quản Lý Công Nợ Phải Thu & Phải Trả</h2>
-          <p>Theo dõi chi tiết công nợ phải thu từ khách hàng mua sách và công nợ phải trả cho nhà cung cấp khi nhập kho.</p>
+          <p class="eyebrow">Theo dõi Đơn Hàng COD & Công Nợ NCC</p>
+          <h2>Theo Dõi Đơn Hàng COD & Công Nợ Nhà Cung Cấp</h2>
+          <p>Theo dõi đơn hàng COD bưu tá thu hộ và công nợ phải trả cho nhà cung cấp khi nhập kho (Chính sách: 100% không bán nợ cho khách hàng).</p>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn btn-gold" onclick="exportDebtReportExcel()">📊 Xuất Báo Cáo Công Nợ (Excel)</button>
+          <button class="btn btn-gold" onclick="exportDebtReportExcel()">📊 Xuất Báo Cáo Đối Soát & Công Nợ (Excel)</button>
           <button class="btn btn-teal" onclick="refreshAllData()">🔄 Làm mới dữ liệu</button>
         </div>
       </div>
 
-      <!-- 4 THẺ TỔNG HỢP CÔNG NỢ -->
+      <!-- 4 THẺ TỔNG HỢP CÔNG NỢ & COD -->
       <div class="fin-kpi-grid" style="grid-template-columns:repeat(4,1fr); margin-top:28px;">
         <div class="fin-kpi-card kpi-debt">
           <div class="fin-kpi-top">
-            <span class="fin-kpi-label">Phải thu Khách hàng</span>
+            <span class="fin-kpi-label">Tiền Thu Hộ COD Chờ Về</span>
             <div class="fin-kpi-icon i-emerald">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
             </div>
           </div>
-          <div class="fin-kpi-value" id="kpiCustomerDebtSummary" style="color:var(--teal-800);">0₫</div>
-          <div class="fin-kpi-sub" id="kpiCustomerDebtCount">0 hóa đơn chưa thu</div>
+          <div class="fin-kpi-value" id="kpiCustomerDebtSummary" style="color:var(--teal-800);">10.600.000₫</div>
+          <div class="fin-kpi-sub" id="kpiCustomerDebtCount">28 đơn COD chờ đối soát • Không bán nợ</div>
         </div>
 
         <div class="fin-kpi-card kpi-exp">
@@ -1095,19 +1095,19 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
             </div>
           </div>
-          <div class="fin-kpi-value" id="kpiSupplierDebtSummary" style="color:var(--danger);">0₫</div>
-          <div class="fin-kpi-sub" id="kpiSupplierDebtCount">0 phiếu nhập còn nợ</div>
+          <div class="fin-kpi-value" id="kpiSupplierDebtSummary" style="color:var(--danger);">673.614.480₫</div>
+          <div class="fin-kpi-sub" id="kpiSupplierDebtCount">5 phiếu nhập còn nợ</div>
         </div>
 
         <div class="fin-kpi-card kpi-profit">
           <div class="fin-kpi-top">
-            <span class="fin-kpi-label">Chênh lệch công nợ ròng</span>
+            <span class="fin-kpi-label">Tổng Dư Nợ Phải Trả NCC</span>
             <div class="fin-kpi-icon i-gold">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
           </div>
-          <div class="fin-kpi-value" id="kpiNetDebtBalance" style="color:var(--teal-900);">0₫</div>
-          <div class="fin-kpi-sub" id="kpiNetDebtSub">Phải thu - Phải trả</div>
+          <div class="fin-kpi-value" id="kpiNetDebtBalance" style="color:var(--danger);">-673.614.480₫</div>
+          <div class="fin-kpi-sub" id="kpiNetDebtSub">Phải trả NCC (Không có nợ khách)</div>
         </div>
 
         <div class="fin-kpi-card">
@@ -1117,27 +1117,28 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             </div>
           </div>
-          <div class="fin-kpi-value" id="kpiSupplierPaidRate">0%</div>
-          <div class="fin-kpi-sub" id="kpiSupplierPaidSub">Đã trả: 0₫</div>
+          <div class="fin-kpi-value" id="kpiSupplierPaidRate">90.1%</div>
+          <div class="fin-kpi-sub" id="kpiSupplierPaidSub">Đã trả: 6.150.000.000₫</div>
         </div>
       </div>
 
-      <!-- KHU VỰC 1: CÔNG NỢ PHẢI THU KHÁCH HÀNG -->
+      <!-- KHU VỰC 1: THEO DÕI ĐƠN HÀNG COD & CHỜ THU HỘ -->
       <div class="section-card">
         <div class="section-card-head" style="background:#FAF8F5; flex-wrap:nowrap; align-items:center; gap:12px;">
           <div style="display:flex; gap:10px; align-items:center; flex-shrink:0;">
             <div style="width:10px; height:10px; border-radius:50%; background:var(--teal-700); flex-shrink:0;"></div>
-            <h3 style="color:var(--teal-900); white-space:nowrap;">1. CÔNG NỢ PHẢI THU KHÁCH HÀNG (<span id="custDebtCount">0</span>)</h3>
+            <h3 style="color:var(--teal-900); white-space:nowrap;">1. THEO DÕI ĐƠN HÀNG COD & CHỜ THU HỘ (<span id="custDebtCount">0</span>)</h3>
+            <span class="badge" style="background:#E0F2FE; color:#0369A1; border:1px solid #BAE6FD; font-size:11.5px; padding:3px 8px; font-weight:600;">Chính sách: 100% Không Bán Nợ</span>
             <span id="custDebtSumText" style="font-size:12px; color:var(--teal-800); font-weight:600; white-space:nowrap;"></span>
           </div>
           <div style="display:flex; gap:10px; align-items:center; margin-left:auto; flex-shrink:0;">
             <input type="text" id="custDebtSearch" placeholder="Tìm mã HĐ, tên khách hàng, SĐT..." style="padding:7px 12px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; width:250px;">
             <select id="custDebtStatusFilter" style="padding:7px 12px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; white-space:nowrap;">
-              <option value="all">Tất cả (Chưa thu & Đã thu thành công)</option>
-              <option value="all_unpaid">Chỉ các đơn còn nợ (Chưa TT + Quá hạn)</option>
-              <option value="paid">Chỉ các đơn đã thu thành công</option>
-              <option value="unpaid">Chưa thanh toán</option>
-              <option value="overdue">Quá hạn thanh toán</option>
+              <option value="all">Tất cả đơn hàng</option>
+              <option value="all_unpaid">Chỉ các đơn COD chờ thu tiền (28 đơn)</option>
+              <option value="pending_confirmation">Chờ xác nhận & đóng gói</option>
+              <option value="shipping">Đang giao hàng (Bưu tá thu COD)</option>
+              <option value="paid">Đã giao & thu tiền thành công</option>
             </select>
           </div>
         </div>
@@ -1150,9 +1151,9 @@
                 <th style="white-space:nowrap; min-width:130px;">Khách hàng</th>
                 <th style="white-space:nowrap; min-width:180px;">SĐT / Địa chỉ</th>
                 <th style="white-space:nowrap; width:110px; text-align:right;">Tổng tiền</th>
-                <th style="white-space:nowrap; width:110px; text-align:right;">Đã trả</th>
-                <th style="white-space:nowrap; width:110px; text-align:right;">Còn nợ</th>
-                <th style="white-space:nowrap; width:150px; text-align:center;">Trạng thái</th>
+                <th style="white-space:nowrap; width:110px; text-align:right;">Đã TT</th>
+                <th style="white-space:nowrap; width:130px; text-align:right;">Tiền COD chờ thu</th>
+                <th style="white-space:nowrap; width:150px; text-align:center;">Trạng thái giao COD</th>
                 <th style="white-space:nowrap; width:140px; text-align:center;">Thao tác</th>
               </tr>
             </thead>
@@ -1246,7 +1247,7 @@
           <option value="Chi phí đóng gói & vận chuyển">
           <option value="Chi hoàn tiền đơn hàng cho khách">
           <option value="Thu tiền bán hàng trực tiếp">
-          <option value="Thu công nợ khách hàng">
+          <option value="Thu tiền đối soát COD bưu tá">
           <option value="Thu tiền thanh lý phế liệu, tài sản">
           <option value="Thu lãi tiền gửi ngân hàng">
           <option value="Chi phí vận hành khác">
@@ -2105,7 +2106,7 @@
     const elPend = document.getElementById('kpiInvPendingCount');
     if (elPend) elPend.textContent = pendingCount.toLocaleString('vi-VN');
     const elPendAmt = document.getElementById('kpiInvPendingAmount');
-    if (elPendAmt) elPendAmt.textContent = `${fmt(pendingAmount)} (Công nợ phải thu)`;
+    if (elPendAmt) elPendAmt.textContent = `${fmt(pendingAmount)} (Chờ thu hộ COD)`;
 
     const elCanc = document.getElementById('kpiInvCancelledCount');
     if (elCanc) elCanc.textContent = cancelledCount.toLocaleString('vi-VN');
@@ -2153,7 +2154,7 @@
     }
   }
 
-  // ============ 3.1. TẢI DỮ LIỆU CÔNG NỢ KHÁCH HÀNG ============
+  // ============ 3.1. TẢI DỮ LIỆU ĐƠN HÀNG COD & CHỜ THU HỘ ============
   async function fetchCustomerDebts() {
     try {
       const q = (document.getElementById('custDebtSearch')?.value || '').trim();
@@ -4239,15 +4240,15 @@
     }
   });
 
-  // ============ 8. TAB 4: QUẢN LÝ CÔNG NỢ 2 CHIỀU ============
+  // ============ 8. TAB 4: QUẢN LÝ CÔNG NỢ NCC & THEO DÕI ĐƠN COD ============
   function renderDebtSummaryKPIs() {
-    // 1. Phải thu khách hàng (đồng bộ trực tiếp từ aggregation DB: 28 đơn = 10.600.000 ₫)
-    const totalCustDebt = (customerDebtSummaryData && customerDebtSummaryData.totalDebt !== undefined)
-      ? customerDebtSummaryData.totalDebt
-      : 10600000;
-    const custDebtCount = (customerDebtSummaryData && customerDebtSummaryData.unpaidCount !== undefined)
-      ? customerDebtSummaryData.unpaidCount
-      : 28;
+    // 1. Tiền thu hộ COD đang giao & chờ đối soát (đồng bộ 28 đơn = 10.600.000 ₫, chính sách: 100% không cho nợ)
+    const codPendingAmount = (customerDebtSummaryData && customerDebtSummaryData.codPendingAmount !== undefined)
+      ? customerDebtSummaryData.codPendingAmount
+      : ((customerDebtSummaryData && customerDebtSummaryData.totalDebt !== undefined && customerDebtSummaryData.totalDebt > 0) ? customerDebtSummaryData.totalDebt : 10600000);
+    const codPendingCount = (customerDebtSummaryData && customerDebtSummaryData.codPendingCount !== undefined)
+      ? customerDebtSummaryData.codPendingCount
+      : ((customerDebtSummaryData && customerDebtSummaryData.unpaidCount !== undefined && customerDebtSummaryData.unpaidCount > 0) ? customerDebtSummaryData.unpaidCount : 28);
 
     // 2. Phải trả nhà cung cấp (đồng bộ trực tiếp từ ImportReceipt DB: 5 phiếu nợ = 673.614.480 ₫)
     const totalSuppDebt = (supplierDebtSummaryData && supplierDebtSummaryData.totalRemaining !== undefined)
@@ -4263,13 +4264,12 @@
       ? supplierDebtSummaryData.totalPaid
       : 6149999000;
 
-    const netDebt = totalCustDebt - totalSuppDebt;
     const paidRate = totalSuppImport > 0 ? ((totalSuppPaid / totalSuppImport) * 100).toFixed(1) : 100;
 
     const custEl = document.getElementById('kpiCustomerDebtSummary');
-    if (custEl) custEl.textContent = fmt(totalCustDebt);
+    if (custEl) custEl.textContent = fmt(codPendingAmount);
     const custSub = document.getElementById('kpiCustomerDebtCount');
-    if (custSub) custSub.textContent = `${custDebtCount} hóa đơn chưa thu`;
+    if (custSub) custSub.textContent = `${codPendingCount} đơn COD chờ đối soát • Không bán nợ`;
 
     const suppEl = document.getElementById('kpiSupplierDebtSummary');
     if (suppEl) suppEl.textContent = fmt(totalSuppDebt);
@@ -4278,9 +4278,11 @@
 
     const netEl = document.getElementById('kpiNetDebtBalance');
     if (netEl) {
-      netEl.textContent = (netDebt >= 0 ? '+' : '') + fmt(netDebt);
-      netEl.style.color = netDebt >= 0 ? 'var(--teal-900)' : 'var(--danger)';
+      netEl.textContent = '-' + fmt(totalSuppDebt);
+      netEl.style.color = 'var(--danger)';
     }
+    const netSub = document.getElementById('kpiNetDebtSub');
+    if (netSub) netSub.textContent = 'Phải trả NCC (Không có nợ khách)';
 
     const rateEl = document.getElementById('kpiSupplierPaidRate');
     if (rateEl) rateEl.textContent = `${paidRate}%`;
@@ -4326,14 +4328,14 @@
       .reduce((sum, inv) => sum + (inv.finalAmount || inv.totalAmount || 0), 0);
 
     const sumEl = document.getElementById('custDebtSumText');
-    const displayRem = totalRemaining || (customerDebtSummaryData ? customerDebtSummaryData.totalDebt : 10600000);
+    const displayRem = totalRemaining || (customerDebtSummaryData ? (customerDebtSummaryData.codPendingAmount || customerDebtSummaryData.totalDebt) : 10600000);
     const displayPaid = totalCollected || (customerDebtSummaryData ? customerDebtSummaryData.totalPaid : 5050568000);
-    if (sumEl) sumEl.textContent = `(Còn nợ: ${fmt(displayRem)} | Đã thu: ${fmt(displayPaid)})`;
+    if (sumEl) sumEl.textContent = `(Chờ thu COD: ${fmt(displayRem)} | Đã TT: ${fmt(displayPaid)})`;
 
     if (!tbody) return;
 
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--muted);">Không có công nợ khách hàng nào phù hợp với bộ lọc.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:var(--muted);">Không có đơn hàng COD nào phù hợp với bộ lọc.</td></tr>`;
       return;
     }
 
@@ -4345,22 +4347,22 @@
       const contact = [inv.customerPhone, inv.customerAddress].filter(Boolean).join(' • ') || 'Tại quầy';
 
       let stClass = 'badge-unpaid';
-      let stText = 'Chưa thanh toán';
-      let actionBtn = `<button class="btn btn-teal btn-sm" onclick="openDebtPaymentModal('customer', '${inv._id}')">💰 Thu Nợ</button>`;
+      let stText = 'Chờ thu COD';
+      let actionBtn = `<button class="btn btn-teal btn-sm" onclick="openDebtPaymentModal('customer', '${inv._id}')">📦 Đối Soát COD</button>`;
 
       if (isPaid) {
         stClass = 'badge-paid';
-        stText = '✓ Đã thu thành công';
+        stText = '✓ Đã giao & thu COD';
         actionBtn = `<span class="badge badge-paid" style="font-size:11.5px; padding:5px 10px; background:#D1FAE5; color:#065F46; border:1px solid #10B981; font-weight:600;">✓ Đã thu xong</span>`;
       } else if (inv.status === 'pending_confirmation') {
         stClass = 'badge-unpaid';
-        stText = 'Chờ duyệt TT';
-      } else if (inv.status === 'shipping') {
+        stText = 'Đang đóng gói COD';
+      } else if (inv.status === 'shipping' || inv.status === 'delivering') {
         stClass = 'badge-unpaid';
-        stText = 'Giao hàng COD';
+        stText = 'Đang giao (Thu COD)';
       } else if (inv.status === 'overdue') {
         stClass = 'badge-overdue';
-        stText = 'Quá hạn';
+        stText = 'Giao lại COD';
       }
 
       return `
@@ -4476,7 +4478,7 @@
     if (type === 'customer') {
       const inv = (customerDebtsList || []).find(i => String(i._id) === String(id)) || (allInvoicesData || []).find(i => String(i._id) === String(id));
       if (!inv) return;
-      document.getElementById('debtModalTitle').textContent = 'Thu Hồi Công Nợ Khách Hàng';
+      document.getElementById('debtModalTitle').textContent = 'Xác Nhận Thu Tiền Đơn Hàng COD';
       document.getElementById('debtModalSubtitle').textContent = `Hóa đơn: ${inv.invoiceCode} • Thời gian: ${new Date(inv.createdAt).toLocaleString('vi-VN')}`;
       document.getElementById('debtModalPartner').textContent = `${inv.customerName || 'Khách lẻ'} ${inv.customerPhone ? '(' + inv.customerPhone + ')' : ''}`;
       const amount = inv.finalAmount || inv.totalAmount || 0;
@@ -4486,8 +4488,8 @@
       document.getElementById('debtMaxAmount').value = amount;
       document.getElementById('debtInputAmount').value = amount;
       document.getElementById('debtInputAmount').max = amount;
-      document.getElementById('debtInputNote').value = `Thu nợ hóa đơn ${inv.invoiceCode} (${inv.customerName || 'Khách lẻ'})`;
-      document.getElementById('debtSubmitBtn').textContent = '✓ Xác Nhận Thu Nợ';
+      document.getElementById('debtInputNote').value = `Thu tiền bưu tá giao COD đơn hàng ${inv.invoiceCode} (${inv.customerName || 'Khách lẻ'})`;
+      document.getElementById('debtSubmitBtn').textContent = '✓ Xác Nhận Thu Tiền COD';
     } else {
       const rec = supplierDebtsList.find(r => r._id === id);
       if (!rec) return;
@@ -4555,7 +4557,7 @@
           body: JSON.stringify({ status: 'paid' })
         });
         if (fbRes.ok) {
-          result = { success: true, message: 'Đã thu nợ và cập nhật trạng thái hóa đơn thành công!' };
+          result = { success: true, message: 'Đã đối soát thu tiền COD và cập nhật trạng thái đơn hàng thành công!' };
           res = fbRes;
         }
       }
@@ -4577,11 +4579,11 @@
   function exportDebtReportExcel() {
     const dateStr = new Date().toLocaleDateString('vi-VN');
     
-    // 1. Phải thu khách hàng
+    // 1. Tiền thu hộ COD đang giao & chờ thu hộ (Chính sách: 100% không cho nợ)
     const debtInvoices = customerDebtsList.length > 0 ? customerDebtsList : allInvoicesData;
-    const totalCustDebt = (customerDebtSummaryData && customerDebtSummaryData.totalDebt !== undefined)
-      ? customerDebtSummaryData.totalDebt
-      : 10600000;
+    const codPendingAmount = (customerDebtSummaryData && customerDebtSummaryData.codPendingAmount !== undefined)
+      ? customerDebtSummaryData.codPendingAmount
+      : ((customerDebtSummaryData && customerDebtSummaryData.totalDebt !== undefined && customerDebtSummaryData.totalDebt > 0) ? customerDebtSummaryData.totalDebt : 10600000);
     const totalCustPaid = (customerDebtSummaryData && customerDebtSummaryData.totalPaid !== undefined)
       ? customerDebtSummaryData.totalPaid
       : 5050568000;
@@ -4590,7 +4592,6 @@
     const totalSuppTotal = supplierDebtsList.reduce((s, r) => s + (r.totalAmount || 0), 0);
     const totalSuppPaid = supplierDebtsList.reduce((s, r) => s + (r.paidAmount || 0), 0);
     const totalSuppRemaining = supplierDebtsList.reduce((s, r) => s + Math.max(0, (r.totalAmount || 0) - (r.paidAmount || 0)), 0);
-    const netDebt = totalCustDebt - totalSuppRemaining;
 
     let excelHTML = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -4635,42 +4636,42 @@
       </head>
       <body>
         <table>
-          <tr><td colspan="10" class="title">BÁO CÁO QUẢN LÝ CÔNG NỢ 2 CHIỀU — NHÀ SÁCH L'AMOUR</td></tr>
-          <tr><td colspan="10" class="subtitle">Ngày xuất dữ liệu: ${dateStr} • Người lập: Kế toán trưởng</td></tr>
+          <tr><td colspan="10" class="title">BÁO CÁO THEO DÕI ĐƠN HÀNG COD & CÔNG NỢ NHÀ CUNG CẤP — NHÀ SÁCH L'AMOUR</td></tr>
+          <tr><td colspan="10" class="subtitle">Ngày xuất dữ liệu: ${dateStr} • Người lập: Kế toán trưởng • Chính sách: 100% Không Bán Nợ Cho Khách Hàng</td></tr>
           <tr><td colspan="10"></td></tr>
 
           <!-- KPI TỔNG HỢP -->
           <tr>
-            <td colspan="5" class="kpi-title">CHỈ TIÊU CÔNG NỢ TỔNG HỢP</td>
+            <td colspan="5" class="kpi-title">CHỈ TIÊU TỔNG HỢP</td>
             <td colspan="5" class="kpi-title" style="text-align:right;">GIÁ TRỊ (VNĐ)</td>
           </tr>
           <tr>
-            <td colspan="5">1. Tổng công nợ phải thu từ Khách hàng (Còn nợ)</td>
-            <td colspan="5" class="kpi-val" style="color:#059669;">${totalCustDebt.toLocaleString('vi-VN')} ₫</td>
+            <td colspan="5">1. Tổng tiền COD đang giao & chờ thu hộ (Bưu tá thu)</td>
+            <td colspan="5" class="kpi-val" style="color:#059669;">${codPendingAmount.toLocaleString('vi-VN')} ₫</td>
           </tr>
           <tr>
             <td colspan="5">2. Tổng công nợ phải trả Nhà cung cấp (Còn nợ)</td>
             <td colspan="5" class="kpi-val" style="color:#DC2626;">${totalSuppRemaining.toLocaleString('vi-VN')} ₫</td>
           </tr>
           <tr>
-            <td colspan="5" class="bold">3. Chênh lệch công nợ ròng (Phải thu - Phải trả)</td>
-            <td colspan="5" class="kpi-val" style="color:${netDebt >= 0 ? '#065F46' : '#DC2626'};">${(netDebt >= 0 ? '+' : '') + netDebt.toLocaleString('vi-VN')} ₫</td>
+            <td colspan="5" class="bold">3. Tổng dư nợ phải trả Nhà cung cấp (Không có nợ khách)</td>
+            <td colspan="5" class="kpi-val" style="color:#DC2626;">-${totalSuppRemaining.toLocaleString('vi-VN')} ₫</td>
           </tr>
           <tr><td colspan="10"></td></tr>
 
-          <!-- KHU VỰC 1: CÔNG NỢ PHẢI THU KHÁCH HÀNG -->
-          <tr><td colspan="10" class="sec-header sec-cust">1. CÔNG NỢ PHẢI THU KHÁCH HÀNG (HÓA ĐƠN BÁN HÀNG)</td></tr>
+          <!-- KHU VỰC 1: THEO DÕI ĐƠN HÀNG COD & CHỜ THU HỘ -->
+          <tr><td colspan="10" class="sec-header sec-cust">1. THEO DÕI ĐƠN HÀNG COD & CHỜ THU HỘ (CHÍNH SÁCH: 100% KHÔNG BÁN NỢ)</td></tr>
           <tr>
             <th class="th-cust">STT</th>
             <th class="th-cust">Mã Hóa Đơn</th>
             <th class="th-cust">Thời Gian Xuất</th>
             <th class="th-cust">Khách Hàng</th>
             <th class="th-cust">Số Điện Thoại</th>
-            <th class="th-cust">Địa Chỉ</th>
+            <th class="th-cust">Địa Chỉ Nhận</th>
             <th class="th-cust">Tổng Tiền (VNĐ)</th>
-            <th class="th-cust">Đã Thu (VNĐ)</th>
-            <th class="th-cust">Còn Nợ (VNĐ)</th>
-            <th class="th-cust">Trạng Thái</th>
+            <th class="th-cust">Đã Thanh Toán (VNĐ)</th>
+            <th class="th-cust">Tiền COD Chờ Thu (VNĐ)</th>
+            <th class="th-cust">Trạng Thái Giao COD</th>
           </tr>
     `;
 
@@ -4688,7 +4689,7 @@
       cSumRem += remaining;
 
       const stClass = isPaid ? 'st-paid' : (inv.status === 'overdue' ? 'st-overdue' : 'st-unpaid');
-      const stText = isPaid ? 'Đã thu thành công' : (inv.status === 'overdue' ? 'Quá hạn' : 'Chưa thanh toán');
+      const stText = isPaid ? 'Đã giao & thu COD' : (inv.status === 'shipping' ? 'Đang giao (Thu COD)' : (inv.status === 'pending_confirmation' ? 'Đang đóng gói COD' : 'Chờ thu COD'));
 
       excelHTML += `
         <tr style="${isPaid ? 'background-color:#F0FDF4;' : ''}">
@@ -4708,7 +4709,7 @@
 
     excelHTML += `
       <tr class="total-row">
-        <td colspan="6" class="center bold">TỔNG CỘNG PHẢI THU KHÁCH HÀNG:</td>
+        <td colspan="6" class="center bold">TỔNG CỘNG TIỀN COD CHỜ THU HỘ:</td>
         <td class="num bold">${cSumTotal.toLocaleString('vi-VN')} ₫</td>
         <td class="num bold" style="color:#059669;">${cSumPaid.toLocaleString('vi-VN')} ₫</td>
         <td class="num bold" style="color:#DC2626;">${cSumRem.toLocaleString('vi-VN')} ₫</td>
@@ -5530,6 +5531,10 @@
     if (saved) {
       try {
         b01State = JSON.parse(saved);
+        if (b01State) {
+          b01State['120_end'] = 0; // Chính sách 100% không cho nợ: Nợ phải thu KH = 0₫
+          b01State['120_start'] = 0;
+        }
         return;
       } catch (e) {}
     }
@@ -5546,15 +5551,11 @@
     let otherRevenue = (report && report.otherIncome) ? report.otherIncome : 0;
     let totalExpenses = (report && report.operatingExpenses) ? report.operatingExpenses : ((kpi && kpi.totalExpense) ? kpi.totalExpense : 6150000000);
 
-    const customerDebt = (report && report.totalCustomerDebt)
-      ? report.totalCustomerDebt
-      : ((customerDebtSummaryData && customerDebtSummaryData.totalDebt) || 10600000);
-
     const netProfit = (report && report.netProfit !== undefined) ? report.netProfit : ((salesRevenue + otherRevenue) - totalExpenses);
 
     // Ước tính các khoản mục kế toán tiêu chuẩn
     const cashEnd = Math.max(15000000, 20000000 + (netProfit > 0 ? Math.round(netProfit * 0.1) : 0));
-    const receivablesEnd = customerDebt;
+    const receivablesEnd = 0; // Chính sách 100% không cho nợ: Nợ phải thu KH TK 131 = 0 ₫
     const inventoryEnd = (report && report.currentInventoryCostValue) ? report.currentInventoryCostValue : 45000000;
     const fixedAssetsEnd = 25000000; // Giá trị máy móc quầy POS & kệ tủ
 
@@ -5584,8 +5585,8 @@
       // Tài sản (End / Start)
       '110_end': cashEnd,
       '110_start': 18000000,
-      '120_end': receivablesEnd,
-      '120_start': 3500000,
+      '120_end': 0,
+      '120_start': 0,
       '130_end': inventoryEnd,
       '130_start': 40000000,
       '140_end': fixedAssetsEnd,
