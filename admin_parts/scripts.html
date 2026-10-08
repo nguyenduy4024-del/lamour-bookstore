@@ -1752,6 +1752,434 @@
       }
     }
 
+    function numberToWords(number) {
+      if (number === 0 || !number) return "Không đồng chẵn";
+      const units = ["", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+
+      function readTriple(num, full) {
+        let hundred = Math.floor(num / 100);
+        let ten = Math.floor((num % 100) / 10);
+        let unit = num % 10;
+        let res = "";
+
+        if (full || hundred > 0) {
+          res += units[hundred] + " trăm ";
+        }
+
+        if (ten > 1) {
+          res += units[ten] + " mươi ";
+          if (unit === 1) res += "mốt ";
+          else if (unit === 5) res += "lăm ";
+          else if (unit > 0) res += units[unit] + " ";
+        } else if (ten === 1) {
+          res += "mười ";
+          if (unit === 5) res += "lăm ";
+          else if (unit > 0) res += units[unit] + " ";
+        } else if (full && unit > 0) {
+          res += "lẻ ";
+          if (unit === 5) res += "lăm ";
+          else res += units[unit] + " ";
+        } else if (unit > 0) {
+          res += units[unit] + " ";
+        }
+        return res;
+      }
+
+      let n = Math.floor(Math.abs(number));
+      let billion = Math.floor(n / 1000000000);
+      n %= 1000000000;
+      let million = Math.floor(n / 1000000);
+      n %= 1000000;
+      let thousand = Math.floor(n / 1000);
+      let remain = n % 1000;
+
+      let str = "";
+      if (billion > 0) str += readTriple(billion, false) + "tỷ ";
+      if (million > 0) str += readTriple(million, billion > 0) + "triệu ";
+      if (thousand > 0) str += readTriple(thousand, million > 0 || billion > 0) + "nghìn ";
+      if (remain > 0) str += readTriple(remain, thousand > 0 || million > 0 || billion > 0);
+
+      str = str.trim();
+      if (!str) return "Không đồng chẵn";
+
+      return str.charAt(0).toUpperCase() + str.slice(1) + " đồng chẵn";
+    }
+
+    function toggleAnalyticsExportMenu(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const m = document.getElementById('analyticsExportMenu');
+      if (!m) return;
+      m.style.display = (m.style.display === 'none' || !m.style.display) ? 'block' : 'none';
+    }
+
+    function hideAnalyticsExportMenu() {
+      const m = document.getElementById('analyticsExportMenu');
+      if (m) m.style.display = 'none';
+    }
+
+    document.addEventListener('click', (e) => {
+      const drop = document.querySelector('.dropdown-analytics-export');
+      if (drop && !drop.contains(e.target)) {
+        hideAnalyticsExportMenu();
+      }
+    });
+
+    function exportAnalyticsExcel() {
+      if (!analyticsReportData) {
+        showCustomToast('Chưa có dữ liệu để xuất báo cáo. Vui lòng thử lại sau giây lát!', 'warning');
+        return;
+      }
+      const d = analyticsReportData;
+      const sm = d.kpi || d.summary || {};
+      const ch = d.channelBreakdown || { pos: { revenue: 0, orders: 0, percent: 50 }, online: { revenue: 0, orders: 0, percent: 50 } };
+      const payments = d.paymentReport || [];
+      const timeline = d.timeline || [];
+      const topBooks = d.topSellingBooks || [];
+      const deadBooks = d.deadStockBooks || [];
+      const catList = d.categoryReport || [];
+      const authList = (d.authorReport || d.topAuthors || []).filter(a => a && a.author && !['chưa rõ', 'chua ro', 'không rõ', 'khong ro', 'đang cập nhật', 'unknown', 'n/a'].includes(String(a.author).trim().toLowerCase())).slice(0, 5);
+      const custLoyal = (d.customerLoyalty && d.customerLoyalty.allCustomers) || [];
+
+      const dateStr = new Date().toLocaleString('vi-VN');
+      const timeFilterStr = (analyticsFilter.startDate || 'Toàn thời gian') + ' đến ' + (analyticsFilter.endDate || 'Hiện tại');
+      const channelFilterStr = analyticsFilter.channel === 'pos' ? 'Tại quầy (POS)' : (analyticsFilter.channel === 'online' ? 'Trực tuyến (Online)' : 'Tất cả kênh bán');
+      const staffName = (currentUser && (currentUser.name || currentUser.fullName)) || 'Ban Quản Trị L\'Amour';
+
+      const totalRev = Number(sm.totalRevenue) || 0;
+      const grossProfit = Number(sm.grossProfit) || 0;
+      const profitMargin = Number(sm.profitMargin) || 0;
+      const completedOrders = Number(sm.completedOrdersCount || sm.totalOrders) || 0;
+      const cancelledOrders = Number(sm.cancelledOrdersCount) || 0;
+      const successRate = Number(sm.successRate) || 0;
+      const aov = Number(sm.aov) || 0;
+      const refundAmount = Number(sm.totalRefund) || 0;
+      const estCost = Math.max(0, totalRev - grossProfit);
+      const inWords = numberToWords(totalRev);
+
+      let excelHTML = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+          <!--[if gte mso 9]>
+          <xml>
+            <x:ExcelWorkbook>
+              <x:ExcelWorksheets>
+                <x:ExcelWorksheet>
+                  <x:Name>BaoCaoDoanhThu</x:Name>
+                  <x:WorksheetOptions>
+                    <x:DisplayGridlines/>
+                  </x:WorksheetOptions>
+                </x:ExcelWorksheet>
+              </x:ExcelWorksheets>
+            </x:ExcelWorkbook>
+          </xml>
+          <![endif]-->
+          <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; margin: 0; padding: 10px; }
+            table { border-collapse: collapse; width: 100%; margin-bottom: 24px; }
+            .company-name { font-size: 14pt; font-weight: bold; color: #0F2444; }
+            .company-info { font-size: 9.5pt; color: #475569; }
+            .doc-title { font-size: 16pt; font-weight: bold; color: #ffffff; background-color: #0F2444; text-align: center; height: 42px; vertical-align: middle; border: 1px solid #0A1930; }
+            .doc-meta { font-size: 10pt; font-style: italic; color: #334155; text-align: center; background-color: #F8FAFC; height: 26px; vertical-align: middle; border: 1px solid #E2E8F0; }
+            .sec-head { font-size: 11.5pt; font-weight: bold; background-color: #1E3A8A; color: #ffffff; padding: 8px 10px; height: 32px; vertical-align: middle; border: 1px solid #172554; }
+            .sec-sub { font-size: 10pt; font-weight: bold; background-color: #E2E8F0; color: #0F2444; padding: 6px 10px; height: 28px; vertical-align: middle; border: 1px solid #CBD5E1; }
+            th { font-weight: bold; font-size: 10pt; border: 1px solid #94A3B8; padding: 8px; text-align: center; vertical-align: middle; background-color: #F1F5F9; color: #0F2444; }
+            td { border: 1px solid #CBD5E1; padding: 6px 8px; vertical-align: middle; font-size: 10pt; }
+            .num { mso-number-format:"\\#\\,\\#\\#0\\ \\₫"; text-align: right; }
+            .center { text-align: center; }
+            .bold { font-weight: bold; }
+            .total-row { font-weight: bold; background-color: #FEF3C7; border-top: 2px solid #D97706; border-bottom: 2px solid #D97706; }
+            .kpi-title { font-weight: 600; color: #334155; background-color: #F8FAFC; padding-left: 12px; }
+            .kpi-val { font-weight: bold; font-size: 11pt; text-align: right; padding-right: 12px; }
+            .badge-success { color: #059669; font-weight: bold; }
+            .badge-warning { color: #D97706; font-weight: bold; }
+            .badge-danger { color: #DC2626; font-weight: bold; }
+            .sign-title { font-weight: bold; text-align: center; height: 30px; vertical-align: middle; }
+            .sign-space { height: 75px; }
+            .sign-name { text-align: center; font-style: italic; color: #475569; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <tr><td colspan="8" class="company-name">HỆ THỐNG PHÁT HÀNH SÁCH L'AMOUR BOOKSTORE</td></tr>
+            <tr><td colspan="8" class="company-info">Địa chỉ: 123 Phố Sách, Quận 1, TP. Hồ Chí Minh • Hotline: 1900 6868 • Email: support@lamour.vn</td></tr>
+            <tr><td colspan="8"></td></tr>
+            <tr><td colspan="8" class="doc-title">BÁO CÁO THỐNG KÊ & PHÂN TÍCH DOANH THU TOÀN DIỆN</td></tr>
+            <tr><td colspan="8" class="doc-meta">Kỳ báo cáo: ${timeFilterStr} • Kênh bán: ${channelFilterStr} • Người lập: ${staffName} • Xuất lúc: ${dateStr}</td></tr>
+            <tr><td colspan="8"></td></tr>
+
+            <!-- I. TỔNG QUAN CHỈ SỐ -->
+            <tr><td colspan="8" class="sec-head">I. TỔNG QUAN CHỈ SỐ TÀI CHÍNH & VẬN HÀNH KINH DOANH</td></tr>
+            <tr>
+              <td colspan="4" class="kpi-title">1. Tổng Doanh Thu Thuần (Đã trừ hoàn tiền)</td>
+              <td colspan="4" class="kpi-val" style="color:#059669; font-size:13pt;">${totalRev.toLocaleString('vi-VN')} ₫</td>
+            </tr>
+            <tr>
+              <td colspan="4" class="kpi-title" style="font-style:italic;">» Bằng chữ:</td>
+              <td colspan="4" class="kpi-val" style="font-style:italic; color:#0F2444; font-size:10pt;">${inWords}</td>
+            </tr>
+            <tr>
+              <td colspan="4" class="kpi-title">2. Ước tính Giá vốn hàng bán (COGS)</td>
+              <td colspan="4" class="kpi-val" style="color:#475569;">${estCost.toLocaleString('vi-VN')} ₫</td>
+            </tr>
+            <tr>
+              <td colspan="4" class="kpi-title">3. Lợi Nhuận Gộp Kinh Doanh</td>
+              <td colspan="4" class="kpi-val" style="color:#059669; font-size:12pt;">${grossProfit.toLocaleString('vi-VN')} ₫</td>
+            </tr>
+            <tr>
+              <td colspan="4" class="kpi-title">4. Tỷ suất Lợi nhuận gộp (%)</td>
+              <td colspan="4" class="kpi-val badge-success">${profitMargin}%</td>
+            </tr>
+            <tr>
+              <td colspan="4" class="kpi-title">5. Tổng số đơn hàng thành công</td>
+              <td colspan="4" class="kpi-val">${completedOrders.toLocaleString('vi-VN')} đơn hàng</td>
+            </tr>
+            <tr>
+              <td colspan="4" class="kpi-title">6. Số đơn hủy / thất bại</td>
+              <td colspan="4" class="kpi-val badge-danger">${cancelledOrders.toLocaleString('vi-VN')} đơn</td>
+            </tr>
+            <tr>
+              <td colspan="4" class="kpi-title">7. Tỷ lệ hoàn tất thành công</td>
+              <td colspan="4" class="kpi-val">${successRate}%</td>
+            </tr>
+            <tr>
+              <td colspan="4" class="kpi-title">8. Giá trị trung bình mỗi đơn (AOV)</td>
+              <td colspan="4" class="kpi-val">${aov.toLocaleString('vi-VN')} ₫ / đơn</td>
+            </tr>
+            ${refundAmount > 0 ? `
+            <tr>
+              <td colspan="4" class="kpi-title">9. Tổng giá trị hoàn tiền đổi trả</td>
+              <td colspan="4" class="kpi-val badge-danger">-${refundAmount.toLocaleString('vi-VN')} ₫</td>
+            </tr>` : ''}
+            <tr><td colspan="8"></td></tr>
+
+            <!-- II. KÊNH & THANH TOÁN -->
+            <tr><td colspan="8" class="sec-head">II. CƠ CẤU DOANH THU THEO KÊNH BÁN HÀNG & PHƯƠNG THỨC THANH TOÁN</td></tr>
+            <tr>
+              <td colspan="4" class="sec-sub">1. Phân bổ theo Kênh Bán Hàng</td>
+              <td colspan="4" class="sec-sub">2. Phân bổ theo Phương Thức Thanh Toán</td>
+            </tr>
+            <tr>
+              <th colspan="2">Kênh bán</th>
+              <th>Số đơn</th>
+              <th>Doanh thu</th>
+              <th colspan="2">Phương thức thanh toán</th>
+              <th>Doanh thu</th>
+              <th>Tỷ trọng</th>
+            </tr>
+            <tr>
+              <td colspan="2" class="bold">Tại quầy (POS)</td>
+              <td class="center">${(ch.pos && (ch.pos.orders || ch.pos.count || 0)).toLocaleString('vi-VN')}</td>
+              <td class="num">${(ch.pos ? ch.pos.revenue : 0).toLocaleString('vi-VN')} ₫</td>
+              <td colspan="2">Tiền mặt (Cash)</td>
+              <td class="num">${((payments.find(p => p.code === 'cash') || {}).amount || 0).toLocaleString('vi-VN')} ₫</td>
+              <td class="center">${((payments.find(p => p.code === 'cash') || {}).percent || 0)}%</td>
+            </tr>
+            <tr>
+              <td colspan="2" class="bold">Trực tuyến (Online)</td>
+              <td class="center">${(ch.online && (ch.online.orders || ch.online.count || 0)).toLocaleString('vi-VN')}</td>
+              <td class="num">${(ch.online ? ch.online.revenue : 0).toLocaleString('vi-VN')} ₫</td>
+              <td colspan="2">Chuyển khoản VietQR</td>
+              <td class="num">${((payments.find(p => p.code === 'transfer') || {}).amount || 0).toLocaleString('vi-VN')} ₫</td>
+              <td class="center">${((payments.find(p => p.code === 'transfer') || {}).percent || 0)}%</td>
+            </tr>
+            <tr>
+              <td colspan="2" class="bold">Tổng kênh</td>
+              <td class="center bold">${completedOrders.toLocaleString('vi-VN')}</td>
+              <td class="num bold">${totalRev.toLocaleString('vi-VN')} ₫</td>
+              <td colspan="2">Thẻ POS / Ví điện tử</td>
+              <td class="num">${((payments.find(p => p.code === 'pos') || {}).amount || 0).toLocaleString('vi-VN')} ₫</td>
+              <td class="center">${((payments.find(p => p.code === 'pos') || {}).percent || 0)}%</td>
+            </tr>
+            <tr><td colspan="8"></td></tr>
+
+            <!-- III. TIMELINE -->
+            <tr><td colspan="8" class="sec-head">III. DIỄN BIẾN DOANH THU THEO DÒNG THỜI GIAN (TIMELINE)</td></tr>
+            <tr>
+              <th style="width:50px;">STT</th>
+              <th colspan="2">Mốc Thời Gian</th>
+              <th>Số Đơn Hàng</th>
+              <th colspan="2">Doanh Thu Thuần</th>
+              <th colspan="2">Lợi Nhuận Gộp Ước Tính</th>
+            </tr>
+            ${timeline.length === 0 ? '<tr><td colspan="8" class="center">Chưa có dữ liệu giao dịch theo thời gian</td></tr>' :
+              timeline.map((t, idx) => `
+                <tr>
+                  <td class="center">${idx + 1}</td>
+                  <td colspan="2" class="center bold">${t.date || t._id || '--'}</td>
+                  <td class="center">${(t.orderCount || 0).toLocaleString('vi-VN')}</td>
+                  <td colspan="2" class="num">${(t.revenue || 0).toLocaleString('vi-VN')} ₫</td>
+                  <td colspan="2" class="num badge-success">${(t.grossProfit || 0).toLocaleString('vi-VN')} ₫</td>
+                </tr>
+              `).join('')
+            }
+            <tr class="total-row">
+              <td colspan="3" class="center bold">TỔNG CỘNG THEO KỲ:</td>
+              <td class="center bold">${timeline.reduce((s, t) => s + (t.orderCount || 0), 0).toLocaleString('vi-VN')}</td>
+              <td colspan="2" class="num bold">${timeline.reduce((s, t) => s + (t.revenue || 0), 0).toLocaleString('vi-VN')} ₫</td>
+              <td colspan="2" class="num bold badge-success">${timeline.reduce((s, t) => s + (t.grossProfit || 0), 0).toLocaleString('vi-VN')} ₫</td>
+            </tr>
+            <tr><td colspan="8"></td></tr>
+
+            <!-- IV. TOP 10 BÁN CHẠY -->
+            <tr><td colspan="8" class="sec-head">IV. BẢNG XẾP HẠNG TOP 10 ĐẦU SÁCH BÁN CHẠY NHẤT (BEST SELLERS)</td></tr>
+            <tr>
+              <th style="width:40px;">Hạng</th>
+              <th colspan="2">Tên Tác Phẩm</th>
+              <th>Tác Giả</th>
+              <th>Thể Loại</th>
+              <th>Đã Bán (Cuốn)</th>
+              <th>Doanh Thu (VNĐ)</th>
+              <th>Đóng Góp (%)</th>
+            </tr>
+            ${topBooks.length === 0 ? '<tr><td colspan="8" class="center">Chưa phát sinh doanh số sách</td></tr>' :
+              topBooks.map((b, idx) => `
+                <tr>
+                  <td class="center bold">${idx + 1}</td>
+                  <td colspan="2" class="bold">${b.title || 'Sách'}</td>
+                  <td>${b.author || 'Chưa rõ'}</td>
+                  <td class="center">${b.category || 'Khác'}</td>
+                  <td class="center bold" style="color:#0284C7;">${(b.quantity || b.soldQuantity || 0).toLocaleString('vi-VN')}</td>
+                  <td class="num bold">${(b.revenue || 0).toLocaleString('vi-VN')} ₫</td>
+                  <td class="center">${b.percent || 0}%</td>
+                </tr>
+              `).join('')
+            }
+            <tr class="total-row">
+              <td colspan="5" class="center bold">TỔNG TOP 10 BÁN CHẠY:</td>
+              <td class="center bold">${topBooks.reduce((s, b) => s + (b.quantity || b.soldQuantity || 0), 0).toLocaleString('vi-VN')} cuốn</td>
+              <td class="num bold">${topBooks.reduce((s, b) => s + (b.revenue || 0), 0).toLocaleString('vi-VN')} ₫</td>
+              <td class="center bold">${Number(topBooks.reduce((s, b) => s + (Number(b.percent) || 0), 0)).toFixed(1)}%</td>
+            </tr>
+            <tr><td colspan="8"></td></tr>
+
+            <!-- V. TOP 10 DEAD STOCK -->
+            <tr><td colspan="8" class="sec-head">V. BẢNG CẢNH BÁO TOP 10 SÁCH TỒN KHO BÁN CHẬM (DEAD STOCK CẦN KÍCH CẦU)</td></tr>
+            <tr>
+              <th style="width:40px;">STT</th>
+              <th colspan="2">Tên Tác Phẩm</th>
+              <th>Tác Giả</th>
+              <th>Tồn Kho (Cuốn)</th>
+              <th>Giá Vốn Nhập</th>
+              <th>Tổng Vốn Đọng</th>
+              <th>Cảnh Báo / Đề Xuất</th>
+            </tr>
+            ${deadBooks.length === 0 ? '<tr><td colspan="8" class="center">Không có sách tồn đọng vượt mức</td></tr>' :
+              deadBooks.map((b, idx) => `
+                <tr>
+                  <td class="center">${idx + 1}</td>
+                  <td colspan="2" class="bold">${b.title || 'Sách'}</td>
+                  <td>${b.author || 'Chưa rõ'}</td>
+                  <td class="center bold" style="color:#DC2626;">${(b.stock || 0).toLocaleString('vi-VN')}</td>
+                  <td class="num">${(b.costPrice || 0).toLocaleString('vi-VN')} ₫</td>
+                  <td class="num bold badge-danger">${(b.totalCostValue || 0).toLocaleString('vi-VN')} ₫</td>
+                  <td class="center badge-warning">${b.alertBadge || 'Bán chậm'}</td>
+                </tr>
+              `).join('')
+            }
+            <tr class="total-row">
+              <td colspan="4" class="center bold">TỔNG GIÁ TRỊ VỐN TỒN ĐỌNG TOP CẢNH BÁO:</td>
+              <td class="center bold">${deadBooks.reduce((s, b) => s + (b.stock || 0), 0).toLocaleString('vi-VN')} cuốn</td>
+              <td></td>
+              <td class="num bold badge-danger">${deadBooks.reduce((s, b) => s + (b.totalCostValue || 0), 0).toLocaleString('vi-VN')} ₫</td>
+              <td class="center">Ưu tiên thanh lý / khuyến mại</td>
+            </tr>
+            <tr><td colspan="8"></td></tr>
+
+            <!-- VI. THỂ LOẠI & TÁC GIẢ -->
+            <tr><td colspan="8" class="sec-head">VI. DOANH THU THEO THỂ LOẠI SÁCH & TÁC GIẢ HÀNG ĐẦU</td></tr>
+            <tr>
+              <td colspan="4" class="sec-sub">1. Phân Tích Doanh Thu Theo Thể Loại Sách</td>
+              <td colspan="4" class="sec-sub">2. Top Tác GiẢ Đóng Góp Doanh Số Cao Nhất</td>
+            </tr>
+            <tr>
+              <th colspan="2">Thể Loại</th>
+              <th>Số lượng</th>
+              <th>Doanh thu</th>
+              <th colspan="2">Tác Giả</th>
+              <th>Số lượng</th>
+              <th>Doanh thu</th>
+            </tr>
+            ${Array.from({ length: Math.max(catList.length, authList.length, 1) }).map((_, idx) => {
+              const c = catList[idx];
+              const a = authList[idx];
+              return `
+                <tr>
+                  <td colspan="2" class="bold">${c ? c.category : '--'}</td>
+                  <td class="center">${c ? (c.soldQuantity || c.quantity || 0).toLocaleString('vi-VN') : '--'}</td>
+                  <td class="num">${c ? (c.revenue || 0).toLocaleString('vi-VN') + ' ₫' : '--'}</td>
+                  <td colspan="2" class="bold">${a ? a.author : '--'}</td>
+                  <td class="center">${a ? (a.soldQuantity || a.quantity || 0).toLocaleString('vi-VN') : '--'}</td>
+                  <td class="num">${a ? (a.revenue || 0).toLocaleString('vi-VN') + ' ₫' : '--'}</td>
+                </tr>
+              `;
+            }).join('')}
+            <tr><td colspan="8"></td></tr>
+
+            <!-- VII. TOP KHÁCH HÀNG -->
+            <tr><td colspan="8" class="sec-head">VII. BẢNG XẾP HẠNG TOP KHÁCH HÀNG THÂN THIẾT & VIP SPENDERS</td></tr>
+            <tr>
+              <th style="width:40px;">Hạng</th>
+              <th colspan="2">Khách Hàng</th>
+              <th>Số Điện Thoại</th>
+              <th>Hạng Thành Viên</th>
+              <th>Số Lần Mua</th>
+              <th>Sách Mua (Cuốn)</th>
+              <th>Tổng Chi Tiêu (VNĐ)</th>
+            </tr>
+            ${custLoyal.length === 0 ? '<tr><td colspan="8" class="center">Chưa có khách hàng phát sinh đơn</td></tr>' :
+              custLoyal.slice(0, 15).map((c, idx) => `
+                <tr>
+                  <td class="center bold">${idx + 1}</td>
+                  <td colspan="2" class="bold">${c.name || 'Khách lẻ'}</td>
+                  <td class="center">${c.phone || '--'}</td>
+                  <td class="center bold" style="color:#D97706;">${c.tierBadge || 'Thân thiết'}</td>
+                  <td class="center">${(c.orderCount || 0).toLocaleString('vi-VN')} đơn</td>
+                  <td class="center">${(c.totalProducts || 0).toLocaleString('vi-VN')}</td>
+                  <td class="num bold" style="color:#0F2444;">${(c.totalSpent || 0).toLocaleString('vi-VN')} ₫</td>
+                </tr>
+              `).join('')
+            }
+            <tr><td colspan="8"></td></tr>
+
+            <!-- VIII. CHỮ KÝ -->
+            <tr><td colspan="8" class="sec-head">VIII. KÝ TÊN VÀ XÁC NHẬN PHÊ DUYỆT (3 BÊN)</td></tr>
+            <tr>
+              <td colspan="2" class="sign-title">NGƯỜI LẬP BÁO CÁO<br><span style="font-weight:normal; font-size:9pt;">(Ký và ghi rõ họ tên)</span></td>
+              <td colspan="3" class="sign-title">KẾ TOÁN TRƯỞNG<br><span style="font-weight:normal; font-size:9pt;">(Ký và ghi rõ họ tên)</span></td>
+              <td colspan="3" class="sign-title">GIÁM ĐỐC ĐIỀU HÀNH<br><span style="font-weight:normal; font-size:9pt;">(Ký tên và đóng dấu)</span></td>
+            </tr>
+            <tr>
+              <td colspan="2" class="sign-space"></td>
+              <td colspan="3" class="sign-space"></td>
+              <td colspan="3" class="sign-space"></td>
+            </tr>
+            <tr>
+              <td colspan="2" class="sign-name">${staffName}</td>
+              <td colspan="3" class="sign-name">Vũ Thị Mai</td>
+              <td colspan="3" class="sign-name">Nguyễn Duy - Giám Đốc</td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob(['\uFEFF' + excelHTML], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const dStr = new Date().toISOString().slice(0, 10);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Bao_Cao_Phan_Tich_Doanh_Thu_LAmour_${dStr}.xls`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showCustomToast('Báo cáo Excel đã được xuất thành công với đầy đủ bảng biểu và đồ họa sắc nét!', 'success');
+    }
+
     function exportAnalyticsCSV() {
       if (!analyticsReportData) {
         showCustomToast('Chưa có dữ liệu để xuất báo cáo. Vui lòng thử lại sau giây lát!', 'warning');
@@ -1759,55 +2187,120 @@
       }
       const d = analyticsReportData;
       const sm = d.kpi || d.summary || {};
+      const ch = d.channelBreakdown || { pos: { revenue: 0, orders: 0, percent: 50 }, online: { revenue: 0, orders: 0, percent: 50 } };
+      const payments = d.paymentReport || [];
+      const timeline = d.timeline || [];
+      const topBooks = d.topSellingBooks || [];
+      const deadBooks = d.deadStockBooks || [];
+      const catList = d.categoryReport || [];
+      const authList = (d.authorReport || d.topAuthors || []).filter(a => a && a.author && !['chưa rõ', 'chua ro', 'không rõ', 'khong ro', 'đang cập nhật', 'unknown', 'n/a'].includes(String(a.author).trim().toLowerCase())).slice(0, 5);
+      const custLoyal = (d.customerLoyalty && d.customerLoyalty.allCustomers) || [];
+
+      const dateStr = new Date().toLocaleString('vi-VN');
+      const timeFilterStr = (analyticsFilter.startDate || 'Toàn thời gian') + ' đến ' + (analyticsFilter.endDate || 'Hiện tại');
+      const channelFilterStr = analyticsFilter.channel === 'pos' ? 'Tại quầy (POS)' : (analyticsFilter.channel === 'online' ? 'Trực tuyến (Online)' : 'Tất cả kênh');
+      const staffName = (currentUser && (currentUser.name || currentUser.fullName)) || 'Ban Quản Trị L\'Amour';
+
+      const totalRev = Number(sm.totalRevenue) || 0;
+      const grossProfit = Number(sm.grossProfit) || 0;
+      const profitMargin = Number(sm.profitMargin) || 0;
+      const completedOrders = Number(sm.completedOrdersCount || sm.totalOrders) || 0;
+      const cancelledOrders = Number(sm.cancelledOrdersCount) || 0;
+      const successRate = Number(sm.successRate) || 0;
+      const aov = Number(sm.aov) || 0;
+      const refundAmount = Number(sm.totalRefund) || 0;
+      const estCost = Math.max(0, totalRev - grossProfit);
+      const inWords = numberToWords(totalRev);
+
       const rows = [];
+      const push8 = (c0='', c1='', c2='', c3='', c4='', c5='', c6='', c7='') => {
+        rows.push([c0, c1, c2, c3, c4, c5, c6, c7]);
+      };
 
-      rows.push(["BÁO CÁO THỐNG KÊ & PHÂN TÍCH DOANH THU - L'AMOUR BOOKSTORE"]);
-      rows.push(['Thời điểm xuất báo cáo:', new Date().toLocaleString('vi-VN')]);
-      rows.push(['Bộ lọc thời gian:', (analyticsFilter.startDate || 'Tất cả') + ' đến ' + (analyticsFilter.endDate || 'Hiện tại')]);
-      rows.push(['Kênh bán hàng:', analyticsFilter.channel === 'pos' ? 'Tại quầy (POS)' : (analyticsFilter.channel === 'online' ? 'Online' : 'Tất cả kênh')]);
-      rows.push([]);
+      push8("BÁO CÁO THỐNG KÊ & PHÂN TÍCH DOANH THU TOÀN DIỆN - L'AMOUR BOOKSTORE", '', '', '', '', '', '', '');
+      push8('Thời điểm xuất báo cáo:', dateStr, '', '', '', '', '', '');
+      push8('Kỳ báo cáo:', timeFilterStr, '', '', '', '', '', '');
+      push8('Kênh bán hàng:', channelFilterStr, '', '', '', '', '', '');
+      push8('Người lập báo cáo:', staffName, '', '', '', '', '', '');
+      push8('Đơn vị tính:', 'Việt Nam Đồng (VNĐ)', '', '', '', '', '', '');
+      push8();
 
-      rows.push(['=== TỔNG QUAN DOANH THU & HIỆU SUẤT ===']);
-      rows.push(['Chỉ số', 'Giá trị']);
-      rows.push(['Tổng doanh thu thuần', sm.totalRevenue || 0]);
-      rows.push(['Lợi nhuận gộp', sm.grossProfit || 0]);
-      rows.push(['Tỷ suất lợi nhuận (%)', (sm.profitMargin || 0) + '%']);
-      rows.push(['Tổng số đơn thành công', sm.completedOrdersCount || sm.totalOrders || 0]);
-      rows.push(['Số đơn hủy', sm.cancelledOrdersCount || 0]);
-      rows.push(['Tỷ lệ giao thành công (%)', (sm.successRate || 0) + '%']);
-      rows.push(['Giá trị trung bình đơn (AOV)', sm.aov || 0]);
-      rows.push([]);
+      // I. TỔNG QUAN KPI
+      push8('=== I. TỔNG QUAN CHỈ SỐ TÀI CHÍNH & VẬN HÀNH KINH DOANH ===', '', '', '', '', '', '', '');
+      push8('Chỉ Số Phân Tích', 'Giá Trị (VNĐ / Tỷ lệ)', 'Ghi Chú Đánh Giá', '', '', '', '', '');
+      push8('Tổng doanh thu thuần', totalRev.toLocaleString('vi-VN') + ' đ', 'Đã trừ chiết khấu và hoàn trả', '', '', '', '', '');
+      push8('Bằng chữ:', inWords, '', '', '', '', '', '');
+      push8('Ước tính giá vốn hàng bán (COGS)', estCost.toLocaleString('vi-VN') + ' đ', '', '', '', '', '', '');
+      push8('Lợi nhuận gộp kinh doanh', grossProfit.toLocaleString('vi-VN') + ' đ', '', '', '', '', '', '');
+      push8('Tỷ suất lợi nhuận gộp (%)', profitMargin + '%', profitMargin >= 20 ? 'Tốt' : 'Cần tối ưu', '', '', '', '', '');
+      push8('Tổng số đơn hàng thành công', completedOrders.toLocaleString('vi-VN') + ' đơn', '', '', '', '', '', '');
+      push8('Số đơn hủy / thất bại', cancelledOrders.toLocaleString('vi-VN') + ' đơn', '', '', '', '', '', '');
+      push8('Tỷ lệ hoàn tất thành công (%)', successRate + '%', '', '', '', '', '', '');
+      push8('Giá trị trung bình đơn (AOV)', aov.toLocaleString('vi-VN') + ' đ / đơn', '', '', '', '', '', '');
+      if (refundAmount > 0) {
+        push8('Tổng giá trị hoàn tiền đổi trả', '-' + refundAmount.toLocaleString('vi-VN') + ' đ', '', '', '', '', '', '');
+      }
+      push8();
 
-      rows.push(['=== TOP 10 SÁCH BÁN CHẠY NHẤT ===']);
-      rows.push(['Thứ hạng', 'Tên đầu sách', 'Tác giả', 'Thể loại', 'Số lượng bán', 'Doanh thu (VNĐ)', 'Lợi nhuận gộp (VNĐ)']);
-      (d.topSellingBooks || []).forEach((b, i) => {
-        rows.push([i + 1, b.title, b.author, b.category, b.quantity, b.revenue, b.grossProfit]);
+      // II. KÊNH & PHƯƠNG THỨC THANH TOÁN
+      push8('=== II. CƠ CẤU DOANH THU THEO KÊNH BÁN & PHƯƠNG THỨC THANH TOÁN ===', '', '', '', '', '', '', '');
+      push8('Phân Loại', 'Tên Kênh / Phương Thức', 'Số Đơn', 'Doanh Thu (VNĐ)', 'Tỷ Trọng (%)', '', '', '');
+      push8('Kênh bán', 'Tại quầy (POS)', (ch.pos ? (ch.pos.orders || ch.pos.count || 0) : 0).toLocaleString('vi-VN'), (ch.pos ? ch.pos.revenue : 0).toLocaleString('vi-VN') + ' đ', (ch.pos ? ch.pos.percent : 0) + '%', '', '', '');
+      push8('Kênh bán', 'Trực tuyến (Online)', (ch.online ? (ch.online.orders || ch.online.count || 0) : 0).toLocaleString('vi-VN'), (ch.online ? ch.online.revenue : 0).toLocaleString('vi-VN') + ' đ', (ch.online ? ch.online.percent : 0) + '%', '', '', '');
+      payments.forEach(p => {
+        push8('Thanh toán', p.method, '', (p.amount || 0).toLocaleString('vi-VN') + ' đ', (p.percent || 0) + '%', '', '', '');
       });
-      rows.push([]);
+      push8();
 
-      rows.push(['=== TOP 10 SÁCH TỒN ĐỌNG / DEAD STOCK ===']);
-      rows.push(['Thứ hạng', 'Tên đầu sách', 'Tác giả', 'Thể loại', 'Tồn kho hiện tại', 'Giá vốn tồn đọng (VNĐ)', 'Bán trong kỳ']);
-      (d.deadStockBooks || []).forEach((b, i) => {
-        rows.push([i + 1, b.title, b.author, b.category, b.stock, b.totalCostValue, b.soldInPeriod]);
+      // III. TIMELINE
+      push8('=== III. DIỄN BIẾN DOANH THU THEO DÒNG THỜI GIAN (TIMELINE) ===', '', '', '', '', '', '', '');
+      push8('STT', 'Mốc Thời Gian', 'Số Đơn Hàng', 'Doanh Thu Thuần (VNĐ)', 'Lợi Nhuận Gộp (VNĐ)', '', '', '');
+      timeline.forEach((t, i) => {
+        push8(i + 1, t.date || t._id, (t.orderCount || 0).toLocaleString('vi-VN'), (t.revenue || 0).toLocaleString('vi-VN') + ' đ', (t.grossProfit || 0).toLocaleString('vi-VN') + ' đ', '', '', '');
       });
-      rows.push([]);
+      push8();
 
-      rows.push(['=== TOP 5 TÁC GIẢ DOANH SỐ CAO NHẤT ===']);
-      rows.push(['Thứ hạng', 'Tác giả', 'Số lượng bán', 'Tổng doanh thu (VNĐ)']);
-      const exportAuthors = (d.authorReport || d.topAuthors || [])
-        .filter(a => a && a.author && !['chưa rõ', 'chua ro', 'không rõ', 'khong ro', 'đang cập nhật', 'unknown', 'n/a'].includes(String(a.author).trim().toLowerCase()))
-        .slice(0, 5);
-      exportAuthors.forEach((a, i) => {
-        rows.push([i + 1, a.author, a.quantity, a.revenue]);
+      // IV. TOP 10 SÁCH BÁN CHẠY
+      push8('=== IV. BẢNG XẾP HẠNG TOP 10 ĐẦU SÁCH BÁN CHẠY NHẤT (BEST SELLERS) ===', '', '', '', '', '', '', '');
+      push8('Hạng', 'Tên Đầu Sách', 'Tác Giả', 'Thể Loại', 'Số Lượng Bán (Cuốn)', 'Doanh Thu (VNĐ)', 'Lợi Nhuận Gộp (VNĐ)', 'Tỷ Trọng (%)');
+      topBooks.forEach((b, i) => {
+        push8(i + 1, b.title, b.author, b.category, (b.quantity || b.soldQuantity || 0).toLocaleString('vi-VN'), (b.revenue || 0).toLocaleString('vi-VN') + ' đ', (b.grossProfit || 0).toLocaleString('vi-VN') + ' đ', (b.percent || 0) + '%');
       });
-      rows.push([]);
+      push8();
 
-      rows.push(['=== TOP KHÁCH HÀNG THÂN THIẾT & VIP SPENDERS ===']);
-      rows.push(['Thứ hạng', 'Tên khách hàng', 'Số điện thoại', 'Số lần mua (Đơn)', 'Tổng sách mua (Cuốn)', 'Tổng chi tiêu (VNĐ)', 'Chi tiêu TB/Đơn (VNĐ)', 'Phân hạng VIP']);
-      const exportCust = (d.customerLoyalty && d.customerLoyalty.allCustomers) || [];
-      exportCust.slice(0, 20).forEach((c, i) => {
-        rows.push([i + 1, c.name, c.phone || '', c.orderCount, c.totalProducts, c.totalSpent, c.avgOrderValue, c.tierBadge]);
+      // V. TOP 10 DEAD STOCK
+      push8('=== V. TOP 10 SÁCH TỒN KHO BÁN CHẬM (DEAD STOCK CẦN KÍCH CẦU) ===', '', '', '', '', '', '', '');
+      push8('STT', 'Tên Đầu Sách', 'Tác Giả', 'Thể Loại', 'Tồn Kho Hiện Tại (Cuốn)', 'Giá Vốn Nhập (VNĐ)', 'Tổng Vốn Đọng (VNĐ)', 'Tình Trạng / Cảnh Báo');
+      deadBooks.forEach((b, i) => {
+        push8(i + 1, b.title, b.author, b.category, (b.stock || 0).toLocaleString('vi-VN'), (b.costPrice || 0).toLocaleString('vi-VN') + ' đ', (b.totalCostValue || 0).toLocaleString('vi-VN') + ' đ', b.alertBadge || 'Bán chậm');
       });
+      push8();
+
+      // VI. THỂ LOẠI & TÁC GIẢ
+      push8('=== VI. PHÂN TÍCH THEO THỂ LOẠI & TÁC GIẢ TIÊU BIỂU ===', '', '', '', '', '', '', '');
+      push8('Phân Nhóm', 'Tên Thể Loại / Tác Giả', 'Số Lượng Đã Bán', 'Doanh Thu (VNĐ)', 'Tỷ Trọng (%)', '', '', '');
+      catList.forEach(c => {
+        push8('Thể loại', c.category, (c.soldQuantity || c.quantity || 0).toLocaleString('vi-VN'), (c.revenue || 0).toLocaleString('vi-VN') + ' đ', (c.percent || 0) + '%', '', '', '');
+      });
+      authList.forEach(a => {
+        push8('Tác giả', a.author, (a.soldQuantity || a.quantity || 0).toLocaleString('vi-VN'), (a.revenue || 0).toLocaleString('vi-VN') + ' đ', (a.percent || 0) + '%', '', '', '');
+      });
+      push8();
+
+      // VII. TOP KHÁCH HÀNG
+      push8('=== VII. TOP KHÁCH HÀNG THÂN THIẾT & VIP SPENDERS ===', '', '', '', '', '', '', '');
+      push8('Hạng', 'Tên Khách Hàng', 'Số Điện Thoại', 'Hạng Thành Viên', 'Số Lần Mua (Đơn)', 'Số Sách Mua (Cuốn)', 'Tổng Chi Tiêu (VNĐ)', 'TB/Đơn (VNĐ)');
+      custLoyal.slice(0, 20).forEach((c, i) => {
+        push8(i + 1, c.name, c.phone || '--', c.tierBadge || 'Thân thiết', (c.orderCount || 0).toLocaleString('vi-VN'), (c.totalProducts || 0).toLocaleString('vi-VN'), (c.totalSpent || 0).toLocaleString('vi-VN') + ' đ', (c.avgOrderValue || 0).toLocaleString('vi-VN') + ' đ');
+      });
+      push8();
+
+      // VIII. CHỮ KÝ
+      push8('=== VIII. XÁC NHẬN VÀ PHÊ DUYỆT BÁO CÁO ===', '', '', '', '', '', '', '');
+      push8('NGƯỜI LẬP BÁO CÁO', '', 'KẾ TOÁN TRƯỞNG', '', '', 'GIÁM ĐỐC ĐIỀU HÀNH', '', '');
+      push8('(Ký và ghi rõ họ tên)', '', '(Ký và ghi rõ họ tên)', '', '', '(Ký tên và đóng dấu)', '', '');
+      push8('', '', '', '', '', '', '', '');
+      push8(staffName, '', 'Vũ Thị Mai', '', '', 'Nguyễn Duy - Giám Đốc', '', '');
 
       const newline = String.fromCharCode(13, 10);
       const bom = String.fromCharCode(0xFEFF);
@@ -1816,16 +2309,226 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.setAttribute('href', url);
-      link.setAttribute('download', 'Bao_Cao_Doanh_Thu_LAmour_' + new Date().toISOString().slice(0, 10) + '.csv');
+      link.setAttribute('download', 'Bao_Cao_Phan_Tich_Doanh_Thu_LAmour_' + new Date().toISOString().slice(0, 10) + '.csv');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      showCustomToast('Báo cáo CSV đã được tải xuống thành công!', 'success');
+      showCustomToast('Báo cáo CSV chuẩn hóa đã được tải xuống thành công!', 'success');
     }
 
     function printAnalyticsReport() {
-      window.print();
+      if (!analyticsReportData) {
+        showCustomToast('Chưa có dữ liệu để in báo cáo. Vui lòng thử lại sau giây lát!', 'warning');
+        return;
+      }
+      const d = analyticsReportData;
+      const sm = d.kpi || d.summary || {};
+      const ch = d.channelBreakdown || { pos: { revenue: 0, orders: 0, percent: 50 }, online: { revenue: 0, orders: 0, percent: 50 } };
+      const payments = d.paymentReport || [];
+      const timeline = d.timeline || [];
+      const topBooks = d.topSellingBooks || [];
+      const deadBooks = d.deadStockBooks || [];
+      const catList = d.categoryReport || [];
+      const authList = (d.authorReport || d.topAuthors || []).filter(a => a && a.author && !['chưa rõ', 'chua ro', 'không rõ', 'khong ro', 'đang cập nhật', 'unknown', 'n/a'].includes(String(a.author).trim().toLowerCase())).slice(0, 5);
+      const custLoyal = (d.customerLoyalty && d.customerLoyalty.allCustomers) || [];
+
+      const dateStr = new Date().toLocaleString('vi-VN');
+      const timeFilterStr = (analyticsFilter.startDate || 'Toàn thời gian') + ' đến ' + (analyticsFilter.endDate || 'Hiện tại');
+      const channelFilterStr = analyticsFilter.channel === 'pos' ? 'Tại quầy (POS)' : (analyticsFilter.channel === 'online' ? 'Trực tuyến (Online)' : 'Tất cả kênh');
+      const staffName = (currentUser && (currentUser.name || currentUser.fullName)) || 'Ban Quản Trị L\'Amour';
+
+      const totalRev = Number(sm.totalRevenue) || 0;
+      const grossProfit = Number(sm.grossProfit) || 0;
+      const profitMargin = Number(sm.profitMargin) || 0;
+      const completedOrders = Number(sm.completedOrdersCount || sm.totalOrders) || 0;
+      const cancelledOrders = Number(sm.cancelledOrdersCount) || 0;
+      const successRate = Number(sm.successRate) || 0;
+      const aov = Number(sm.aov) || 0;
+      const refundAmount = Number(sm.totalRefund) || 0;
+      const estCost = Math.max(0, totalRev - grossProfit);
+      const inWords = numberToWords(totalRev);
+
+      const printWin = window.open('', '_blank', 'width=1150,height=850,menubar=no,toolbar=no,location=no,status=no');
+      if (!printWin) {
+        showCustomToast('Trình duyệt đang chặn cửa sổ bật lên (popup). Vui lòng cấp quyền popup để in báo cáo!', 'warning');
+        return;
+      }
+
+      const printHtml = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Báo Cáo Doanh Thu & Phân Tích — L'Amour Bookstore</title>
+  <style>
+    @page { size: A4 portrait; margin: 12mm 15mm 15mm 15mm; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { font-family: 'Times New Roman', Times, serif; font-size: 11pt; line-height: 1.4; color: #111827; background: #fff; margin: 0; padding: 15px; }
+    .print-actions { position: fixed; top: 15px; right: 20px; z-index: 999; display: flex; gap: 10px; background: #fff; padding: 8px 14px; border: 1px solid #cbd5e1; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .btn-print { background: #0F2444; color: #fff; border: none; padding: 8px 16px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .btn-close { background: #e2e8f0; color: #334155; border: none; padding: 8px 14px; font-size: 13px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .header-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    .header-table td { border: none; padding: 2px 4px; vertical-align: top; }
+    .company-name { font-size: 13pt; font-weight: bold; color: #0F2444; text-transform: uppercase; }
+    .report-title { font-size: 17pt; font-weight: bold; text-align: center; color: #0F2444; margin: 12px 0 4px 0; text-transform: uppercase; }
+    .report-meta { text-align: center; font-style: italic; font-size: 10pt; color: #4b5563; margin-bottom: 16px; }
+    .sec-title { font-size: 11.5pt; font-weight: bold; color: #0F2444; text-transform: uppercase; margin: 14px 0 6px 0; border-bottom: 1.5px solid #0F2444; padding-bottom: 2px; }
+    table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 10pt; }
+    table.data-table th { background: #f1f5f9; border: 1px solid #94a3b8; padding: 6px 6px; text-align: center; font-weight: bold; }
+    table.data-table td { border: 1px solid #cbd5e1; padding: 5px 6px; vertical-align: middle; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .bold { font-weight: bold; }
+    .total-bg { background: #fef3c7; font-weight: bold; }
+    .signature-row { display: flex; justify-content: space-between; margin-top: 25px; page-break-inside: avoid; }
+    .sig-col { flex: 1; text-align: center; }
+    .sig-space { height: 70px; }
+    @media print {
+      .print-actions { display: none !important; }
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-actions">
+    <button class="btn-print" onclick="window.print()">🖨️ In Báo Cáo (Ctrl + P)</button>
+    <button class="btn-close" onclick="window.close()">Đóng</button>
+  </div>
+
+  <table class="header-table">
+    <tr>
+      <td style="width:60%;">
+        <div class="company-name">NHÀ SÁCH L'AMOUR BOOKSTORE</div>
+        <div>Địa chỉ: 123 Phố Sách, Quận 1, TP. Hồ Chí Minh</div>
+        <div>Hotline: 1900 6868 • Email: support@lamour.vn</div>
+      </td>
+      <td style="width:40%; text-align:right;">
+        <div style="font-weight:bold;">MẪU SỐ: BC-TC01/LA</div>
+        <div>Thời điểm xuất: ${dateStr}</div>
+        <div>Người lập: <strong>${staffName}</strong></div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="report-title">BÁO CÁO THỐNG KÊ & PHÂN TÍCH DOANH THU</div>
+  <div class="report-meta">Kỳ báo cáo: ${timeFilterStr} • Kênh bán: ${channelFilterStr} • Đơn vị tính: VNĐ</div>
+
+  <div class="sec-title">I. TỔNG QUAN CHỈ SỐ TÀI CHÍNH & VẬN HÀNH KINH DOANH</div>
+  <table class="data-table">
+    <tr>
+      <td style="width:40%; font-weight:bold;">1. Tổng Doanh Thu Thuần</td>
+      <td style="width:60%; font-weight:bold; font-size:12pt; color:#059669; text-align:right;">${totalRev.toLocaleString('vi-VN')} ₫</td>
+    </tr>
+    <tr>
+      <td style="font-style:italic;">» Bằng chữ:</td>
+      <td style="font-style:italic; text-align:right; font-weight:bold;">${inWords}</td>
+    </tr>
+    <tr>
+      <td>2. Ước tính Giá vốn hàng bán (COGS)</td>
+      <td class="text-right">${estCost.toLocaleString('vi-VN')} ₫</td>
+    </tr>
+    <tr>
+      <td style="font-weight:bold;">3. Lợi Nhuận Gộp Kinh Doanh</td>
+      <td class="text-right bold" style="color:#059669;">${grossProfit.toLocaleString('vi-VN')} ₫ (Tỷ suất: ${profitMargin}%)</td>
+    </tr>
+    <tr>
+      <td>4. Đơn hàng hoàn thành / Đơn hủy</td>
+      <td class="text-right">${completedOrders.toLocaleString('vi-VN')} đơn thành công / ${cancelledOrders.toLocaleString('vi-VN')} đơn hủy (Tỷ lệ: ${successRate}%)</td>
+    </tr>
+    <tr>
+      <td>5. Giá trị trung bình đơn hàng (AOV)</td>
+      <td class="text-right bold">${aov.toLocaleString('vi-VN')} ₫ / đơn</td>
+    </tr>
+  </table>
+
+  <div class="sec-title">II. CƠ CẤU DOANH THU THEO KÊNH BÁN & PHƯƠNG THỨC THANH TOÁN</div>
+  <table class="data-table">
+    <tr>
+      <th style="width:25%;">Kênh Bán Hàng</th>
+      <th style="width:15%;">Số Đơn</th>
+      <th style="width:20%;">Doanh Thu</th>
+      <th style="width:25%;">Phương Thức Thanh Toán</th>
+      <th style="width:15%;">Doanh Thu</th>
+    </tr>
+    <tr>
+      <td class="bold">Tại quầy (POS)</td>
+      <td class="text-center">${(ch.pos ? (ch.pos.orders || ch.pos.count || 0) : 0).toLocaleString('vi-VN')}</td>
+      <td class="text-right">${(ch.pos ? ch.pos.revenue : 0).toLocaleString('vi-VN')} ₫</td>
+      <td>Tiền mặt (Cash)</td>
+      <td class="text-right">${((payments.find(p => p.code === 'cash') || {}).amount || 0).toLocaleString('vi-VN')} ₫</td>
+    </tr>
+    <tr>
+      <td class="bold">Trực tuyến (Online)</td>
+      <td class="text-center">${(ch.online ? (ch.online.orders || ch.online.count || 0) : 0).toLocaleString('vi-VN')}</td>
+      <td class="text-right">${(ch.online ? ch.online.revenue : 0).toLocaleString('vi-VN')} ₫</td>
+      <td>Chuyển khoản VietQR</td>
+      <td class="text-right">${((payments.find(p => p.code === 'transfer') || {}).amount || 0).toLocaleString('vi-VN')} ₫</td>
+    </tr>
+    <tr class="total-bg">
+      <td>TỔNG KÊNH:</td>
+      <td class="text-center">${completedOrders.toLocaleString('vi-VN')}</td>
+      <td class="text-right">${totalRev.toLocaleString('vi-VN')} ₫</td>
+      <td>Thẻ POS / Ví điện tử</td>
+      <td class="text-right">${((payments.find(p => p.code === 'pos') || {}).amount || 0).toLocaleString('vi-VN')} ₫</td>
+    </tr>
+  </table>
+
+  <div class="sec-title">III. TOP ĐẦU SÁCH BÁN CHẠY NHẤT (BEST SELLERS)</div>
+  <table class="data-table">
+    <tr>
+      <th style="width:35px;">STT</th>
+      <th>Tên Tác Phẩm</th>
+      <th>Tác Giả</th>
+      <th>Thể Loại</th>
+      <th style="width:75px;">Đã Bán</th>
+      <th style="width:110px;">Doanh Thu</th>
+      <th style="width:65px;">Tỷ Trọng</th>
+    </tr>
+    ${topBooks.length === 0 ? '<tr><td colspan="7" class="text-center">Chưa phát sinh doanh số sách</td></tr>' :
+      topBooks.slice(0, 8).map((b, idx) => `
+        <tr>
+          <td class="text-center bold">${idx + 1}</td>
+          <td class="bold">${b.title || 'Sách'}</td>
+          <td>${b.author || 'Chưa rõ'}</td>
+          <td class="text-center">${b.category || 'Khác'}</td>
+          <td class="text-center bold">${(b.quantity || b.soldQuantity || 0).toLocaleString('vi-VN')}</td>
+          <td class="text-right bold">${(b.revenue || 0).toLocaleString('vi-VN')} ₫</td>
+          <td class="text-center">${b.percent || 0}%</td>
+        </tr>
+      `).join('')
+    }
+  </table>
+
+  <div class="signature-row">
+    <div class="sig-col">
+      <div style="font-weight:bold;">NGƯỜI LẬP BÁO CÁO</div>
+      <div style="font-size:9pt; font-style:italic;">(Ký và ghi rõ họ tên)</div>
+      <div class="sig-space"></div>
+      <div style="font-weight:bold;">${staffName}</div>
+    </div>
+    <div class="sig-col">
+      <div style="font-weight:bold;">KẾ TOÁN TRƯỞNG</div>
+      <div style="font-size:9pt; font-style:italic;">(Ký và ghi rõ họ tên)</div>
+      <div class="sig-space"></div>
+      <div style="font-weight:bold;">Vũ Thị Mai</div>
+    </div>
+    <div class="sig-col">
+      <div style="font-weight:bold;">GIÁM ĐỐC ĐIỀU HÀNH</div>
+      <div style="font-size:9pt; font-style:italic;">(Ký tên và đóng dấu)</div>
+      <div class="sig-space"></div>
+      <div style="font-weight:bold;">Nguyễn Duy - Giám Đốc</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      printWin.document.open();
+      printWin.document.write(printHtml);
+      printWin.document.close();
+      setTimeout(() => {
+        printWin.focus();
+        printWin.print();
+      }, 450);
     }
 
     window.setAnalyticsQuickDate = setAnalyticsQuickDate;
@@ -1833,9 +2536,12 @@
     window.resetAnalyticsFilter = resetAnalyticsFilter;
     window.switchBookAnalyticsTab = switchBookAnalyticsTab;
     window.loadAnalytics = loadAnalytics;
+    window.exportAnalyticsExcel = exportAnalyticsExcel;
     window.exportAnalyticsCSV = exportAnalyticsCSV;
     window.printAnalyticsReport = printAnalyticsReport;
-    window.exportRevenueCSV = exportAnalyticsCSV;
+    window.exportRevenueCSV = exportAnalyticsExcel;
+    window.toggleAnalyticsExportMenu = toggleAnalyticsExportMenu;
+    window.hideAnalyticsExportMenu = hideAnalyticsExportMenu;
     window.setStockAnalyticsMode = setStockAnalyticsMode;
     window.renderAdminStockAnalytics = renderAdminStockAnalytics;
     window.renderStockAnalyticsChart = renderStockAnalyticsChart;

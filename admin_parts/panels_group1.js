@@ -156,13 +156,39 @@ module.exports = `
           <h2>Thống Kê & Phân Tích Doanh Thu</h2>
           <p>Phân tích chuyên sâu đa chiều: Lợi nhuận gộp, phân loại kênh POS vs Online, Top bán chạy và Sách tồn đọng.</p>
         </div>
-        <div class="head-tools" style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn btn-outline" onclick="printAnalyticsReport()" style="display:flex; align-items:center; gap:6px;">
+        <div class="head-tools" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-outline" onclick="printAnalyticsReport()" style="display:flex; align-items:center; gap:6px;" title="In báo cáo thống kê doanh thu (Chuẩn A4)">
             🖨️ In Báo Cáo
           </button>
-          <button class="btn btn-solid" onclick="exportAnalyticsCSV()" style="display:flex; align-items:center; gap:6px;">
-            📥 Xuất Báo Cáo CSV
-          </button>
+          <div class="dropdown-analytics-export" style="position:relative; display:inline-block;">
+            <div style="display:inline-flex; border-radius:6px; box-shadow:0 2px 5px rgba(0,0,0,0.08);">
+              <button class="btn btn-solid" onclick="exportAnalyticsExcel()" style="display:flex; align-items:center; gap:6px; border-top-right-radius:0; border-bottom-right-radius:0; border-right:1px solid rgba(255,255,255,0.25);" title="Xuất file Excel trình bày đẹp mắt (Khuyên dùng)">
+                📊 Xuất Báo Cáo Excel
+              </button>
+              <button class="btn btn-solid" onclick="toggleAnalyticsExportMenu(event)" style="padding:0 10px; border-top-left-radius:0; border-bottom-left-radius:0; min-width:32px; display:flex; align-items:center; justify-content:center;" title="Tùy chọn định dạng tải xuống">
+                <i class="fa-solid fa-chevron-down" style="font-size:11px;"></i>
+              </button>
+            </div>
+            <div id="analyticsExportMenu" style="display:none; position:absolute; right:0; top:calc(100% + 6px); background:#ffffff; border:1px solid #CBD5E1; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.15); min-width:280px; z-index:1050; overflow:hidden;">
+              <div style="padding:8px 12px; background:#F8FAFC; border-bottom:1px solid #E2E8F0; font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px;">
+                Định dạng báo cáo
+              </div>
+              <button type="button" onclick="exportAnalyticsExcel(); hideAnalyticsExportMenu();" style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; background:none; border:none; text-align:left; cursor:pointer; font-size:13px; font-weight:600; color:#0F2444; transition:background 0.2s;" onmouseover="this.style.background='#F1F5F9'" onmouseout="this.style.background='none'">
+                <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:6px; background:#DCFCE7; color:#16A34A; font-size:16px;">📊</span>
+                <div>
+                  <div style="font-weight:700;">Xuất Báo Cáo Excel (.xls)</div>
+                  <div style="font-size:11px; color:#64748B; font-weight:400;">Trình bày đẹp mắt, màu sắc & kẻ bảng (Khuyên dùng)</div>
+                </div>
+              </button>
+              <button type="button" onclick="exportAnalyticsCSV(); hideAnalyticsExportMenu();" style="width:100%; display:flex; align-items:center; gap:10px; padding:10px 14px; background:none; border:none; border-top:1px solid #F1F5F9; text-align:left; cursor:pointer; font-size:13px; font-weight:600; color:#0F2444; transition:background 0.2s;" onmouseover="this.style.background='#F1F5F9'" onmouseout="this.style.background='none'">
+                <span style="display:flex; align-items:center; justify-content:center; width:32px; height:32px; border-radius:6px; background:#E0F2FE; color:#0284C7; font-size:16px;">📥</span>
+                <div>
+                  <div style="font-weight:700;">Xuất Báo Cáo CSV (.csv)</div>
+                  <div style="font-size:11px; color:#64748B; font-weight:400;">Chuẩn UTF-8 BOM, dữ liệu phân tầng đầy đủ</div>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
