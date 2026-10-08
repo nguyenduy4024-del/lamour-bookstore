@@ -70,31 +70,7 @@ async function sendViaHttpApi(mailOptions) {
   const mailgunDomain = process.env.MAILGUN_DOMAIN;
   const relayUrl = process.env.EMAIL_RELAY_URL;
 
-  // 1. Resend API (Khuyên dùng nhất trên Render - 100 mail/ngày miễn phí, cực nhanh qua HTTPS)
-  if (resendApiKey) {
-    // Lưu ý: Resend chỉ chấp nhận domain đã xác minh hoặc domain thử nghiệm mặc định 'onboarding@resend.dev'
-    const fromAddr = process.env.RESEND_FROM || "L'Amour Bookstore <onboarding@resend.dev>";
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${resendApiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: fromAddr,
-        to: [mailOptions.to],
-        subject: mailOptions.subject,
-        html: mailOptions.html
-      })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error((data && (data.message || data.error)) || 'Lỗi gửi mail qua Resend API');
-    }
-    return { messageId: data.id, provider: 'Resend API (HTTPS Port 443)' };
-  }
-
-  // 2. Brevo API (Sendinblue - 300 mail/ngày miễn phí vĩnh viễn, gửi được từ bất kỳ Gmail nào)
+  // 1. Brevo API (Sendinblue - 300 mail/ngày miễn phí vĩnh viễn, gửi từ bất kỳ Gmail nào đến mọi khách hàng)
   if (brevoApiKey) {
     const senderEmail = process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'support@lamourbookstore.vn';
     const senderName = process.env.BREVO_SENDER_NAME || "L'Amour Bookstore";
@@ -116,6 +92,30 @@ async function sendViaHttpApi(mailOptions) {
       throw new Error((data && (data.message || data.error)) || 'Lỗi gửi mail qua Brevo API');
     }
     return { messageId: data.messageId, provider: 'Brevo API (HTTPS Port 443)' };
+  }
+
+  // 2. Resend API (100 mail/ngày miễn phí qua HTTPS)
+  if (resendApiKey) {
+    // Lưu ý: Resend chỉ chấp nhận domain đã xác minh hoặc domain thử nghiệm mặc định 'onboarding@resend.dev'
+    const fromAddr = process.env.RESEND_FROM || "L'Amour Bookstore <onboarding@resend.dev>";
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: fromAddr,
+        to: [mailOptions.to],
+        subject: mailOptions.subject,
+        html: mailOptions.html
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error((data && (data.message || data.error)) || 'Lỗi gửi mail qua Resend API');
+    }
+    return { messageId: data.id, provider: 'Resend API (HTTPS Port 443)' };
   }
 
   // 3. SendGrid API
@@ -845,7 +845,7 @@ async function diagnoseEmailService() {
     hasSendGridApiKey: !!(process.env.SENDGRID_API_KEY),
     hasMailgunApiKey: !!(process.env.MAILGUN_API_KEY && process.env.MAILGUN_DOMAIN),
     hasRelayUrl: !!(process.env.EMAIL_RELAY_URL),
-    activeHttpProvider: process.env.RESEND_API_KEY ? 'Resend API' : (process.env.BREVO_API_KEY ? 'Brevo API' : (process.env.SENDGRID_API_KEY ? 'SendGrid API' : (process.env.MAILGUN_API_KEY ? 'Mailgun API' : (process.env.EMAIL_RELAY_URL ? 'Custom Relay' : null)))),
+    activeHttpProvider: process.env.BREVO_API_KEY ? 'Brevo API' : (process.env.RESEND_API_KEY ? 'Resend API' : (process.env.SENDGRID_API_KEY ? 'SendGrid API' : (process.env.MAILGUN_API_KEY ? 'Mailgun API' : (process.env.EMAIL_RELAY_URL ? 'Custom Relay' : null)))),
     checks: {},
     recommendation: ''
   };
