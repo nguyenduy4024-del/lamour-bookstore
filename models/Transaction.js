@@ -246,45 +246,73 @@ class UnifiedTransactionQuery {
   }
 
   async exec() {
-    const q = this._query || {};
+    const q = { ...(this._query || {}) };
     let searchReceipts = true;
     let searchPayments = true;
 
     if (q.type) {
-      if (['income', 'thu'].includes(q.type)) {
+      let typesToCheck = [];
+      if (typeof q.type === 'string') {
+        typesToCheck = [q.type.toLowerCase()];
+      } else if (q.type && typeof q.type === 'object' && Array.isArray(q.type.$in)) {
+        typesToCheck = q.type.$in.map(t => String(t).toLowerCase());
+      }
+      const hasThu = typesToCheck.some(t => ['income', 'thu'].includes(t));
+      const hasChi = typesToCheck.some(t => ['expense', 'chi'].includes(t));
+
+      if (hasThu && !hasChi) {
         searchPayments = false;
-      } else if (['expense', 'chi'].includes(q.type)) {
+        searchReceipts = true;
+      } else if (hasChi && !hasThu) {
         searchReceipts = false;
+        searchPayments = true;
       }
     }
 
-    const maxSubLimit = this._limit ? ((this._skip || 0) + this._limit) : null;
-    const promises = [];
-    if (searchReceipts) {
-      let rq = ReceiptModel.find(q);
+    if (searchReceipts && !searchPayments) {
+      const rqFilter = { ...q };
+      if (rqFilter.type) rqFilter.type = { $in: ['thu', 'income'] };
+      let rq = ReceiptModel.find(rqFilter);
       for (const p of this._populates) rq = rq.populate(...p);
       if (this._select) rq = rq.select(this._select);
       if (this._sort) rq = rq.sort(this._sort);
-      if (maxSubLimit) rq = rq.limit(maxSubLimit);
+      if (this._skip) rq = rq.skip(this._skip);
+      if (this._limit) rq = rq.limit(this._limit);
       if (this._isLean) rq = rq.lean();
-      promises.push(rq.exec());
-    } else {
-      promises.push(Promise.resolve([]));
+      return await rq.exec();
     }
 
-    if (searchPayments) {
-      let pq = PaymentModel.find(q);
+    if (searchPayments && !searchReceipts) {
+      const pqFilter = { ...q };
+      if (pqFilter.type) pqFilter.type = { $in: ['chi', 'expense'] };
+      let pq = PaymentModel.find(pqFilter);
       for (const p of this._populates) pq = pq.populate(...p);
       if (this._select) pq = pq.select(this._select);
       if (this._sort) pq = pq.sort(this._sort);
-      if (maxSubLimit) pq = pq.limit(maxSubLimit);
+      if (this._skip) pq = pq.skip(this._skip);
+      if (this._limit) pq = pq.limit(this._limit);
       if (this._isLean) pq = pq.lean();
-      promises.push(pq.exec());
-    } else {
-      promises.push(Promise.resolve([]));
+      return await pq.exec();
     }
 
-    const [recs, pays] = await Promise.all(promises);
+    const maxSubLimit = this._limit ? ((this._skip || 0) + this._limit) : null;
+    const rqFilter = { ...q };
+    if (rqFilter.type) rqFilter.type = { $in: ['thu', 'income'] };
+    const pqFilter = { ...q };
+    if (pqFilter.type) pqFilter.type = { $in: ['chi', 'expense'] };
+
+    let rq = ReceiptModel.find(rqFilter);
+    let pq = PaymentModel.find(pqFilter);
+    for (const p of this._populates) {
+      rq = rq.populate(...p);
+      pq = pq.populate(...p);
+    }
+    if (this._select) { rq = rq.select(this._select); pq = pq.select(this._select); }
+    if (this._sort) { rq = rq.sort(this._sort); pq = pq.sort(this._sort); }
+    if (maxSubLimit) { rq = rq.limit(maxSubLimit); pq = pq.limit(maxSubLimit); }
+    if (this._isLean) { rq = rq.lean(); pq = pq.lean(); }
+
+    const [recs, pays] = await Promise.all([rq.exec(), pq.exec()]);
     let all = [...recs, ...pays];
 
     all.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
@@ -383,16 +411,35 @@ const Transaction = {
   },
 
   async countDocuments(query = {}) {
-    const q = query || {};
-    if (q.type && ['expense', 'chi'].includes(q.type)) {
-      return await PaymentModel.countDocuments(q);
+    const q = { ...(query || {}) };
+    if (q.type) {
+      let typesToCheck = [];
+      if (typeof q.type === 'string') {
+        typesToCheck = [q.type.toLowerCase()];
+      } else if (q.type && typeof q.type === 'object' && Array.isArray(q.type.$in)) {
+        typesToCheck = q.type.$in.map(t => String(t).toLowerCase());
+      }
+      const hasThu = typesToCheck.some(t => ['income', 'thu'].includes(t));
+      const hasChi = typesToCheck.some(t => ['expense', 'chi'].includes(t));
+
+      if (hasThu && !hasChi) {
+        const rqFilter = { ...q, type: { $in: ['thu', 'income'] } };
+        return await ReceiptModel.countDocuments(rqFilter);
+      }
+      if (hasChi && !hasThu) {
+        const pqFilter = { ...q, type: { $in: ['chi', 'expense'] } };
+        return await PaymentModel.countDocuments(pqFilter);
+      }
     }
-    if (q.type && ['income', 'thu'].includes(q.type)) {
-      return await ReceiptModel.countDocuments(q);
-    }
+
+    const rqFilter = { ...q };
+    if (rqFilter.type) rqFilter.type = { $in: ['thu', 'income'] };
+    const pqFilter = { ...q };
+    if (pqFilter.type) pqFilter.type = { $in: ['chi', 'expense'] };
+
     const [c1, c2] = await Promise.all([
-      ReceiptModel.countDocuments(q),
-      PaymentModel.countDocuments(q)
+      ReceiptModel.countDocuments(rqFilter),
+      PaymentModel.countDocuments(pqFilter)
     ]);
     return c1 + c2;
   },

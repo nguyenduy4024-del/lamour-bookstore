@@ -9,10 +9,95 @@ const { logActivity } = require('../utils/auditLogger');
 let isTransactionsSeeded = false;
 let financialReportCache = new Map();
 let cashbookKpiCache = { data: null, timestamp: 0 };
+let cashbookSummaryCache = new Map();
 
 const invalidateAccountingCache = () => {
   financialReportCache.clear();
   cashbookKpiCache = { data: null, timestamp: 0 };
+  cashbookSummaryCache.clear();
+};
+
+// Tính toán tóm tắt tổng hợp thu chi theo bộ lọc song song siêu tốc
+const getSummaryForQuery = async (query = {}) => {
+  const cacheKey = JSON.stringify(query);
+  const cached = cashbookSummaryCache.get(cacheKey);
+  const now = Date.now();
+  if (cached && now - cached.timestamp < 30000) {
+    return cached.data;
+  }
+
+  const q = { ...query };
+  let searchReceipts = true;
+  let searchPayments = true;
+
+  if (q.type) {
+    let typesToCheck = [];
+    if (typeof q.type === 'string') {
+      typesToCheck = [q.type.toLowerCase()];
+    } else if (q.type && typeof q.type === 'object' && Array.isArray(q.type.$in)) {
+      typesToCheck = q.type.$in.map(t => String(t).toLowerCase());
+    }
+    const hasThu = typesToCheck.some(t => ['income', 'thu'].includes(t));
+    const hasChi = typesToCheck.some(t => ['expense', 'chi'].includes(t));
+    if (hasThu && !hasChi) searchPayments = false;
+    if (hasChi && !hasThu) searchReceipts = false;
+  }
+
+  const rqFilter = { ...q };
+  if (rqFilter.type) rqFilter.type = { $in: ['thu', 'income'] };
+  const pqFilter = { ...q };
+  if (pqFilter.type) pqFilter.type = { $in: ['chi', 'expense'] };
+
+  const promises = [];
+  if (searchReceipts) {
+    promises.push(
+      Transaction.Receipt.aggregate([
+        { $match: rqFilter },
+        { $group: { _id: null, count: { $sum: 1 }, total: { $sum: '$amount' } } }
+      ])
+    );
+  } else {
+    promises.push(Promise.resolve([]));
+  }
+
+  if (searchPayments) {
+    promises.push(
+      Transaction.Payment.aggregate([
+        { $match: pqFilter },
+        { $group: { _id: null, count: { $sum: 1 }, total: { $sum: '$amount' } } }
+      ])
+    );
+  } else {
+    promises.push(Promise.resolve([]));
+  }
+
+  const [recAgg, payAgg] = await Promise.all(promises);
+  const thuCount = recAgg[0]?.count || 0;
+  const thuTotal = recAgg[0]?.total || 0;
+  const chiCount = payAgg[0]?.count || 0;
+  const chiTotal = payAgg[0]?.total || 0;
+
+  let filteredTotalAmount = 0;
+  if (searchReceipts && !searchPayments) {
+    filteredTotalAmount = thuTotal;
+  } else if (searchPayments && !searchReceipts) {
+    filteredTotalAmount = chiTotal;
+  } else {
+    filteredTotalAmount = thuTotal - chiTotal;
+  }
+
+  const data = {
+    totalCount: thuCount + chiCount,
+    thuCount,
+    chiCount,
+    totalThu: thuTotal,
+    totalChi: chiTotal,
+    filteredTotalAmount,
+    netBalance: thuTotal - chiTotal
+  };
+
+  cashbookSummaryCache.set(cacheKey, { data, timestamp: now });
+  return data;
 };
 
 // Khởi tạo các giao dịch mẫu ban đầu nếu Sổ Quỹ chưa có dữ liệu
@@ -249,8 +334,8 @@ const getCashbook = async (req, res) => {
     await seedDefaultTransactionsIfEmpty();
 
     const { startDate, endDate, type, keyword, status } = req.query;
-    const limit = Math.min(150, Math.max(1, parseInt(req.query.limit) || (req.query.all === 'true' ? 500 : 50)));
-    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || (req.query.all === 'true' ? 500 : 25)));
+    const page = Math.max(1, parseInt(req.query.page) || 1);
     const skip = (page - 1) * limit;
 
     // 1. Tính toán các thẻ KPI tổng quan toàn hệ thống bằng MongoDB Aggregation song song
@@ -355,9 +440,10 @@ const getCashbook = async (req, res) => {
     const query = {};
 
     if (type && type !== 'all') {
-      if (type === 'income') {
+      const lowerType = String(type).toLowerCase();
+      if (['income', 'thu'].includes(lowerType)) {
         query.type = { $in: ['income', 'thu'] };
-      } else if (type === 'expense') {
+      } else if (['expense', 'chi'].includes(lowerType)) {
         query.type = { $in: ['expense', 'chi'] };
       }
     }
@@ -396,15 +482,18 @@ const getCashbook = async (req, res) => {
       ];
     }
 
-    const transactions = await Transaction.find(query)
-      .populate('performedBy', 'name email role')
-      .populate('approvedBy', 'name email role')
-      .populate('referenceOrder', 'invoiceCode totalAmount finalAmount status paymentMethod')
-      .populate('referenceReceipt', 'receiptCode totalAmount')
-      .sort({ createdAt: -1, _id: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const [transactions, summary] = await Promise.all([
+      Transaction.find(query)
+        .populate('performedBy', 'name email role')
+        .populate('approvedBy', 'name email role')
+        .populate('referenceOrder', 'invoiceCode totalAmount finalAmount status paymentMethod')
+        .populate('referenceReceipt', 'receiptCode totalAmount')
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      getSummaryForQuery(query)
+    ]);
 
     // Chuẩn hóa dữ liệu trả về cho frontend
     const normalizedData = transactions.map(t => {
@@ -442,6 +531,11 @@ const getCashbook = async (req, res) => {
     res.status(200).json({
       success: true,
       count: normalizedData.length,
+      total: summary.totalCount,
+      totalPages: Math.ceil(summary.totalCount / limit) || 1,
+      currentPage: page,
+      limit,
+      summary,
       kpi: kpiData,
       data: normalizedData
     });
