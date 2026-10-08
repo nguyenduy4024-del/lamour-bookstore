@@ -1945,6 +1945,15 @@
   });
 
   // ---------- DATA STORES ----------
+  function getAccountantAuthHeaders(extra = {}) {
+    const headers = { ...extra };
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    if (token && token !== 'null' && token !== 'undefined') {
+      headers['Authorization'] = 'Bearer ' + token;
+    }
+    return headers;
+  }
+
   let allInvoicesData = [];
   let invoiceSummaryData = null;
   let currentInvoicePage = 1;
@@ -1967,7 +1976,10 @@
 
   async function fetchProfile() {
     try {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/auth/me', {
+        headers: getAccountantAuthHeaders(),
+        credentials: 'include'
+      });
       const data = await res.json();
       if (res.ok && data._id) {
         currentUser = data;
@@ -2026,7 +2038,10 @@
       if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter);
       if (q) params.append('keyword', q);
 
-      const res = await fetch('/api/accounting/transactions?' + params.toString());
+      const res = await fetch('/api/accounting/transactions?' + params.toString(), {
+        headers: getAccountantAuthHeaders(),
+        credentials: 'include'
+      });
       const result = await res.json();
 
       if (res.ok && result.success) {
@@ -2062,7 +2077,10 @@
       if (status && status !== 'all') params.append('status', status);
       if (q) params.append('search', q);
 
-      const res = await fetch('/api/invoices?' + params.toString());
+      const res = await fetch('/api/invoices?' + params.toString(), {
+        headers: getAccountantAuthHeaders(),
+        credentials: 'include'
+      });
       const result = await res.json();
       if (res.ok && result.success) {
         allInvoicesData = result.data || [];
@@ -2138,7 +2156,10 @@
   // ============ 3. TẢI DỮ LIỆU CÔNG NỢ NHÀ CUNG CẤP ============
   async function fetchSupplierDebts() {
     try {
-      const res = await fetch('/api/accounting/supplier-debts');
+      const res = await fetch('/api/accounting/supplier-debts', {
+        headers: getAccountantAuthHeaders(),
+        credentials: 'include'
+      });
       const result = await res.json();
       if (res.ok && result.success) {
         supplierDebtsList = result.data || [];
@@ -2163,7 +2184,10 @@
       if (st && st !== 'all') params.append('status', st);
       if (q) params.append('search', q);
 
-      const res = await fetch('/api/accounting/customer-debts?' + params.toString());
+      const res = await fetch('/api/accounting/customer-debts?' + params.toString(), {
+        headers: getAccountantAuthHeaders(),
+        credentials: 'include'
+      });
       const result = await res.json();
       if (res.ok && result.success) {
         customerDebtsList = result.data || [];
@@ -2182,7 +2206,10 @@
   // ============ 3.2. TẢI DANH MỤC SÁCH ============
   async function fetchBooks() {
     try {
-      const res = await fetch('/api/books?all=true');
+      const res = await fetch('/api/books?all=true', {
+        headers: getAccountantAuthHeaders(),
+        credentials: 'include'
+      });
       const result = await res.json();
       if (res.ok && result.success) {
         allBooksData = result.data || [];
@@ -2291,7 +2318,10 @@
       if (endDateVal) params.append('endDate', endDateVal);
       if (params.toString()) url += '?' + params.toString();
 
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: getAccountantAuthHeaders(),
+        credentials: 'include'
+      });
       const resJson = await res.json();
       if (res.ok && resJson.success && resJson.data) {
         reportData = resJson.data;
@@ -3594,14 +3624,10 @@
   async function approveTransactionAdmin(id, code) {
     if (await showCustomConfirm(`Bạn có chắc chắn muốn PHÊ DUYỆT phiếu "${code}" để chính thức thực hiện thu/chi tiền vào quỹ?`)) {
       try {
-        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-        const headers = { 'Content-Type': 'application/json' };
-        if (token && token !== 'null' && token !== 'undefined') {
-          headers['Authorization'] = 'Bearer ' + token;
-        }
         const res = await fetch(`/api/accounting/transactions/${id}/approve`, {
           method: 'PUT',
-          headers
+          headers: getAccountantAuthHeaders({ 'Content-Type': 'application/json' }),
+          credentials: 'include'
         });
         const result = await res.json();
         if (res.ok && result.success) {
@@ -3626,14 +3652,10 @@
     );
     if (reason === null) return;
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token && token !== 'null' && token !== 'undefined') {
-        headers['Authorization'] = 'Bearer ' + token;
-      }
       const res = await fetch(`/api/accounting/transactions/${id}/reject`, {
         method: 'PUT',
-        headers,
+        headers: getAccountantAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({ reason: reason.trim() })
       });
       const result = await res.json();
@@ -3762,14 +3784,10 @@
   async function deleteTransaction(id, code) {
     if (await showCustomConfirm(`Bạn có chắc chắn muốn xóa phiếu giao dịch "${code}" khỏi hệ thống?`)) {
       try {
-        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-        const headers = {};
-        if (token && token !== 'null' && token !== 'undefined') {
-          headers['Authorization'] = 'Bearer ' + token;
-        }
         const res = await fetch(`/api/accounting/transactions/${id}`, {
           method: 'DELETE',
-          headers
+          headers: getAccountantAuthHeaders(),
+          credentials: 'include'
         });
         const result = await res.json();
 
@@ -3826,16 +3844,12 @@
         submitBtn.textContent = 'Đang tải ảnh...';
       }
       try {
-        const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-        const uploadHeaders = {};
-        if (token && token !== 'null' && token !== 'undefined') {
-          uploadHeaders['Authorization'] = 'Bearer ' + token;
-        }
         const fd = new FormData();
         fd.append('attachment', attachedFileInput.files[0]);
         const upRes = await fetch('/api/accounting/upload-attachment', {
           method: 'POST',
-          headers: uploadHeaders,
+          headers: getAccountantAuthHeaders(),
+          credentials: 'include',
           body: fd
         });
         const upData = await upRes.json();
@@ -3891,15 +3905,10 @@
     };
 
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      const reqHeaders = { 'Content-Type': 'application/json' };
-      if (token && token !== 'null' && token !== 'undefined') {
-        reqHeaders['Authorization'] = 'Bearer ' + token;
-      }
-
       const res = await fetch(url, {
         method: method,
-        headers: reqHeaders,
+        headers: getAccountantAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify(body)
       });
 
@@ -4016,7 +4025,8 @@
       try {
         const res = await fetch(`/api/invoices/${invoiceId}/status`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAccountantAuthHeaders({ 'Content-Type': 'application/json' }),
+          credentials: 'include',
           body: JSON.stringify({ status: 'paid' })
         });
         const result = await res.json();
@@ -4538,7 +4548,8 @@
     try {
       let res = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAccountantAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({ amount, paymentMethod, note, accountantName })
       });
 
@@ -4553,7 +4564,8 @@
       if ((!res.ok || !result || !result.success) && type === 'customer') {
         const fbRes = await fetch(`/api/invoices/${id}/status`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getAccountantAuthHeaders({ 'Content-Type': 'application/json' }),
+          credentials: 'include',
           body: JSON.stringify({ status: 'paid' })
         });
         if (fbRes.ok) {

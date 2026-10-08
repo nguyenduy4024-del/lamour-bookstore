@@ -145,6 +145,12 @@ bookSchema.post('save', async function (doc) {
   }
 });
 
+// Chỉ mục tìm kiếm văn bản và truy vấn danh mục/sản phẩm nổi bật
+bookSchema.index({ title: 'text', author: 'text', bookCode: 'text' });
+bookSchema.index({ category: 1, price: 1, stock: -1 });
+bookSchema.index({ isFeatured: 1, createdAt: -1 });
+bookSchema.index({ isDeleted: 1, status: 1 });
+
 module.exports = mongoose.models.Book || mongoose.model('Book', bookSchema, 'products');
 
 

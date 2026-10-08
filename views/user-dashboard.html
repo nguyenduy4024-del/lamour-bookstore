@@ -2465,6 +2465,14 @@
       okBtn.addEventListener('click', onOk);
       cancelBtn.addEventListener('click', onCancel);
     });
+  // ================= AUTH HEADERS HELPER =================
+  function getUserAuthHeaders(extra = {}) {
+    const headers = { ...extra };
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    if (token && token !== 'null' && token !== 'undefined') {
+      headers['Authorization'] = 'Bearer ' + token;
+    }
+    return headers;
   }
 
   // ================= 2. MASKING & REGEX VALIDATION HELPERS =================
@@ -2665,7 +2673,10 @@
   // ================= 5. PROFILE (HỒ SƠ CỦA TÔI) =================
   async function loadUserProfile() {
     try {
-      const res = await fetch('/api/user/profile');
+      const res = await fetch('/api/user/profile', {
+        headers: getUserAuthHeaders(),
+        credentials: 'include'
+      });
       const result = await res.json();
 
       if (!res.ok || !result.success) {
@@ -2733,7 +2744,8 @@
     try {
       const res = await fetch('/api/user/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getUserAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({ name, gender, birthday })
       });
       const result = await res.json();
@@ -2776,6 +2788,8 @@
       showCustomToast('info', 'Đang tải lên', 'Đang cập nhật ảnh đại diện...');
       const res = await fetch('/api/user/avatar', {
         method: 'POST',
+        headers: getUserAuthHeaders(),
+        credentials: 'include',
         body: formData
       });
       const result = await res.json();
@@ -2813,7 +2827,8 @@
     try {
       const res = await fetch('/api/user/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getUserAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({ phone })
       });
       const result = await res.json();
@@ -2896,7 +2911,8 @@
     try {
       const res = await fetch('/api/user/bank', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getUserAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({ bankName, accountNumber, accountHolder, branch, isDefault })
       });
       const result = await res.json();
@@ -2919,7 +2935,11 @@
 
   async function handleSetDefaultBank(id) {
     try {
-      const res = await fetch(`/api/user/bank/default/${id}`, { method: 'PUT' });
+      const res = await fetch(`/api/user/bank/default/${id}`, {
+        method: 'PUT',
+        headers: getUserAuthHeaders(),
+        credentials: 'include'
+      });
       const result = await res.json();
 
       if (!res.ok || !result.success) {
@@ -2939,7 +2959,11 @@
     if (!ok) return;
 
     try {
-      const res = await fetch(`/api/user/bank/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/user/bank/${id}`, {
+        method: 'DELETE',
+        headers: getUserAuthHeaders(),
+        credentials: 'include'
+      });
       const result = await res.json();
 
       if (!res.ok || !result.success) {
@@ -3072,7 +3096,8 @@
 
       const res = await fetch(url, {
         method: method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: getUserAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify(payload)
       });
       const result = await res.json();
@@ -3098,7 +3123,8 @@
     try {
       const res = await fetch(`/api/user/address/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getUserAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({ isDefault: true })
       });
       const result = await res.json();
@@ -3121,7 +3147,11 @@
     if (!ok) return;
 
     try {
-      const res = await fetch(`/api/user/address/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/user/address/${id}`, {
+        method: 'DELETE',
+        headers: getUserAuthHeaders(),
+        credentials: 'include'
+      });
       const result = await res.json();
 
       if (!res.ok || !result.success) {
@@ -3161,7 +3191,8 @@
     try {
       const res = await fetch('/api/user/change-password', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getUserAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({ oldPassword, newPassword })
       });
       const result = await res.json();
@@ -3303,7 +3334,8 @@
     try {
       const res = await fetch('/api/user/identity', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getUserAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({ fullName, idNumber, permanentAddress })
       });
       const result = await res.json();
@@ -3331,7 +3363,10 @@
       let url = `/api/user/orders?status=${status}`;
       if (searchQuery) url += `&q=${encodeURIComponent(searchQuery)}`;
 
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: getUserAuthHeaders(),
+        credentials: 'include'
+      });
       const result = await res.json();
 
       if (!res.ok || !result.success) {
@@ -3677,7 +3712,9 @@
 
     try {
       const res = await fetch(`/api/user/orders/${orderId}/cancel`, {
-        method: 'PUT'
+        method: 'PUT',
+        headers: getUserAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include'
       });
       const result = await res.json();
 
@@ -3881,7 +3918,8 @@
     try {
       const res = await fetch(`/api/user/orders/${currentPayOrder._id}/pay`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getUserAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({
           paymentMethod: selectedMethod === 'card' ? 'MoMo' : (selectedMethod === 'transfer' ? 'transfer' : 'cash'),
           paymentNote: payNote,
@@ -3970,7 +4008,8 @@
     try {
       const res = await fetch(`/api/user/orders/${currentReturnOrder._id}/return-request`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getUserAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify({
           reason,
           note,

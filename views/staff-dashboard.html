@@ -8150,7 +8150,8 @@
     try {
       const res = await fetch('/api/invoices', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        credentials: 'include',
         body: JSON.stringify(invoicePayload)
       });
 
@@ -9218,10 +9219,7 @@
     }
 
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) credentials = 'include';
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const headers = { 'Content-Type': 'application/json', ...getAuthHeaders() };
 
       const payload = {
         invoiceId: crCurrentInvoice._id,
@@ -9237,6 +9235,7 @@
       const res = await fetch('/api/invoices/counter-return', {
         method: 'POST',
         headers,
+        credentials: 'include',
         body: JSON.stringify(payload)
       });
 
@@ -11243,6 +11242,13 @@
       console.error(err);
       showCustomToast('error', 'Lỗi kết nối', 'Không thể kết nối máy chủ.');
     }
+  async function handleStaffConfirmReceivedBack(orderId) {
+    const confirmed = await showCustomConfirm(
+      'Xác nhận shipper đã mang sách hoàn trả về tới cửa hàng? Hệ thống sẽ mở bảng Giám định sách để kiểm tra và xử lý hoàn tiền.',
+      'Xác nhận nhận sách về tiệm'
+    );
+    if (!confirmed) return;
+    openInspectReturnModal(orderId);
   }
 
   async function handleStaffRejectReturn(orderId) {
@@ -11559,9 +11565,12 @@
         </tr>
       `;
     }).join('');
-  }
-
   document.getElementById('shiftInvoiceSearch')?.addEventListener('input', renderShiftInvoicesTable);
+
+  function printPosReceipt(inv) {
+    if (!inv) return;
+    printSalesInvoice(inv, inv.items || []);
+  }
 
   // ---------- MỆNH GIÁ TIỀN & BÀN GIAO CA ----------
   function openCashDenomModal() {

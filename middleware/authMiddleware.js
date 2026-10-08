@@ -11,6 +11,13 @@ const protect = async (req, res, next) => {
     }
   }
 
+  if (!token && req.query && req.query.token) {
+    const queryToken = req.query.token;
+    if (queryToken && queryToken !== 'null' && queryToken !== 'undefined') {
+      token = queryToken;
+    }
+  }
+
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);

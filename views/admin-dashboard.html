@@ -17616,7 +17616,10 @@
 
     async function loadBackupStats() {
       try {
-        const res = await fetch('/api/admin/backups/stats');
+        const res = await fetch('/api/admin/backups/stats', {
+          headers: getAuthHeaders(),
+          credentials: 'include'
+        });
         const json = await res.json();
         if (!res.ok || !json.success) return;
 
@@ -17702,7 +17705,10 @@
         if (startDate) params.append('startDate', startDate);
         if (endDate) params.append('endDate', endDate);
 
-        const res = await fetch(`/api/admin/backups?${params.toString()}`);
+        const res = await fetch(`/api/admin/backups?${params.toString()}`, {
+          headers: getAuthHeaders(),
+          credentials: 'include'
+        });
         const json = await res.json();
         if (!res.ok || !json.success) throw new Error(json.message || 'Không thể tải danh sách bản sao lưu');
 
@@ -17928,7 +17934,8 @@
       try {
         const res = await fetch('/api/admin/backups', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          credentials: 'include',
           body: JSON.stringify({
             scope: selectedScope,
             backupType: selectedType,
@@ -17985,7 +17992,8 @@
       try {
         const res = await fetch(`/api/admin/backups/${id}/restore`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          credentials: 'include',
           body: JSON.stringify({ adminPassword, autoSnapshot })
         });
         const json = await res.json();
@@ -18046,6 +18054,8 @@
 
         const res = await fetch('/api/admin/backups/upload-restore', {
           method: 'POST',
+          headers: getAuthHeaders(),
+          credentials: 'include',
           body: formData
         });
         const json = await res.json();
@@ -18095,7 +18105,8 @@
       try {
         const res = await fetch('/api/admin/backups/config', {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          credentials: 'include',
           body: JSON.stringify({ autoBackup, scheduleTime, scope, retentionDays })
         });
         const json = await res.json();
@@ -18116,7 +18127,9 @@
 
     function downloadBackup(id) {
       showCustomToast('Bắt đầu tải về tệp sao lưu...', 'info');
-      window.location.href = `/api/admin/backups/${id}/download`;
+      const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+      const url = `/api/admin/backups/${id}/download` + (token ? `?token=${encodeURIComponent(token)}` : '');
+      window.location.href = url;
     }
 
     function confirmDeleteBackup(id, backupCode) {
@@ -18125,7 +18138,11 @@
         `Bạn có chắc chắn muốn xóa vĩnh viễn bản sao lưu <strong>[${escapeHtml(backupCode)}]</strong>?<br><span style="color:#DC2626; font-size:12px;">Tệp vật lý trên máy chủ sẽ bị xóa hoàn toàn.</span>`,
         async () => {
           try {
-            const res = await fetch(`/api/admin/backups/${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/admin/backups/${id}`, {
+              method: 'DELETE',
+              headers: getAuthHeaders(),
+              credentials: 'include'
+            });
             const json = await res.json();
             if (!res.ok || !json.success) throw new Error(json.message || 'Không thể xóa bản sao lưu');
 
