@@ -259,22 +259,50 @@ const getCashbook = async (req, res) => {
     if (cashbookKpiCache.data && (now - cashbookKpiCache.timestamp < 60000)) {
       kpiData = cashbookKpiCache.data;
     } else {
-      const [incAgg, expAgg, pendIncAgg, pendExpAgg, booksCostAgg] = await Promise.all([
+      const [receiptAgg, paymentAgg, booksCostAgg] = await Promise.all([
         Transaction.Receipt.aggregate([
-          { $match: { $or: [{ status: 'approved' }, { status: { $exists: false } }, { status: null }] } },
-          { $group: { _id: null, total: { $sum: '$amount' } } }
+          {
+            $group: {
+              _id: null,
+              totalIncome: {
+                $sum: {
+                  $cond: [
+                    { $in: ['$status', ['approved', null, '']] },
+                    '$amount',
+                    { $cond: [{ $eq: [{ $type: '$status' }, 'missing'] }, '$amount', 0] }
+                  ]
+                }
+              },
+              pendingIncome: {
+                $sum: { $cond: [{ $eq: ['$status', 'pending'] }, '$amount', 0] }
+              },
+              pendingIncomeCount: {
+                $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
+              }
+            }
+          }
         ]),
         Transaction.Payment.aggregate([
-          { $match: { $or: [{ status: 'approved' }, { status: { $exists: false } }, { status: null }] } },
-          { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]),
-        Transaction.Receipt.aggregate([
-          { $match: { status: 'pending' } },
-          { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
-        ]),
-        Transaction.Payment.aggregate([
-          { $match: { status: 'pending' } },
-          { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+          {
+            $group: {
+              _id: null,
+              totalExpense: {
+                $sum: {
+                  $cond: [
+                    { $in: ['$status', ['approved', null, '']] },
+                    '$amount',
+                    { $cond: [{ $eq: [{ $type: '$status' }, 'missing'] }, '$amount', 0] }
+                  ]
+                }
+              },
+              pendingExpense: {
+                $sum: { $cond: [{ $eq: ['$status', 'pending'] }, '$amount', 0] }
+              },
+              pendingExpenseCount: {
+                $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
+              }
+            }
+          }
         ]),
         Book.aggregate([
           {
@@ -300,11 +328,13 @@ const getCashbook = async (req, res) => {
         ])
       ]);
 
-      const totalIncome = incAgg[0]?.total || 0;
-      const totalExpense = expAgg[0]?.total || 0;
-      const pendingCount = (pendIncAgg[0]?.count || 0) + (pendExpAgg[0]?.count || 0);
-      const pendingIncome = pendIncAgg[0]?.total || 0;
-      const pendingExpense = pendExpAgg[0]?.total || 0;
+      const rData = receiptAgg[0] || {};
+      const pData = paymentAgg[0] || {};
+      const totalIncome = rData.totalIncome || 0;
+      const totalExpense = pData.totalExpense || 0;
+      const pendingCount = (rData.pendingIncomeCount || 0) + (pData.pendingExpenseCount || 0);
+      const pendingIncome = rData.pendingIncome || 0;
+      const pendingExpense = pData.pendingExpense || 0;
       const inventoryUnits = booksCostAgg[0]?.totalUnits || 0;
       const inventoryCostValue = Math.round(booksCostAgg[0]?.totalCostValue || 0);
 
@@ -373,7 +403,8 @@ const getCashbook = async (req, res) => {
       .populate('referenceReceipt', 'receiptCode totalAmount')
       .sort({ createdAt: -1, _id: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     // Chuẩn hóa dữ liệu trả về cho frontend
     const normalizedData = transactions.map(t => {
@@ -1294,9 +1325,11 @@ const getFinancialReport = async (req, res) => {
 const getSupplierDebts = async (req, res) => {
   try {
     const receipts = await ImportReceipt.find()
+      .select('receiptCode supplier createdUser totalAmount paidAmount paymentStatus status createdAt note')
       .populate('supplier', 'name phone address email bankAccount')
       .populate('createdUser', 'name email role')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,

@@ -1819,13 +1819,34 @@
   const isTransThu = t => ['thu', 'income'].includes(String(t && (typeof t === 'string' ? t : t.type) || '').toLowerCase());
   const isTransChi = t => ['chi', 'expense'].includes(String(t && (typeof t === 'string' ? t : t.type) || '').toLowerCase());
 
-  // ---------- TAB NAVIGATION ----------
+  // ---------- TAB NAVIGATION (VỚI LAZY LOADING VÀ CACHE TRẠNG THÁI) ----------
   const tabButtons = document.querySelectorAll('.side-nav button[data-tab]');
   const tabPanels = document.querySelectorAll('.tab-panel');
+
+  const accountantTabLoadedMap = {
+    'tab-report': true, // Tab mặc định khi mở trang
+    'tab-transactions': true, // Tải kèm để tính P&L ban đầu
+    'tab-invoices': true, // Tải kèm để tính P&L ban đầu
+    'tab-debts': false // LAZY LOAD: Chỉ tải khi bấm sang tab Công nợ
+  };
+
+  function loadAccountantTabDataIfNeeded(tabId) {
+    if (tabId === 'tab-debts' && !accountantTabLoadedMap['tab-debts']) {
+      accountantTabLoadedMap['tab-debts'] = true;
+      fetchSupplierDebts();
+    } else if (tabId === 'tab-transactions' && (!transactionsList || transactionsList.length === 0)) {
+      fetchTransactions();
+    } else if (tabId === 'tab-invoices' && (!allInvoicesData || allInvoicesData.length === 0)) {
+      fetchInvoices();
+    }
+  }
 
   function goToTab(tabId) {
     tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
     tabPanels.forEach(p => p.classList.toggle('active', p.id === tabId));
+
+    loadAccountantTabDataIfNeeded(tabId);
+
     if (window.UniversalDropdown) {
       setTimeout(() => UniversalDropdown.attachAll(), 50);
     }
@@ -1955,7 +1976,9 @@
 
   // ============ 4. LÀM MỚI TOÀN BỘ DỮ LIỆU ============
   async function refreshAllData() {
+    accountantTabLoadedMap['tab-debts'] = true;
     await Promise.all([fetchTransactions(), fetchInvoices(), fetchSupplierDebts(), fetchBooks()]);
+    initB01DefaultData();
     applyFinancialFilter();
     showCustomToast('success', 'Đã cập nhật', 'Toàn bộ số liệu tài chính, công nợ 2 chiều và hóa đơn đã được làm mới!');
   }
@@ -5680,11 +5703,20 @@
     printWin.document.close();
   }
 
-  // ============ KHỞI CHẠY ============
+  // ============ KHỞI CHẠY (ƯU TIÊN TAB BÁO CÁO TÀI CHÍNH P&L) ============
   fetchProfile();
-  Promise.all([fetchTransactions(), fetchInvoices(), fetchSupplierDebts(), fetchBooks()]).then(() => {
+  Promise.all([fetchTransactions(), fetchInvoices(), fetchBooks()]).then(() => {
     initB01DefaultData();
     applyFinancialFilter();
+
+    // Hỗ trợ tự động chuyển tab nếu URL có tham số ?tab=...
+    const urlParams = new URLSearchParams(window.location.search);
+    const requestedTab = urlParams.get('tab');
+    if (requestedTab) {
+      const targetId = requestedTab.startsWith('tab-') ? requestedTab : `tab-${requestedTab}`;
+      setTimeout(() => goToTab(targetId), 100);
+    }
+
     if (window.UniversalDropdown) {
       UniversalDropdown.attachAll();
     }
