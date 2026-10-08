@@ -3560,9 +3560,53 @@
 
   const fmt = n => (n || 0).toLocaleString('vi-VN') + '₫';
 
-  // ---------- TAB NAVIGATION ----------
+  // ---------- TAB NAVIGATION (VỚI LAZY LOADING & CACHE TRẠNG THÁI) ----------
   const tabButtons = document.querySelectorAll('.side-nav button[data-tab]');
   const tabPanels = document.querySelectorAll('.tab-panel');
+
+  const stockTabLoadedMap = {
+    'tab-books': true, // Tab mặc định khi mở trang đã được tải ngay
+    'tab-suppliers': false,
+    'tab-import': false,
+    'tab-export': false,
+    'tab-audit': false,
+    'tab-supplier-returns': false,
+    'tab-shelves': false
+  };
+
+  function loadStockTabDataIfNeeded(targetTab) {
+    if (targetTab === 'tab-suppliers' && !stockTabLoadedMap['tab-suppliers']) {
+      stockTabLoadedMap['tab-suppliers'] = true;
+      fetchSuppliers();
+    } else if (targetTab === 'tab-import') {
+      if (!stockTabLoadedMap['tab-import']) {
+        stockTabLoadedMap['tab-import'] = true;
+        fetchReceiptsHistory();
+        generateReceiptCode();
+      }
+      if (!suppliersData || suppliersData.length === 0) {
+        fetchSuppliers();
+      }
+    } else if (targetTab === 'tab-export' && !stockTabLoadedMap['tab-export']) {
+      stockTabLoadedMap['tab-export'] = true;
+      fetchExportReceiptsHistory();
+      generateExportReceiptCode();
+    } else if (targetTab === 'tab-audit' && !stockTabLoadedMap['tab-audit']) {
+      stockTabLoadedMap['tab-audit'] = true;
+      fetchAuditReceiptsHistory();
+      fetchAdjustmentHistory();
+      generateAuditCode();
+      populateAuditFilterShelves();
+    } else if (targetTab === 'tab-supplier-returns' && !stockTabLoadedMap['tab-supplier-returns']) {
+      stockTabLoadedMap['tab-supplier-returns'] = true;
+      fetchSupplierReturnsData();
+      generateSupplierReturnCode();
+      populateReturnSupplierSelect();
+      populateReturnHistorySupplierFilter();
+    } else if (targetTab === 'tab-shelves') {
+      fetchStockShelves();
+    }
+  }
 
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -3570,17 +3614,9 @@
       btn.classList.add('active');
       const target = btn.dataset.tab;
       tabPanels.forEach(p => p.classList.toggle('active', p.id === target));
-      if (target === 'tab-supplier-returns') {
-        populateReturnSupplierSelect();
-        populateReturnHistorySupplierFilter();
-      }
-      if (target === 'tab-shelves') {
-        fetchStockShelves();
-      }
-      if (target === 'tab-audit') {
-        fetchAuditReceiptsHistory();
-        populateAuditFilterShelves();
-      }
+
+      loadStockTabDataIfNeeded(target);
+
       if (window.UniversalDropdown) {
         UniversalDropdown.attach('#auditFilterShelf', { compact: true, width: '150px' });
         UniversalDropdown.attach('#auditFilterCategory', { compact: true, width: '170px' });
@@ -11371,26 +11407,27 @@
   window.removeSuppCategory = removeSuppCategory;
   window.toggleExportReasonOther = toggleExportReasonOther;
 
+  // 1. TẢI DỮ LIỆU CẦN THIẾT CHO TAB MẶC ĐỊNH (TRA CỨU TỒN KHO)
   fetchProfile();
   fetchBooks();
-  fetchSuppliers();
   fetchStockCategories();
-  fetchReceiptsHistory();
-  fetchExportReceiptsHistory();
-  fetchAuditReceiptsHistory();
-  fetchAdjustmentHistory();
-  fetchSupplierReturnsData();
-  populateReturnSupplierSelect();
-  populateReturnHistorySupplierFilter();
-  generateReceiptCode();
-  generateExportReceiptCode();
-  generateAuditCode();
-  generateSupplierReturnCode();
 
-  // Lập tức tải và kích hoạt toàn bộ thông báo / huy hiệu kệ ngay khi thủ kho đăng nhập
-  updateStockPendingShelfRequestsBadge();
-  updateStockPendingShelfMaintenanceBadge();
-  updateStockPendingShelfTransferBadge();
+  // Kiểm tra nếu URL có tham số ?tab=... thì tự động chuyển tab
+  const urlParams = new URLSearchParams(window.location.search);
+  const requestedTab = urlParams.get('tab');
+  if (requestedTab && requestedTab !== 'books') {
+    const targetBtn = document.querySelector(`.side-nav button[data-tab="tab-${requestedTab}"]`);
+    if (targetBtn) {
+      setTimeout(() => targetBtn.click(), 100);
+    }
+  }
+
+  // 2. HOÃN TẢI CÁC THÔNG BÁO / HUY HIỆU SAU KHI GIAO DIỆN CHÍNH ĐÃ SẴN SÀNG
+  setTimeout(() => {
+    updateStockPendingShelfRequestsBadge();
+    updateStockPendingShelfMaintenanceBadge();
+    updateStockPendingShelfTransferBadge();
+  }, 400);
 
   // Khởi tạo Universal Custom Floating Dropdown cho toàn bộ thủ kho
   if (window.UniversalDropdown) {

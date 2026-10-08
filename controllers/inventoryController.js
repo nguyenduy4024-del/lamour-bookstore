@@ -2240,55 +2240,7 @@ const getInventoryLookup = async (req, res) => {
     const { keyword, q, category, shelf, status, sort } = req.query;
     const searchTerm = (keyword || q || '').trim();
 
-    // 1. TÍNH TOÁN BỘ CHỈ SỐ KPI ĐỘNG BẰNG AGGREGATION
-    // A. Tổng đầu sách
-    const totalTitles = await Book.countDocuments();
-
-    // B. Tổng tồn thực tế & Giá trị vốn + Giá trị bán lẻ
-    const stockAgg = await Book.aggregate([
-      {
-        $project: {
-          stock: { $ifNull: ['$stock', 0] },
-          price: { $ifNull: ['$price', 0] },
-          costPrice: { $ifNull: ['$costPrice', 0] }
-        }
-      },
-      {
-        $project: {
-          stock: 1,
-          price: 1,
-          costPrice: 1,
-          retailVal: { $multiply: ['$stock', '$price'] },
-          effectiveCost: {
-            $cond: [
-              { $gt: ['$costPrice', 0] },
-              '$costPrice',
-              { $round: [{ $multiply: ['$price', 0.65] }, 0] }
-            ]
-          }
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalStock: { $sum: '$stock' },
-          totalRetailValue: { $sum: '$retailVal' },
-          totalCostValue: { $sum: { $multiply: ['$stock', '$effectiveCost'] } }
-        }
-      }
-    ]);
-
-    const totalStock = stockAgg[0]?.totalStock || 0;
-    const totalRetailValue = Math.round(stockAgg[0]?.totalRetailValue || 0);
-    const totalCostValue = Math.round(stockAgg[0]?.totalCostValue || 0);
-
-    // C. Đếm số lượng theo trạng thái
-    const safeStockCount = await Book.countDocuments({ stock: { $gt: 10 } });
-    const lowStockCount = await Book.countDocuments({ stock: { $gte: 1, $lte: 10 } });
-    const outStockCount = await Book.countDocuments({ stock: { $lte: 0 } });
-    const alertCount = lowStockCount + outStockCount;
-
-    // 2. XÂY DỰNG BỘ LỌC TÌM KIẾM CHO DANH SÁCH
+    // 1. XÂY DỰNG BỘ LỌC TÌM KIẾM CHO DANH SÁCH
     const filter = {};
 
     // Tìm kiếm từ khóa: Tên sách, Tác giả, Mã sách, ISBN
@@ -2345,12 +2297,75 @@ const getInventoryLookup = async (req, res) => {
     else if (sort === 'price_asc') sortObj = { price: 1 };
     else if (sort === 'price_desc') sortObj = { price: -1 };
 
-    const books = await Book.find(filter).sort(sortObj).lean();
+    // 2. CHẠY SONG SONG TÍNH KPI VÀ TRUY VẤN DANH SÁCH QUA PROMISE.ALL
+    const kpiPipelinePromise = Book.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalTitles: { $sum: 1 },
+          totalStock: { $sum: { $ifNull: ['$stock', 0] } },
+          totalRetailValue: {
+            $sum: { $multiply: [{ $ifNull: ['$stock', 0] }, { $ifNull: ['$price', 0] }] }
+          },
+          totalCostValue: {
+            $sum: {
+              $multiply: [
+                { $ifNull: ['$stock', 0] },
+                {
+                  $cond: [
+                    { $gt: ['$costPrice', 0] },
+                    '$costPrice',
+                    { $round: [{ $multiply: [{ $ifNull: ['$price', 0] }, 0.65] }, 0] }
+                  ]
+                }
+              ]
+            }
+          },
+          safeStockCount: {
+            $sum: { $cond: [{ $gt: [{ $ifNull: ['$stock', 0] }, 10] }, 1, 0] }
+          },
+          lowStockCount: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $gte: [{ $ifNull: ['$stock', 0] }, 1] },
+                    { $lte: [{ $ifNull: ['$stock', 0] }, 10] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          },
+          outStockCount: {
+            $sum: { $cond: [{ $lte: [{ $ifNull: ['$stock', 0] }, 0] }, 1, 0] }
+          }
+        }
+      }
+    ]);
 
-    // Lấy thông tin yêu cầu ẩn đang chờ duyệt hoặc đã duyệt chờ thực hiện
-    const activeHideRequests = await BookHideRequest.find({
+    const booksPromise = Book.find(filter).sort(sortObj).lean();
+    const activeHideRequestsPromise = BookHideRequest.find({
       status: { $in: ['pending', 'approved'] }
     }).sort({ createdAt: -1 }).lean();
+
+    const [kpiAgg, books, activeHideRequests] = await Promise.all([
+      kpiPipelinePromise,
+      booksPromise,
+      activeHideRequestsPromise
+    ]);
+
+    const kpiData = kpiAgg[0] || {};
+    const totalTitles = kpiData.totalTitles || 0;
+    const totalStock = kpiData.totalStock || 0;
+    const totalCostValue = Math.round(kpiData.totalCostValue || 0);
+    const totalRetailValue = Math.round(kpiData.totalRetailValue || 0);
+    const safeStockCount = kpiData.safeStockCount || 0;
+    const lowStockCount = kpiData.lowStockCount || 0;
+    const outStockCount = kpiData.outStockCount || 0;
+    const alertCount = lowStockCount + outStockCount;
+    const pendingHideCount = activeHideRequests.filter(r => r.status === 'pending').length;
 
     const hideMap = {};
     activeHideRequests.forEach(hr => {
@@ -2375,8 +2390,6 @@ const getInventoryLookup = async (req, res) => {
         };
       }
     });
-
-    const pendingHideCount = await BookHideRequest.countDocuments({ status: 'pending' });
 
     const enrichedBooks = books.map(b => ({
       ...b,
