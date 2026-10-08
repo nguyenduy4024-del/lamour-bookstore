@@ -1,4 +1,19 @@
 const express = require('express');
+
+// Bắt và xử lý Unhandled Rejection toàn cục để tránh sập Server Node.js
+process.on('unhandledRejection', (reason) => {
+  const msg = (reason && (reason.message || String(reason))) || '';
+  if (
+    msg.includes('cloudflared') ||
+    msg.includes('QuickTunnel') ||
+    msg.includes('trycloudflare') ||
+    msg.includes('untun')
+  ) {
+    return;
+  }
+  console.warn('[UnhandledRejection]', reason);
+});
+
 const compression = require('compression');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
